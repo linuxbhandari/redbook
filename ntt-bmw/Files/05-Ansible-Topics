@@ -1,0 +1,116 @@
+🧰 1. Ansible Basics
+What is Ansible?
+
+Ansible architecture: Control node, managed nodes
+
+Agentless architecture
+
+YAML & Indentation
+
+Inventory files (static & dynamic)
+
+Ad-hoc commands: ansible all -m ping
+
+📁 2. Inventory Management
+Static inventory format (/etc/ansible/hosts)
+
+Grouping hosts ([webservers], [dbservers])
+
+Dynamic inventories (AWS, GCP, etc.)
+
+Host and group variables
+
+📄 3. Playbooks
+Structure of a playbook
+
+hosts, tasks, vars, handlers
+
+Running playbooks: ansible-playbook site.yml
+
+Conditional tasks: when
+
+Loops: with_items, loop
+
+🔁 4. Roles
+Role directory structure (roles/)
+
+Creating a role: ansible-galaxy init
+
+Using roles in playbooks
+
+Role dependencies
+
+Reuse and modularity
+
+📦 5. Modules
+Core modules: copy, template, yum, apt, file, user, service, etc.
+
+Custom modules
+
+Third-party modules
+
+ansible-doc <module> for documentation
+
+🔐 6. Variables and Facts
+Defining variables in playbooks, inventory, command line, etc.
+
+Precedence of variables
+
+Registering variables (register)
+
+Gathering facts: ansible_facts
+
+📊 7. Templates & Jinja2
+Jinja2 templating
+
+Using variables in templates
+
+Conditional logic in templates
+
+.j2 files and the template module
+
+🚨 8. Error Handling & Debugging
+debug and fail modules
+
+Tags: --tags, --skip-tags
+
+Check mode (--check)
+
+Dry-run and verbosity (-v, -vvv)
+
+Error handlers
+
+♻️ 9. Idempotency & Handlers
+What is idempotency?
+
+Handlers and notify
+
+Ensuring safe re-runs
+
+🧪 10. Testing & Linting
+ansible-lint
+
+Molecule for role testing
+
+Syntax checking: ansible-playbook --syntax-check
+
+☁️ 11. Advanced Topics
+Ansible Vault (encrypt secrets)
+
+Ansible Tower / AWX
+
+Dynamic inventory scripts
+
+Custom plugins and filters
+
+Callback plugins (e.g., JSON, YAML, Slack)
+
+🧵 12. Best Practices
+Directory layout
+
+Separation of variables, secrets, and code
+
+Reusability via roles and tasks
+
+Secure use of credentials (Vault)
+

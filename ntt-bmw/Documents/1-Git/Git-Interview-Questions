@@ -1,0 +1,92 @@
+Git : Git is a distributed version control system that tracks changes in source code during software development. It allows multiple developers to collaborate.
+
+Q) What is the difference between Git and GitHub?
+    Git is a tool for version control. GitHub is a cloud-based hosting platform for Git repositories, enabling collaboration and code sharing.
+
+Q) How do you initialize a Git repository?
+    git init
+
+Q) What is the difference between git pull and git fetch?
+    git fetch downloads changes but doesn’t apply them.
+
+    git pull fetches and merges the changes into the current branch.
+
+Q) How do you check the status of your repository?
+    git status
+
+Q) What is a Git branch?
+    A branch in Git is like a separate workspace where you can make changes, add features, fix bugs, or experiment, without changing the main code (usually called the main or master branch).
+
+Q) How do you create and switch to a new branch?
+    git checkout -b new-branch
+
+Q) What is .gitignore?
+    .gitignore is a special file in Git that tells Git which files or directories to ignore (i.e., not track or include in commits).
+
+Q) What is git cherry-pick?
+    git cherry-pick allow you to apply a specific commit from one branch onto another branch.
+    (it's like picking single commit from one branch and putting it onto another branch. You don't need to merge the whole branch. - Just one or more specific commits only.)
+
+
+Q) What are HEAD, working directory, and index?
+
+    HEAD: Current snapshot of the last commit.
+    Working Directory: Current files being edited.
+    Index (Staging Area): Files ready to be committed.
+
+Q) Difference between git reset, git revert, and git checkout?
+
+    git reset: Moves HEAD to a previous state (can change history).
+    git revert: Creates a new commit to undo a previous one. ( preserve history)
+    git checkout: Switches branches or restores files.
+
+Q) How do you undo the last commit?
+    Keep changes:
+        git reset --soft HEAD~1
+    Discard changes:
+        git reset --hard HEAD~1
+
+Q) diff git fetch vs git clone
+   git clone:
+       Purpose: Creates a local copy of a remote repository.
+       Use case: When you're starting with a project for the first time.
+       What it does:
+            Copies the entire repo (history, branches, tags, etc.).
+            Automatically sets up the remote (origin).
+            Creates a working directory
+   git fetch:
+       Purpose: Updates your local copy with new changes from the remote repo.
+       Use case: When you already have a cloned repo and want the latest commits, branches, or tags.
+       What it does:
+            Downloads changes from remote.
+            Does not merge or modify your working branch.
+            Keeps local and remote branches separate until you merge or rebase.
+
+Q) Git Best Practices
+    Write Clear Commit Messages
+    Commit Small, Logical Changes
+    Use Branching Strategy
+    Use .gitignore Wisely
+    Pull Before You Push
+    Use Pull Requests (PRs) : Submit all changes via PRs to get peer review. Always explain what, why, and how in PR descriptions.
+
+    Avoid Committing Secrets
+    Rebase Before Merging 
+    Avoid Force Pushes on Shared Branches
+    Tag Releases
+    Automate Git Hooks : Use pre-commit for linting, formatting, and preventing bad commits.
+    CI/CD Pipelines  : Ensure code is tested before merging using pipelines like GitHub Actions, Jenkins, or GitLab CI.
+
+pending
+=======
+Q) How does Git handle conflicts during a rebase?
+Q) What is a merge conflict and how do you resolve it?
+Q) Difference between git merge and git rebase.
+Q) What is git fork?
+Q) What is the git reflog and how is it useful?
+Q) What is the difference between origin and upstream?
+Q) Git Hooks.
+    Git hooks are scripts that run automatically at certain points in the Git lifecycle (e.g., before a commit or push).
+
+
+

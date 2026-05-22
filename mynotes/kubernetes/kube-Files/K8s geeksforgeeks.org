@@ -1,0 +1,220 @@
+https://www.geeksforgeeks.org/introduction-to-kubernetes-k8s/
+
+Unit-1: Introduction
+=====================
+ => Kubernetes is a open-source container orchestration automates tool that helps us to create, deployment and manage applications without interruption. It was developed by Google Lab in 2014, and it is also known as k8s.
+ => Containers are isolated from each other, so that multiple containers can run on the same machine without interrupting anyone else. 
+ => It allows us to deploy and manage container-based applications across a Kubernetes cluster of machines.
+ => This capability improves the application’s availability.
+ => It is written in Go language and has a vast community because it was first developed by Google and later donated to CNCF (Cloud Native Computing Foundation). 
+ 
+Benefits/Features of Using Kubernetes
+============================
+ 1. Automated deployment and management
+    => It will take care of everything like automating the deployment, scaling, and containerizing the application.
+    => Kubernetes will reduce the errors that can be made by humans which makes the deployment more effective.
+
+ 2. Scalability
+    => You can scale the application containers depending on the incoming traffic Kubernetes offers Horizontal pod scaling the pods will be scaled automatically depending on the load.
+
+ 3. High availability
+    => You can achieve high availability for your application with the help of Kubernetes and also it will reduce the latency issues for the end users.
+
+ 4. Cost-effectiveness
+   => If there is unnecessary use of infrastructure the cost will also increase kubernetes will help you to reduce resource utilization and control the overprovisioning of infrastructure.
+
+ 5. Improved developer productivity
+   => Developer can concentrate more on the developing part kubernetes will reduce the efforts of deploying the application.
+
+ 6. Self-Healing Capabilities
+   => It provides rescheduling, replacing, and restarting the containers that are dead.
+
+ 7. Automated Rollouts and Rollbacks
+   => It supports rollouts and rollbacks for the desired state of the containerized application.
+
+ 8. Horizontal Scaling and Load Balancing
+   => Kubernetes can scale up and scale down the application as per the requirements.
+
+ 9. Resource Utilization
+   => Kubernetes provides resource utilization monitoring and optimization, ensuring containers are using their resources efficiently.
+
+ 10. Support for multiple clouds and hybrid clouds
+   => Kubernetes can be deployed on different cloud platforms and run containerized applications across multiple clouds.
+
+ 11. Extensibility
+   => Kubernetes is very extensible and can be extended with custom plugins and controllers.
+
+ Use cases of Kubernetes in real-world scenarios
+ ================================================
+ Following are the some of the use cases of kuberneets in real-world scenarios
+  1. E-commerce => You deploy and manage the e-commerce websites by autoscaling and load balancing you can manage the millions of users and transactions.
+  2. Media and entertainment => You can store the static and dynamic data can deliver it to the across the world with out any latency to the end users.
+  3. Financial services => kubernetes is well suited for the sinical application because of the level of security it is offering.
+  4. Healthcare => You can store the data of patient and take care the outcomes of the health of patient.
+
+ Architecture of Kubernetes
+ ==========================
+ => Kubernetes follows the client-server architecture where we have the master installed on one machine and the node on separate Linux machines. 
+ => It follows the master-slave model, which uses a master to manage Docker containers across multiple Kubernetes nodes. A master and its controlled nodes(worker nodes) constitute a “Kubernetes cluster”. 
+ => A developer can deploy an application in the docker containers with the assistance of the Kubernetes master. 
+
+ Kubernetes – Monolithic Architecture of Kubernetes
+ ==================================================
+
+ Key components of Kubernetes:
+ =============================
+  1. Kubernetes- Master Node Components (Control plane)
+     a. API Server :
+          => The API server is the entry point for all the REST commands used to control the cluster. All the administrative tasks are done by the API server within the master node. 
+          => It is like an initial gateway to the cluster that listens to updates or queries via CLI like Kubectl. (If we want to create, delete, update or display in Kubernetes object it has to go through this API server)
+          => API server validates and configures the API objects such as ports, services, replication, controllers, and deployments and it is responsible for exposing APIs for every operation.
+          => We can interact with these APIs using a tool called kubectl. "kubectl" is a very tiny go language binary that basically talks to the API server to perform any operations.  
+          => It generally validates requests received and then forwards them to other processes. No request can be directly passed to the cluster, it has to be passed through the API Server.
+           
+     b. Scheduler :
+           => When API Server receives a request for Scheduling Pods then the request is passed on to the Scheduler. 
+           => It intelligently decides on which node to schedule the pod for better efficiency of the cluster.
+           => It is responsible for tracking the utilization of the working load of each worker node and then placing the workload on which resources are available and can accept the workload.
+           => (The scheduler is responsible for scheduling pods across available nodes depending on the constraints you mention in the configuration file it schedules these pods accordingly.)
+           
+     c. Controller Manager :
+           => Also known as controllers. It is a daemon that runs in a non terminating loop and is responsible for collecting and sending information to the API server.
+           => These controllers include the replication controller, which ensures that the desired number of replicas of a given application is running, 
+           => In short, It is responsible for the overall health of the entire cluster by ensuring that nodes are up and running all the time and correct pods are running as mentioned in the specs file. 
+     d. etcd :
+           => It is a distributed key-value lightweight database.
+           => In Kubernetes, it is a central database for storing the current cluster state at any point in time and is also used to store the configuration details such as subnets, config maps, etc. 
+           => It is written in the Go programming language.
+    
+  2. Kubernetes- Worker Node Components 
+      These are the nodes where the actual work happens. Each Node can have multiple pods and pods have containers running inside them. There are 3 processes in every Node that are used to Schedule and manage those pods.
+       a. Container runtime: A container runtime is needed to run the application containers running on pods inside a pod.
+                 Example : 1) dockerd 2) containerd 3) cri-O
+       b. Kubelet
+           => It is a primary node agent which communicates with the master node and executes on each worker node inside the cluster.
+           => It interacts with both the container runtime as well as the Node. It is the process responsible for starting a pod with a container inside.
+           => If kubelet notices any issues with the pods running on the worker nodes then it tries to restart the pod on the same node. 
+           => If the issue is with the worker node itself then the Kubernetes master node detects the node failure and decides to recreate the pods on the other healthy node.
+           
+       c. Kube-Proxy
+           => It is the core networking component inside the Kubernetes cluster and It is responsible for maintaining the entire network configuration.
+           => It maintains the distributed network across all the nodes, pods, and containers and exposes the services across the outside world. 
+           => and acts as a network proxy and load balancer for a service on a single worker node and manages the network routing for TCP and UDP packets. 
+           => It listens to the API server for each service endpoint creation and deletion so for each service endpoint it sets up the route so that you can reach it.
+       
+       d. Pods
+           => A pod is a group of containers that are deployed together on the same host. 
+           => With the help of pods, we can deploy multiple dependent containers together so it acts as a wrapper around these containers so we can interact and manage these containers primarily through pods. 
+
+       e. Nodes:
+           => Each Kubernetes cluster requires at least one worker node, which is a collection of worker machines that make up the nodes where our container will be deployed.
+           
+          Note: more details => https://www.geeksforgeeks.org/introduction-to-kubernetes-k8s/
+
+
+
+How Does A Kubernetes Pod Work?
+================================
+https://www.geeksforgeeks.org/kubernetes-node/ ==> pending
+
+
+
+
+
+Unit-2: Kubernetes – Labels & Selectors
+========================================
+Label and Selectors
+===================
+ => In Kubernetes, Labels and Selectors are mentioned on the configuration file of the deployments and services. They are used to connect kubernetes services with a kubernetes pod.
+ => Labels are any key-value pairs that are used to identify that pod. The pod gets its label through the deployment which is like a blueprint for the pod before the pod is created. 
+ => The Selector matches the label. Labels and selectors are required, to make connections between deployment, pods, and services.
+ 
+
+Unit-3: Kubernetes – Namespaces
+===============================
+ => Kubernetes Namespace is a mechanism that enables you to organize resources. It is like a virtual cluster inside the cluster.
+ => A namespace isolates the resources from the resources of other namespaces. 
+    For example, You need to have different names for deployments/services in a namespace but you can have the same name for deployment in two different namespaces.
+ 
+ => (Namespace is a virtual cluster inside the kubernetes cluster. it will logically isolate the objects of kubernets cluster.)
+ 
+ Initial Namespaces
+ ==================
+ kube-system: System processes like Master and kubectl processes are deployed in this namespace; thus, it is advised not to create or modify the namespace.
+ kube-public: This namespace contains publicly accessible data like a configMap containing cluster information.
+ kube-node-lease: This namespace is the heartbeat of nodes. Each node has its associated lease object. It determines the availability of a node.
+ default: This is the namespace that you use to create your resources by default.
+
+
+ Benefits of Using Kubernetes Namespaces
+ ========================================
+ 1. Isolation of resources for different teams: 
+      => Namespace will isolate the resources which are going to be used in the Kubernetes cluster. 
+      => Namespace in Kubernetes is useful for security, performance, or organizational reasons. 
+      => A namespace can be created for different teams who are going to work on the Kubernetes cluster such as developers teams, testing teams, and other teams.
+
+ 2. RBAC: Namespaces can increase the security of resources that are deployed by using role-based access control. 
+          For example, if the resources are deployed in the dev namespace by using RABAC we control the permissions to the developer team members in that dev namespace in the Kubernetes.
+
+ 3. Organization of resources: 
+      => In a Kubernetes cluster it is very important to maintain the resources which are deployed in the cluster in an organized manner it can be done by using Kubernetes namespaces where you can track and manage the resource which is deployed.
+
+ 4. Increase Performance: 
+      => Resources that are deployed in the Kubernetes cluster are isolated from each other which will help to reduce the burden on the resources like CPU and memory.
+      
+
+
+
+Unit-4: Kubernetes – NodePort Service
+=====================================
+  => NodePort service in Kubernetes is a service that is used to expose the application to the internet from where the end-users can access it. 
+  => If you create a NodePort Service Kubernetes will assign the port within the range of (30000-32767). The application can be accessed by end-users using the node’s IP address.
+ 
+ Types Of Kubernetes Services
+ ============================
+ In Kubernetes, there are 3 types of services to provide discovery and routing between pods.
+ 
+ 1. ClusterIP: It is the default service and its visibility is cluster internal which means it’s not possible to use clusterIP service to reach a micro-service from the internet from outside the cluster.
+ 2. NodePort:  
+      => NodePort extends the ClusterIP service and its visibility is internal and external to the cluster. 
+      => You can set a NodePort using the NodePort property, this is the port that the service will listen on from outside the cluster. 
+      => There is one requirement of using NodePort which is nodes must have public IP addresses. 
+      => The port must be in the range between 30000 and 32767 and if you don’t specify the NodePort value Kubernetes will assign it randomly.
+      
+ 3. LoadBalancer: 
+     => It operates at the transport level (TCP) that is at level 4. It means that is unable to make decisions based on content and it uses a simple algorithm such as a round-robin across the selected paths.   
+     => Whereas Ingress operates at the application level which is at level 7. It is able to make decisions based on the actual content of each message. 
+     => More intelligent load-balancing decisions and content optimizations. In other words, Ingress is like a LoadBalancer but more intelligent.
+ 
+ 
+
+ Difference Between NodePort And ClusterIP
+ ==========================================
+  1. NodePort service will exposes the static port on each IP address and also it allows the traffic from internet to access the pod.
+     Expose the service on an internal IP address which can be reachable with in the cluster.
+    
+
+Q) Why Do We Use NodePort?
+   NodePort to expose the application to the internet from where end users can access the application which is running inside the pod of kubernetes cluster.
+
+Q) Does NodePort Have External IP?
+   NodePort service uses the IP address of the nodes in the cluster it doesn’t contain any external IP address.
+
+Q) Kubernetes NodePort Range?
+   The default nodeport range is 30000-32767. These are the ports where kubernetes exposes each node in the cluster to outside of the cluster.
+   
+Q) Kubernetes NodePort Service Not Accessible
+   Following are the some of the reasons why kubernetes are not accessible.
+	a) Incorrect port mapping
+	b) Firewall rules blocking traffic
+	c) NodePort not allocated 
+      
+ https://www.geeksforgeeks.org/kubernetes-cluster-ip-vs-node-port/?ref=lbp (pending)
+ 
+  Types of services
+  1. NodePort service: accessible from the outside but only in same network.
+  2. ClusterIP service: Only accessible within the cluster.
+  3. Load Balancer service:
+       => on cloud providers which support external load balancers.
+       => Have to provision a Load balancer.
+  4. ExternalName service: services of type external name map a service to a DNS name.

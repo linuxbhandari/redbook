@@ -1,0 +1,30 @@
+parameter_defaults:
+  ControlPlaneDefaultRoute: 192.168.150.1
+
+  # Set static IPs for controllers
+  ControllerIPs:
+    ctlplane:
+    - 192.168.150.155
+    - 192.168.150.116
+    - 192.168.150.151
+  Debug: true
+
+  ControlPlaneVip: 192.168.150.101
+
+  NodePortMap:
+    controller-0:
+      ip_address: 192.168.150.155
+    controller-1:
+      ip_address: 192.168.150.116
+    controller-2:
+      ip_address: 192.168.150.151
+
+  ControlPlaneSubnetCidr: "192.168.150.0/24"
+  ControlPlaneNetwork:
+    cidr: "192.168.150.0/24"
+    gateway: "192.168.150.1"
+
+  # Optional DNS, if required
+  DnsServers:
+    - 8.8.8.8
+    - 1.1.1.1

@@ -1,0 +1,4 @@
+---
+# defaults file for roles/laptop_setup
+sudo_user: "manish"
+password: "a"

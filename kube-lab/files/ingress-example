@@ -1,0 +1,73 @@
+How to create ingress.
+======================
+
+
+
+root@kube-master:~/kube-lab/gitops-lab/apps# kubectl get service
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP        14d
+myapp        NodePort    10.98.242.161   <none>        80:30872/TCP   4d11h
+
+root@kube-master:~/kube-lab/gitops-lab/apps# kubectl create ingress myapp-ingress --class=nginx --rule="myapp-ingress.example.com/*=myapp:30872" 
+ingress.networking.k8s.io/myapp-ingress created
+
+root@kube-master:~/kube-lab/gitops-lab/apps# kubectl get ingress myapp-ingress -o yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  creationTimestamp: "2026-02-05T12:09:28Z"
+  generation: 1
+  name: myapp-ingress
+  namespace: default
+  resourceVersion: "179474"
+  uid: 65db7519-f7ab-4c4a-8a86-2ddd99e84ef0
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: myapp-ingress.example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: myapp
+            port:
+              number: 30872
+        path: /
+        pathType: Prefix
+status:
+  loadBalancer: {}
+
+
+root@kube-master:~/kube-lab/gitops-lab/apps# kubectl get ing
+NAME            CLASS   HOSTS                       ADDRESS   PORTS   AGE
+myapp-ingress   nginx   myapp-ingress.example.com             80      101s
+
+
+
+root@kube-master:~/kube-lab/gitops-lab/apps# curl myapp-ingress.example.com
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+

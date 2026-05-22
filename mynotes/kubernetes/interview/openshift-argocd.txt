@@ -1,0 +1,14 @@
+oc create namespace argocd
+oc apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+    oc create secret generic argocd-redis --from-literal=auth=$(openssl rand -base64 32) -n argocd
+
+manish@bhandari:~$ oc expose service argocd-server -n argocd
+route/argocd-server exposed
+manish@bhandari:~$ oc get route
+NAME            HOST/PORT                               PATH   SERVICES        PORT   TERMINATION   WILDCARD
+argocd-server   argocd-server-argocd.apps-crc.testing          argocd-server   http                 None
+
+
+oc patch configmap argocd-cmd-params-cm -n argocd --type merge -p '{"data":{"server.insecure":"true"}}'
+oc rollout restart deployment argocd-server -n argocd
+

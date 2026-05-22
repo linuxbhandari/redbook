@@ -1,0 +1,94 @@
+{
+    "results": [
+        {
+            "Duration": "0:00:00.629",
+            "Host_Group": "localhost",
+            "Status": "FAILED",
+            "Status_by_Host": "localhost,FAILED",
+            "UUID": "7ef83980-cc81-465a-82e2-17ef0e0e303b",
+            "Unreachable_Hosts": "",
+            "Validations": "check-cpu"
+        },
+        {
+            "Duration": "0:00:02.457",
+            "Host_Group": "localhost",
+            "Status": "PASSED",
+            "Status_by_Host": "localhost,PASSED",
+            "UUID": "93f8de56-0b90-4686-9f96-e6d1dac567b8",
+            "Unreachable_Hosts": "",
+            "Validations": "check-disk-space"
+        },
+        {
+            "Duration": "0:00:00.748",
+            "Host_Group": "localhost",
+            "Status": "FAILED",
+            "Status_by_Host": "localhost,FAILED",
+            "UUID": "0fa4c060-3656-451d-a7b8-5217e2d0b68a",
+            "Unreachable_Hosts": "",
+            "Validations": "check-ram"
+        },
+        {
+            "Duration": "0:00:01.018",
+            "Host_Group": "localhost",
+            "Status": "PASSED",
+            "Status_by_Host": "localhost,PASSED",
+            "UUID": "69832c51-1497-49c5-b0f9-9fcbb638aed1",
+            "Unreachable_Hosts": "",
+            "Validations": "check-selinux-mode"
+        },
+        {
+            "Duration": "",
+            "Host_Group": "undercloud",
+            "Status": "FAILED",
+            "Status_by_Host": "No host matched,FAILED",
+            "UUID": "833c78a1-ad01-440a-a058-b530151ef128",
+            "Unreachable_Hosts": "",
+            "Validations": "check-network-gateway"
+        },
+        {
+            "Duration": "",
+            "Host_Group": "undercloud",
+            "Status": "FAILED",
+            "Status_by_Host": "No host matched,FAILED",
+            "UUID": "30045b2f-a5e1-4236-8961-008711557081",
+            "Unreachable_Hosts": "",
+            "Validations": "undercloud-disk-space"
+        },
+        {
+            "Duration": "",
+            "Host_Group": "undercloud",
+            "Status": "FAILED",
+            "Status_by_Host": "No host matched,FAILED",
+            "UUID": "519a381f-41b1-4598-8d49-faff84c0b31d",
+            "Unreachable_Hosts": "",
+            "Validations": "ctlplane-ip-range"
+        },
+        {
+            "Duration": "",
+            "Host_Group": "undercloud",
+            "Status": "FAILED",
+            "Status_by_Host": "No host matched,FAILED",
+            "UUID": "f97d3d45-750c-492f-9f94-e285d264802d",
+            "Unreachable_Hosts": "",
+            "Validations": "undercloud-neutron-sanity-check"
+        },
+        {
+            "Duration": "",
+            "Host_Group": "undercloud",
+            "Status": "FAILED",
+            "Status_by_Host": "No host matched,FAILED",
+            "UUID": "2dd73294-e8da-4561-97f9-513b410c8e6d",
+            "Unreachable_Hosts": "",
+            "Validations": "dhcp-introspection"
+        },
+        {
+            "Duration": "",
+            "Host_Group": "undercloud",
+            "Status": "FAILED",
+            "Status_by_Host": "No host matched,FAILED",
+            "UUID": "6e03a51c-1dd8-4aaf-9ca6-71a13654a9e8",
+            "Unreachable_Hosts": "",
+            "Validations": "undercloud-tokenflush"
+        }
+    ]
+}

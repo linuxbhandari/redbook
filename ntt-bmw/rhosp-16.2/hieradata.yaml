@@ -1,0 +1,17 @@
+ironic::config::ironic_config:
+#  pxe/ipxe_enabled:
+#    value: true
+#  pxe/http_root:
+#    value: /var/lib/ironic/httpboot
+#  pxe/tftp_master_path:
+#    value: /var/lib/ironic/tftpboot
+  ipmi/use_ipmitool_retries:
+    value: true
+  ipmi/retry_timeout:
+    value: 60
+#  ipmi/min_command_interval:
+#    value: 5
+#  ipmi/command_retry_timeout:
+#    value: 5
+#  ipmi/kill_on_timeout:
+#    value: true

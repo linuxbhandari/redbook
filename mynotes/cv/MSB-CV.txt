@@ -1,0 +1,141 @@
+Manish Singh Bhandari
+📍 Greater Noida, Uttar Pradesh, India
+📞 +91-9711287629
+✉️ manishbhandari148@gmail.com
+====================================================================
+Professional Summary
+Experienced Cloud & Platform Engineer with 14+ years of expertise in OpenShift, Kubernetes, OpenStack, Linux administration, automation, and enterprise infrastructure management. Skilled in managing scalable, highly available production environments across cloud and on-premises platforms. Strong hands-on experience in OpenShift cluster administration, GitOps-based deployments, infrastructure automation, monitoring, and production support. Proven ability to deliver enterprise-grade solutions for global clients in mission-critical environments.
+
+Certifications
+    * Red Hat Certified OpenShift Administrator
+    * Certified Kubernetes Administrator (CKA)
+    * Red Hat Enterprise Linux OpenStack Platform Certified
+    * Red Hat Certified Engineer (RHCE)
+    * Red Hat Certified System Administrator (RHCSA)
+
+
+Key Skills
+    * Container & Cloud Platforms
+    * Kubernetes
+    * OpenShift
+    * OpenStack
+    * Docker
+    * DevOps & GitOps
+    * ArgoCD
+    * Jenkins
+    * Git
+    * CI/CD Pipelines
+    * Automation & Scripting
+    * Ansible
+    * Bash Scripting
+
+
+Monitoring & Observability
+    * Prometheus
+    * Grafana
+    * Kibana
+
+Storage & Infrastructure
+    * Ceph
+    *iSCSI
+    * LVM
+    * High Availability Clustering
+
+Operating Systems
+    * Red Hat Enterprise Linux
+    * CentOS
+
+
+Professional Experience
+NTT DATA Services Pvt. Ltd.
+Senior Cloud / Platform Engineer
+2021 – Present
+
+Project: UPS (Current Project) – Client: UPS, USA
+
+OpenShift & Kubernetes Administration
+    * Managed and supported enterprise OpenShift applications across Production and Non-Production environments.
+    * Performed OpenShift cluster upgrades and patching activities ensuring platform stability and minimal downtime.
+    * Added and removed worker nodes in OpenShift clusters for scaling and maintenance operations.
+    * Managed Kubernetes/OpenShift resources including Pods, Deployments, StatefulSets, Services, Routes, ConfigMaps, and Secrets.
+    * Implemented RBAC and namespace-level access controls for secure cluster operations.
+    * Performed troubleshooting and issue resolution using oc and kubectl.
+GitOps & Application Deployment
+    * Deployed and managed applications using ArgoCD following GitOps practices.
+    * Managed synchronization and automated deployment workflows across environments.
+    * Installed, configured, and upgraded OpenShift Operators for platform and application services.
+Monitoring & Production Support
+    * Monitored cluster and application health using Prometheus and Grafana dashboards.
+    * Participated in production support, incident troubleshooting, root cause analysis (RCA), and on-call rotations.
+    * Coordinated with application and infrastructure teams during deployments and maintenance activities.
+
+
+
+Project: BMW
+OpenStack & Infrastructure Management
+    * Managed OpenStack projects, instances, quotas, and storage resources.
+    * Provisioned and decommissioned compute and Ceph storage nodes.
+    * Performed infrastructure maintenance and coordinated with hardware vendors.
+Ceph Storage Administration
+    * Managed OSD operations, cluster maintenance, and storage optimization activities.
+    * Performed storage troubleshooting, reweighting, and cluster health remediation.
+    * Maintained storage availability during patching and hardware replacement activities.
+Automation & Monitoring
+    * Automated operational tasks using Ansible playbooks and reusable roles.
+    * Conducted infrastructure monitoring and daily health checks using Prometheus and Grafana.
+    * Configured Alertmanager for proactive alerting and monitoring.
+
+
+
+Velocis Systems Pvt. Ltd.
+System Administrator / DevOps Engineer
+2017 – 2021
+DevOps & CI/CD
+    * Managed Jenkins jobs, pipelines, plugins, RBAC, and distributed build environments.
+    * Configured parallel builds and automated CI/CD deployment workflows.
+    * Integrated Git repositories with CI/CD pipelines and managed branching strategies.
+
+Linux & Infrastructure Administration
+    * Performed Linux OS hardening, patching, and vulnerability remediation.
+    * Managed enterprise Linux servers in production environments.
+    * Automated operational tasks using Bash scripting.
+
+Monitoring & High Availability
+    * Installed and configured Nagios monitoring solutions.
+    * Implemented high-availability clustering solutions using Pacemaker.
+    * Supported Apache Tomcat environments and load balancing configurations.
+
+
+
+Keen & Able Computers Pvt. Ltd.
+Linux System Administrator
+2012 – 2017
+
+    * Installed, configured, and maintained Red Hat Enterprise Linux and CentOS servers.
+    * Provided 24/7 L2 production support in high-availability environments.
+    * Troubleshot OS and kernel-level issues to ensure system stability and performance.
+    * Automated deployments and system administration tasks using Puppet and Bash scripting.
+    * Managed Docker environments and infrastructure operations.
+    * Configured and maintained MySQL replication environments.
+    * Monitored infrastructure and handled incidents as per SLA requirements.
+
+
+
+Education
+Master of Computer Applications (MCA)
+Integral University
+Bachelor of Science in Information Technology (B.Sc. IT)**
+PTU University
+
+Achievements
+    * Recipient of the Delivery Excellence Award (CDM) at NTT DATA Services
+
+Professional Highlights
+    * 14+ years of experience in Linux, Cloud, and Platform Engineering
+    * Strong expertise in OpenShift and Kubernetes cluster administration
+    * Hands-on experience with GitOps and ArgoCD deployments
+    * Experience supporting enterprise production environments for global clients
+    * Strong troubleshooting, automation, and infrastructure management skills
+    * Proven experience in high-availability and mission-critical environments
+
+

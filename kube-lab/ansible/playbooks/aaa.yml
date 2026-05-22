@@ -1,0 +1,74 @@
+- hosts: all
+  gather_facts: True
+  tasks:
+    - name: Try to install a non-existent package
+      dnf:
+        name: nonexistent-package
+        state: present
+      ignore_errors: yes
+
+    - name: Check disk space
+      shell: df -h /
+      register: disk_output
+      #failed_when: "'3%' in disk_output.stdout"
+
+    - debug:
+        msg: "{{ disk_output }}"
+      failed_when: "'3%' in disk_output.stdout"
+
+    - name: Working on Ubuntu
+      block:
+        - name: update apt cache
+          apt:
+            update_cache: yes
+
+        - name: Install required packages with loop in Ubuntu
+          apt:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - vim
+            - vsftpd
+            - apache2
+
+        - name: Install single package
+          apt:
+            name: unzip
+            state: present
+
+        - name: Start required Services
+          service:
+            name: "{{ item }}"
+          loop:
+            - vsftpd
+            - nginx
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages with loop in RHEL
+      dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - vim
+        - vsftpd
+        - httpd
+      when: ansible_os_family == "RedHat"
+
+    - name: creating directory
+      file:
+        path: /tmp/data
+        state: directory
+      tags:
+        - file
+
+    - name: copy file
+      copy:
+        src: test-file
+        dest: /tmp/
+
+    #- name: Install web/db packages
+    #  ansible.builtin.package:
+    #    name: "{{ web_package | default(db_package, true) }}"
+    #    state: present
+    #  tags:
+    #    - pack

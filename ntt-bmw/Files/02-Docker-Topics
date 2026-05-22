@@ -1,0 +1,74 @@
+📦 1. Docker Basics
+	What is Docker?
+	Docker vs Virtual Machines
+	Docker Engine & Docker Architecture (Client, Daemon, Registries)
+	Images vs Containers
+	Docker Hub / Docker Registries
+	Common Docker Commands (run, ps, exec, stop, rm, etc.)
+
+⚙️ 2. Dockerfile
+	Writing a Dockerfile
+	Dockerfile instructions: FROM, RUN, COPY, CMD, ENTRYPOINT, WORKDIR, ENV, EXPOSE
+	Multi-stage builds
+	Best practices for Dockerfile
+
+📂 3. Docker Images	
+	Creating an image: docker build -t <name> .
+	Listing images: docker images
+	Removing images: docker rmi <image>
+	Image layers & caching
+	Tagging and versioning
+
+🧱 4. Docker Containers
+	Running a container: docker run
+	Detached vs interactive mode
+	Port binding: -p 8080:80
+	Mounting volumes: -v /host:/container
+	Inspecting containers: docker inspect, docker logs
+	Container lifecycle
+
+🔄 5. Docker Volumes & Bind Mounts
+	Named volumes vs bind mounts
+	Creating & managing volumes: docker volume create, docker volume ls
+	Data persistence strategies
+	Backing up/restoring volumes
+
+🌐 6. Docker Networking
+	Docker network types: bridge, host, none, overlay
+	Creating custom networks: docker network create
+	Connecting containers across networks
+	Inspecting networks: docker network inspect
+
+🗃️ 7. Docker Compose
+	docker-compose.yml structure
+	Defining services, volumes, networks
+	Commands: up, down, build, logs, exec
+	Environment variables in Compose
+	Compose vs Swarm
+
+🛠️ 8. Docker Registry & Repositories
+	Working with Docker Hub
+	Private registries (e.g., Harbor, self-hosted)
+	Pushing/pulling images
+	docker login, docker tag, docker push
+
+🔐 9. Docker Security
+	Image scanning (e.g., docker scan)
+	Docker Content Trust (DCT)
+	Least privilege containers
+	Seccomp, AppArmor, and capabilities
+	Secrets management
+
+☁️ 10. Docker in Production
+	Docker Swarm basics
+	Docker with Kubernetes (K8s)
+	Orchestrating containers
+	Logging, monitoring (Grafana, Prometheus, ELK)
+	Health checks
+
+🔍 11. Troubleshooting
+	docker logs, docker inspect
+	Common container errors
+	Debugging failed builds
+	Removing dangling images/volumes
+

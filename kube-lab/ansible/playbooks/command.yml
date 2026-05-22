@@ -1,0 +1,19 @@
+- hosts: all
+  gather_facts: false
+  vars:
+    server_1: a # String varibles examples
+    server_2: b
+    user1: manish
+    pass1: abc
+    mypackages:  # Listing varibles examples
+          - ftp
+          - wget
+          - vsftpd
+  vars_files:
+  tasks:
+  - name: run echo command
+    command: ls -l /tmp
+    register: foo
+  
+  - debug:
+      msg: "{{ foo.stdout_lines }}"

@@ -1,0 +1,764 @@
+=================================
+Session-6: Unit Volume Management
+=================================
+Q) What are Kubernetes volumes?
+ =>  Kubernetes provides various volume plug-ins that can be mounted inside the container to store some data temporarily or in a persistent manner, or locally as well.
+
+Q) What is remote storage?
+ => Remote storage can be the Cloud volume plug-ins, GlusterFs, and NFS. All these can be created as remote storage.
+ => You have external storage outside of your Gluster, and your data can be saved over there. So even if the Gluster goes down, your data is still safe.
+
+Q) What is ephemeral storage?
+ =>
+We have two way to provision volume in k8s.
+  1) Static (Not use in compines these days)
+  2) Dynamic (Mostly in use)
+      => PV place automatically whenever you required.
+
+  Note: To mount any volume you required two resource on kubernetes.
+
+1) PV : persistence volume => It contains storage related information, which you want provide for your container later.
+                           => pv is cluster-wide object. it is always avalible of all namespace.
+	1) storage URL
+	2) type
+	3) side
+	4) AccessMode
+
+    Note: cluster wide object. (means is not for single team, it is for full cluster. anyone can use this.)
+
+2) PVC : presistence volume clean.  			==>>  It is a request of vomlume for deployment.
+
+
+AccessMode:
+===========
+1) ReadwriteOnce: pv can mount at a time on the one node.( This restriction is node wise not pod wide.) means multiple pod can write data on same node. (Drop-back is it will not present data. data cloud be corrept due mutiple write operations)
+
+  2) ReadwriteMany: one pv can be mount on multiple worker nodes and can write data multiple pods
+  3) ReadOnlyMany : multiple worker nodes can mount with read-only access.
+  4) ReadWriteOncePod :
+
+The access modes are:
+
+ReadWriteOnce – the volume can be mounted as read-write by a single node ... RWO
+ReadOnlyMany – the volume can be mounted read-only by many nodes ... ROX
+ReadWriteMany – the volume can be mounted as read-write by many nodes ... RWX
+
+
+IQ) What one is best ?
+   It depend on your application and storage type like nfs or SAN.
+
+# kubectl get pv  ==> To get pv status all namespace(because pv is not for sepecrate namespace)  ==> -n is not required.
+
+IQ) Which one we need to create first. pv or pvc?
+ 	  a) In static provisioning => It does not matter, you could pvc request first also and you will get once pv avaliable.
+ 	  														you request will be in pending stage till not get the pv
+
+      b) In Dynamic provising => pv will automatically get once you create a request, because it is dynamic.
+
+Flow
+====
+Namespace => Pod => Deployment => PVC => PV => Storageserver(SAN/NAS)
+
+Static provisioning
+===================
+Rclaime policy:
+ 1) Recycle: if pvc deleted then pv it avalible for new claim/team/use.(file lost)
+ 2) Retain : if pvc deleted then pv remain is same state(no data list)
+ 3) deleted: completely pv + data lost.
+
+Note:
+	=> create the nfs server and share the filesystem.
+    => You can only create PV through file method.
+	=> Static PV cannot be extend
+
+root@kube-master:~# kubectl api-resources --namespaced=true/false
+true : only for seperatte namespace.
+false : avalible for ALL
+
+root@kube-master:~# cat > nfs-pv1.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv-vol1
+spec:
+  capacity:
+    storage: 2Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Recycle
+  nfs:
+    path: /share
+    server: kube-master
+
+Noted : volumeMode: Filesystem
+===============================
+Filesystem => NFS
+Raw        => SAN
+
+root@kube-master:~# kubectl create -f nfs-pv1.yml
+root@kube-master:~/volume# kubectl get pv
+
+IQ) What are pv stages are:
+	1) Available => it if avalible
+	2) Bound     => already use in namespace
+	3) Released  => when pvc delete and it policy release.
+	4) failed    => when pvc unable to claim due to any reason.
+
+How to calim this PV
+=====================
+root@kube-master:~# cat > nfs-pvc-vol1.yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc-vol1
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 2Gi
+
+root@kube-master:~# kubectl create -f pvc.yml
+root@kube-master:~# kubectl get pvc
+NAME           STATUS   VOLUME        CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+nfs-pvc-vol1   Bound    nfs-pv-vol1   2Gi        RWX                           <unset>                 2m30s
+
+root@kube-master:~# kubectl create deployment web --image=nginx --dry-run=client -o yaml > a.yml
+root@kube-master:~# cat a.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: web
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: web
+    spec:
+      volumes:
+          - name: logs
+            persistentVolumeClaim:
+                  claimName: nfs-pvc-vol1
+      containers:
+      - image: nginx
+        name: nginx
+        volumeMounts:
+                - mountPath: /usr/share/nginx/html
+                  name: logs
+
+root@kube-master:~# kubectl create -f a.yml
+
+root@kube-master:~# kubectl get pod -n krnetwork
+NAME                         READY   STATUS    RESTARTS   AGE
+webserver-54ccdd5cc4-shm8w   0/1     Pending   0          39s
+
+
+      Note: nfs-common agent should be install on all worker nodes
+
+root@kube-node1:~# apt update -y
+root@kube-node1:~# apt install nfs-common
+
+      Note: use storage with gluster or ceph as a volume >> pratice
+
+root@kube-master:~# kubectl get pod  -o wide
+NAME                   READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+web-86448bc996-7gllv   1/1     Running   0          99s   172.17.119.185   kube-node3   <none>           <none>
+
+
+root@kube-master:~/deployments/k8s# kubectl exec -it web-86448bc996-7gllv -- bash
+root@web-86448bc996-7gllv:/# df -h
+Filesystem          Size  Used Avail Use% Mounted on
+overlay              24G   14G  9.0G  61% /
+tmpfs                64M     0   64M   0% /dev
+tmpfs               2.0G     0  2.0G   0% /sys/fs/cgroup
+/dev/vda5            24G   14G  9.0G  61% /etc/hosts
+shm                  64M     0   64M   0% /dev/shm
+kube-master:/share   24G   14G  8.9G  62% /usr/share/nginx/html      <<<<<<<<<<
+tmpfs               3.8G   12K  3.8G   1% /run/secrets/kubernetes.io/serviceaccount
+tmpfs               2.0G     0  2.0G   0% /proc/asound
+tmpfs               2.0G     0  2.0G   0% /proc/acpi
+tmpfs               2.0G     0  2.0G   0% /proc/scsi
+tmpfs               2.0G     0  2.0G   0% /sys/firmware
+
+root@kube-master:/share# echo "nfs works" > index.html
+root@kube-master:/share# kubectl get pod -o wide
+NAME                   READY   STATUS    RESTARTS   AGE    IP               NODE         NOMINATED NODE   READINESS GATES
+web-86448bc996-7gllv   1/1     Running   0          4m5s   172.17.119.185   kube-node3   <none>           <none>
+
+root@kube-master:/share# curl 172.17.119.185
+nfs works
+
+root@web-86448bc996-7gllv:/# mount | grep nfs
+kube-master:/share on /usr/share/nginx/html type nfs4 (rw,relatime,vers=4.2,rsize=524288,wsize=524288,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=192.168.122.132,local_lock=none,addr=192.168.122.215)
+
+
+IQ) How to integrate ceph with kubernetes?(Task)
+IQ) How pvc pick pv with any name or what is default factor to choose pv?
+   when pvc request come to api for pv. then api check two things.
+      1) pvc request size
+      2) access mode
+   if pvc request size and access mode is match with pvc when pvc claim this pv.
+   and if we have same size of pv and access mode then pvc will take according to order which is avalible first.
+
+
+root@kube-master:~/deployments/k8s# kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv1    2Gi        RWX            Recycle          Available                          <unset>                          36m
+pv2    2Gi        RWX            Recycle          Available                          <unset>                          36m
+
+root@kube-master:~/deployments/k8s# kubectl create -f pvc1.yml
+persistentvolumeclaim/pv1 created
+
+root@kube-master:~/deployments/k8s# kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM         STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv1    2Gi        RWX            Recycle          Bound       default/pv1                  <unset>                          36m
+pv2    2Gi        RWX            Recycle          Available                                <unset>                          36m
+
+root@kube-master:~/deployments/k8s# kubectl get pvc
+NAME   STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+pv1    Bound    pv1      2Gi        RWX                           <unset>                 5s
+
+
+Q) How you can get specific pv
+===============================
+=> you can get this through this via labels.
+
+root@kube-master:~# kubectl label persistentvolume pv1 role=sg1
+persistentvolume/pv1 labeled
+root@kube-master:~# kubectl get pv --show-labels
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE   LABELS
+pv1    2Gi        RWX            Recycle          Available                          <unset>                          85s   role=sg1
+pv2    2Gi        RWX            Recycle          Available                          <unset>                          83s   <none>
+
+or
+
+root@kube-master:~# cat pv1.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv1
+  labels:
+    role: sg1                    <<<<<<< labels
+spec:
+  capacity:
+    storage: 2Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Recycle
+  nfs:
+    path: /share1
+    server: kube-master
+
+root@kube-master:~# kubectl create -f pv1.yml
+
+root@kube-master:~# kubectl get pv --show-labels
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE    LABELS
+pv1    2Gi        RWX            Recycle          Available                          <unset>                          105s   role=sg1
+
+You can also do the same with storageClassName
+==============================================
+1) remove all pvc and pv first
+2) create pv file with storageclassname.
+
+root@kube-master:~# cat pv1.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv1
+  labels:
+    role: sg1
+spec:
+  capacity:
+    storage: 2Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Recycle
+  storageClassName: red                    <<<< add storageclass and do same for pv2 with blue
+  nfs:
+    path: /share1
+    server: kube-master
+
+
+root@kube-master:~# kubectl create -f pv1.yml
+root@kube-master:~# kubectl create -f pv2.yml
+
+root@kube-master:~# kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv1    2Gi        RWX            Recycle          Available           red            <unset>                          5s
+pv2    2Gi        RWX            Recycle          Available           blue           <unset>                          3s
+
+
+root@kube-master:~# cat pvc1.yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc1
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: red                 <<<<<
+
+root@kube-master:~# kubectl create -f pvc1.yml
+root@kube-master:~# kubectl get pvc
+NAME   STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+pvc1   Bound    pv1      2Gi        RWX            red            <unset>                 2s
+
+root@kube-master:~# kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM          STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv1    2Gi        RWX            Recycle          Bound       default/pvc1   red            <unset>                          10m
+pv2    2Gi        RWX            Recycle          Available                  blue           <unset>                          3m57s
+
+root@kube-master:~# kubectl delete -f pvc1.yml
+root@kube-master:~# kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM          STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv1    2Gi        RWX            Recycle          Failed      default/pvc1   red            <unset>                          10m
+pv2    2Gi        RWX            Recycle          Available                  blue           <unset>                          4m4s
+
+
+Run below command if pv show failed after delete pvc1
+=====================================================
+kubectl patch pv pv1 -p '{"spec":{"claimRef": null}}'
+
+
+Now only specific namespace and specific pv name claim
+
+root@kube-master:~# cat nfs-pv1.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv1
+  labels:
+     env: prod
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Recycle
+  nfs:
+    path: /shared/pv1
+    server: kube-master
+  claimRef:                                   <==
+      name: demo                              <== pv name
+      namespace: default                      <== namespace name
+
+
+root@kube-master:~# cat pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myclaims
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 5Gi
+
+root@kube-master:~# kubectl create -f pvc.yaml
+persistentvolumeclaim/myclaims created
+root@kube-master:~#
+root@kube-master:~# kubectl get pvc
+NAME       STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+myclaims   Pending                                                     5s               <<== still unable to claim
+
+root@kube-master:~# kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM          STORAGECLASS   REASON   AGE
+pv1    5Gi        RWX            Recycle          Available   default/demo                           72s
+
+
+Now how to claim this
+=====================
+
+root@kube-master:~# cat pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo                          <<== replace the myclaim with demo
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 5Gi
+
+root@kube-master:~# kubectl delete pvc myclaims
+persistentvolumeclaim "myclaims" deleted
+
+root@kube-master:~# kubectl create -f pvc.yaml
+persistentvolumeclaim/demo created
+
+root@kube-master:~# kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM          STORAGECLASS   REASON   AGE
+pv1    5Gi        RWX            Recycle          Bound    default/demo                           3m16s
+
+root@kube-master:~# kubectl get pvc
+NAME   STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+demo   Bound    pv1      5Gi        RWX                           105s
+
+=> Static pv we cannot increase. only dyamic pv we can extend on runtime.
+
+
+Dynamic provisiong
+==================
+1) Storage Class
+2) Storage Provisioner Agent.(NFS) (work as a backend and hander pv instructions.)
+
+PVC => Storageclasss => Provisioner => StorageServer(information)
+
+
+root@kube-master:~# git clone https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner.git
+Cloning into 'nfs-subdir-external-provisioner'...
+remote: Enumerating objects: 7792, done.
+remote: Counting objects: 100% (1638/1638), done.
+remote: Compressing objects: 100% (259/259), done.
+remote: Total 7792 (delta 1423), reused 1455 (delta 1376), pack-reused 6154
+Receiving objects: 100% (7792/7792), 8.44 MiB | 2.01 MiB/s, done.
+Resolving deltas: 100% (4446/4446), done.
+
+root@kube-master:~# cd nfs-subdir-external-provisioner/deploy/objects/
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# ls -l
+total 32
+-rw-r--r-- 1 root root  246 Dec 30 21:05 class.yaml                  <<==
+-rw-r--r-- 1 root root  366 Dec 30 21:05 clusterrolebinding.yaml
+-rw-r--r-- 1 root root  607 Dec 30 21:05 clusterrole.yaml
+-rw-r--r-- 1 root root 1069 Dec 30 21:05 deployment.yaml
+-rw-r--r-- 1 root root  133 Dec 30 21:05 README.md
+-rw-r--r-- 1 root root  449 Dec 30 21:05 rolebinding.yaml
+-rw-r--r-- 1 root root  307 Dec 30 21:05 role.yaml
+-rw-r--r-- 1 root root  155 Dec 30 21:05 serviceaccount.yaml
+
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# cat class.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfsclass                   <<<==
+provisioner: testnfs # or choose another name, must match deployment's env PROVISIONER_NAME'    <<<==
+parameters:
+  archiveOnDelete: "false"
+
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl create -f class.yaml
+storageclass.storage.k8s.io/nfsclass created
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl get sc
+NAME       PROVISIONER   RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+nfsclass   testnfs       Delete          Immediate           false                  54s
+
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl create -f serviceaccount.yaml
+serviceaccount/nfs-client-provisioner created
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl get serviceaccounts
+NAME                     SECRETS   AGE
+default                  0         4d6h
+nfs-client-provisioner   0         14s
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl create -f clusterrole.yaml
+clusterrole.rbac.authorization.k8s.io/nfs-client-provisioner-runner created
+
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl create -f role.yaml
+role.rbac.authorization.k8s.io/leader-locking-nfs-client-provisioner created
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl create -f rolebinding.yaml
+rolebinding.rbac.authorization.k8s.io/leader-locking-nfs-client-provisioner created
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl create -f clusterrolebinding.yaml
+clusterrolebinding.rbac.authorization.k8s.io/run-nfs-client-provisioner created
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl get sa -n default           << to check service account
+NAME                     SECRETS   AGE
+default                  0         4d7h
+nfs-client-provisioner   0         17m
+
+
+root@kube-master:~/nfs-subdir-external-provisioner/deploy/objects# kubectl create -f deployment.yaml  <<< did some chanages
+deployment.apps/nfs-client-provisioner created
+
+=====Steps are=========
+1) StorageClass
+2) Role and access provide on API level for provisinoer service(5 manifest)
+3) Deployment provisinor service.
+
+
+
+root@kube-master:~# cat pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: nfsclass
+
+
+<<< pratical not successfull I will do later
+
+How to create pv using hostpath
+================================
+when you need local volume of work node. then we have two way.
+
+1) hostpath : hostPath that mounts the node's disk inside the containe. if your pod is pinned up on another node where the hostPath is not there, there can be inconsistencies, but there are certain use cases for the usage of hostPath.
+2) local path :
+3) emptyDir (partial peding)
+
+IQ) difference between local and hostpath?
+   => In hostpath api create folder automatically where local not. in local volume you will get volume only where you want like on node1.
+      then when your container run on node2. it will not get folder there.
+
+hostpath volume
+ => when you application required local volume in readonly mode from work-node.(from node where container running.)
+
+
+root@kube-master:~# cat > hostpath-vol.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hostpath-pv-volume
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  hostPath:
+    path: "/mnt/data"
+
+
+root@kube-master:~# kubectl create -f hostpath-vol.yaml
+root@kube-master:~# kubectl get pv
+NAME                 CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS    REASON   AGE
+hostpath-pv-volume   5Gi        RWO            Delete           Available           local-storage            2s
+
+root@kube-master:~# cat pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hostpath-pvc-vol1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 5Gi
+
+root@kube-master:~# kubectl create -f pvc.yaml
+root@kube-master:~# kubectl get pvc
+NAME                STATUS   VOLUME               CAPACITY   ACCESS MODES   STORAGECLASS    AGE
+hostpath-pvc-vol1   Bound    hostpath-pv-volume   5Gi        RWO            local-storage   2s
+
+
+root@kube-master:~# cat deploy.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: webserver
+  name: webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webserver
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: webserver
+    spec:
+      volumes:
+           - name: logs
+             persistentVolumeClaim:
+                     claimName: hostpath-pvc-vol1
+      containers:
+      - image: nginx
+        name: nginx
+        volumeMounts:
+                - mountPath: /usr/share/nginx/html
+                  name: logs
+
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                                      READY   STATUS             RESTARTS       AGE     IP             NODE         NOMINATED NODE   READINESS GATES
+webserver-74f47bb66c-5pncs                1/1     Running            0              2m15s   172.17.9.106   kube-node1   <none>           <none>
+
+root@kube-node1:/mnt/data# echo "kube-node1" > index.html
+
+root@kube-master:~# curl 172.17.9.106
+kube-node1
+
+
+
+Local volume
+============
+
+root@kube-master:~# cat local-vol.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-pv
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-vol-storage
+  local:
+    path: /mnt/local
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - kube-node1
+
+root@kube-master:~# kubectl create -f local-vol.yaml
+persistentvolume/local-pv created
+root@kube-master:~# kubectl get pv
+NAME                 CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                       STORAGECLASS        REASON   AGE
+hostpath-pv-volume   5Gi        RWO            Delete           Bound       default/hostpath-pvc-vol1   local-storage                22m
+local-pv             5Gi        RWO            Delete           Available                               local-vol-storage            2s
+
+root@kube-master:~# cat pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-pvc-vol1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  storageClassName: local-vol-storage
+  resources:
+    requests:
+      storage: 5Gi
+
+root@kube-master:~# kubectl create -f pvc.yaml
+root@kube-master:~# kubectl get pvc
+NAME                STATUS   VOLUME               CAPACITY   ACCESS MODES   STORAGECLASS        AGE
+hostpath-pvc-vol1   Bound    hostpath-pv-volume   5Gi        RWO            local-storage       26m
+local-pvc-vol1      Bound    local-pv             5Gi        RWO            local-vol-storage   4s
+
+root@kube-master:~# cat deploy.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: webserver
+  name: webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webserver
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: webserver
+    spec:
+      volumes:
+           - name: logs
+             persistentVolumeClaim:
+                     claimName: local-pvc-vol1               <<<<<<<<,, change pvc name
+      containers:
+      - image: nginx
+        name: nginx
+        volumeMounts:
+                - mountPath: /usr/share/nginx/html
+                  name: logs
+
+
+root@kube-node1:/mnt# mkdir /mnt/local
+
+root@kube-node1:/mnt/local# echo "Hello local" > index.html
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                                      READY   STATUS             RESTARTS       AGE   IP             NODE         NOMINATED NODE   READINESS GATES
+nfs-client-provisioner-554c899958-vpfrc   0/1     CrashLoopBackOff   18 (53s ago)   68m   172.17.9.109   kube-node1   <none>           <none>
+webserver-6d5cbc64f5-qrv8l                1/1     Running            0              46s   172.17.9.107   kube-node1   <none>           <none>
+
+root@kube-master:~# curl 172.17.9.107
+Hello local
+
+
+
+
+IQ) what backend volume you are using for pv?
+    => using ceph storage on promicies.
+    => EKS => EBS integration will provide by amzon.
+
+IQ) How to configure Dynamic Provisioning?
+==========================================
+CSI : Container Storage Interface?
+
+Note: API required 3th party plugin to commuication with storage(whever you are using).
+
+  1) CSI : It is a plugin which help to understand storage server. It help CSI to create pv dynamically in cluster.
+          (To create Dynamic provisioning First we need CSI driver)
+
+  Dynamic provision Flow
+  ======================
+  PVC Request => StorageClass => StorageClass will communicate with CSI driver => CSI driver will talk to Storage server. => create PV
+
+  In Short  : PVC request => Storage Class => CSI Driver => Storage Server => Get PV
+
+
+  StorageClass => is a storage mechanism that lets you dynamically provision persistent volumes (PV) in a Kubernetes cluster.
+                  Storage classes can define properties of storage systems such as:
+                    => Speed (for example, SSD vs. HDD storage)
+                    => Quality of service levels
+                    => Backup or replication policies
+                    => Type of file system
+                    => any other property defined by the administrator
+
+      Note: In Dynamic provisioning when never create pv manually. To create pv we need to steup StorageClass.
+
+  Lab1 : Dynamic Provsioning Using Amazon EBS Storage. (Block Storage)   <== will do later
+
+  Lab2 : Dynamic Provsioning using Nfs server. (NAS Storage)
+
+IQ) How to install CSI plugin?
+
+
+=========================
+

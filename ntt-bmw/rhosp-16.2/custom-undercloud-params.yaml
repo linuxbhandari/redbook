@@ -1,0 +1,4 @@
+parameter_defaults:
+  IronicInspectorDHCPWaitTimeout: 10
+  AdminPassword: 'redhat123'
+  Debug: true

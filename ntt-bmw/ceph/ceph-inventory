@@ -1,0 +1,34 @@
+[all:vars]
+ansible_ssh_user=root
+ansible_become=true
+ansible_become_method=sudo
+ansible_become_user=root
+
+# Ceph Monitor Nodes
+[mons]
+ceph0
+ceph1
+
+# MDS Nodes
+[mdss]
+ceph0
+ceph1
+
+# RGW
+[rgws]
+ceph0
+ceph1
+
+# Manager Daemon Nodes
+[mgrs]
+ceph0
+ceph1
+
+[osds]
+ceph0
+ceph1
+ceph2
+
+# Grafana server
+[grafana-server]
+ceph0

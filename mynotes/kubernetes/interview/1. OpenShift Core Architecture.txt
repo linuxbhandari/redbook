@@ -1,0 +1,340 @@
+    Users/Clients : Developers, admins, and end users interact with the cluster using UI, APIs, or oc CLI.
+      ↓
+Load Balancers : Distribute API and application traffic across multiple nodes for High Availability.
+      ↓
+Control Plane (Masters) : The brain of the cluster that manages API requests, scheduling, and cluster state.
+      ↓
+Infrastructure Nodes : Dedicated nodes running platform services like routers, registry, monitoring, and logging.
+      ↓
+Worker Nodes : Nodes where actual application containers and workloads run.
+      ↓
+Pods/Applications : Smallest deployable units where applications run inside containers.
+
+=========================
+1. Control Plane Nodes (Master Nodes)
+      - The Control Plane is the brain of the cluster.
+      - Usually deploy with 3 nodes for High Avalibility.
+
+      Main Components
+      a) API Server
+      - The API Server is the entry point for all cluster communication.
+      Responsibilities:
+            - Authentication
+            - Authorization
+            - Admission control
+            - API validation
+
+      Everything communicates through API Server.
+
+      b) ETCD : ETCD is a distributed key-value datastore that stores the entire cluster state and configuration.
+      Stores:
+            - Pods
+            - Deployments
+            - Secrets
+            - ConfigMaps
+            - RBAC
+            - Entire cluster state
+      
+      Critical component.
+
+      c) Scheduler
+            - Scheduler decides : Which worker node should run the pod.
+
+      It checks:
+            - CPU
+            - Memory
+            - Taints/tolerations
+            - Affinity rules  
+            - Node selectors
+
+      d) Controller Manager 
+            - Maintains desired state.
+      Example:
+            - If pod crashes → recreate pod
+            - If replicas required = 3 → maintain 3 replicas
+
+            Controller flow :
+            User/API Request
+             ↓
+            API Server
+             ↓
+            ETCD stores state
+             ↓
+            Scheduler selects node
+             ↓
+            Controller Manager ensures desired state
+
+2. Worker Nodes
+      Worker nodes run application workloads.
+
+      Main components:
+   a) Kubelet
+            - Agent running on each node.
+            - Communicates with API Server.
+   b) CRI-O
+            - Container runtime used by OpenShift. 
+            - Container runtime responsible for pulling images and running containers.
+      Responsible for:
+            - Pulling images
+            - Starting containers
+            - Managing container lifecycle
+   c) Pods
+            - Smallest deployable units where applications run inside containers.
+
+   Worker Node Flow
+      Scheduler assigns pod
+        ↓
+      Kubelet receives instruction
+        ↓
+      CRI-O pulls image
+        ↓
+      Container starts
+
+
+3. Infrastructure Nodes
+      Usually isolated from application workloads.
+      Typical Infra Components
+      - Routers
+      - Internal registry
+      - Monitoring
+      - Logging
+      - Service Mesh
+
+      Why Infra Nodes?
+      Benefits:
+      - Better isolation
+      - Better performance
+      - Easier scaling
+      - Improved security
+
+
+4. Networking Architecture
+   OpenShift networking enables:
+      - Pod-to-pod communication
+      - Service networking
+      - External access
+   Every pod gets unique IP.
+
+   Networking Components
+      - Service : Provides stable access to pods.
+      - Route : OpenShift-specific external access object.
+      - Router : HAProxy-based ingress layer.
+        Handles:
+            - TLS termination
+            - External traffic
+            - Load balancing
+
+   External Service flow
+      User
+       ↓
+      External Load Balancer
+       ↓
+      Router Pods
+       ↓
+      Service
+       ↓
+      Application Pods
+
+5. Routes : Routes expose applications externally.
+      Example: https://myapp.apps.company.com
+      Features:
+      - SSL/TLS
+      - Edge termination
+      - Re-encrypt
+      - Passthrough
+
+6. SDN / OVN-Kubernetes
+      OpenShift supports:
+      - OpenShift SDN (older)
+      - OVN-Kubernetes (modern default)
+
+      OVN-Kubernetes Benefits
+      - Better scalability
+      - Advanced network policies
+      - Better performance
+      - Multi-network support
+
+7. Operators Architecture
+      - Operators automate lifecycle management.
+      - OpenShift itself is heavily Operator-driven.
+      Examples
+      - Machine Config Operator (MCO)
+      - Cluster Version Operator (CVO)
+      - Monitoring Operator
+
+      Operator Flow
+      Desired State
+            ↓
+      Operator Watches Cluster
+            ↓
+      Reconciliation Loop
+            ↓
+      Corrective Action
+
+8. OpenShift Upgrade Architecture
+      Upgrades managed by:
+      - Cluster Version Operator (CVO)
+      - Machine Config Operator (MCO)
+
+      Upgrade Flow
+      New Version Available
+              ↓
+      CVO orchestrates upgrade
+              ↓
+      Operators upgraded
+              ↓
+      MCO upgrades nodes
+              ↓
+      Rolling reboot happens
+
+
+9. Security Architecture
+   OpenShift provides enterprise security using:
+      - SCC (Security Context Constraints)  : Controls pod permissions.
+      - RBAC : Role-based access control.
+      - OAuth : Authentication framework.
+      - Network Policies : Control pod communication.
+
+
+10. High Availability Architecture
+      OpenShift designed for no single point of failure.
+
+      HA Components
+      a) Master : Minimum 3 master nodes
+      b) ETCD Quorum
+      c) Routers : Multiple replicas behind LB.
+      d) Workers : Multiple nodes across zones.
+
+
+11. Multi-Zone Architecture
+      Production clusters spread across:
+      - Availability zones
+      - Data centers
+
+      Benefits:
+      - Fault tolerance
+      - Disaster recovery
+      - Better uptime
+
+12. Observability Stack
+      Integrated monitoring includes:
+      - Prometheus
+      - Grafana
+      - Alertmanager
+
+      Logging:
+      - Loki
+      - ELK
+
+13. GitOps Architecture
+      Using:
+      - Argo CD
+      - OpenShift GitOps
+      
+      Maintains:
+      - Desired state from Git repositories.
+
+14. Storage Architecture
+      Supports:
+      - PV/PVC
+      - CSI
+      - ODF/Ceph
+      - Cloud storage
+      
+      Used for:
+      - Stateful applications
+      - Databases
+      - Persistent workloads
+
+
+Simple End-to-End Flow
+=====================
+Developer deploys app
+        ↓
+API Server validates request
+        ↓
+ETCD stores desired state
+        ↓
+Scheduler selects node
+        ↓
+Kubelet receives task
+        ↓
+CRI-O starts container
+        ↓
+Service exposes pods internally
+        ↓
+Route exposes app externally
+        ↓
+Router handles traffic
+
+
+
+
+==Simple Deployment Flow
+User deploys app
+      ↓
+API Server validates request
+      ↓
+ETCD stores configuration
+      ↓
+Scheduler selects worker node
+      ↓
+Kubelet + CRI-O start container
+      ↓
+Route exposes application
+
+
+1. Deployment Flow (How Application Gets Deployed)
+User : Developer deploys application using : oc apply -f app.yaml
+ ↓
+API Server : Receives request and checks: Authentication,RBAC permissions,YAML validation
+ ↓
+ETCD : Stores deployment configuration and desired cluster state.
+ ↓
+Scheduler : Chooses best worker node based on: CPU,Memory,Policies
+ ↓
+Worker Node : Kubelet receives instruction from control plane.
+ ↓
+Pod Running : CRI-O pulls container image and starts application pod.
+
+
+
+2. Application Access Flow (How User Accesses Application)
+
+User : User opens application URL: https://myapp.apps.company.com
+ ↓
+Load Balancer : Distributes incoming traffic across router pods. Provides HA, failover.
+ ↓
+Router : Receives external traffic and matches Route configuration.
+ ↓
+Service : Internal Kubernetes load balancer that forwards traffic to pods. (Internal traffic distribution)
+ ↓ 
+Pod : Application container processes request and returns response. (Runs application container)
+
+
+3. High Availability (HA) Flow
+
+                Users
+                  ↓
+       Application Load Balancer
+                  ↓
+        Multiple Router Pods
+                  ↓
+              Services
+                  ↓
+          Multiple Worker Nodes
+                  ↓
+           Application Pods
+
+------------------------------------------------
+
+          Admin/API Requests
+                  ↓
+           API Load Balancer
+                  ↓
+        3 Master Nodes (HA)
+   API Server + ETCD + Scheduler
+
+
+Short anser.
+OpenShift achieves High Availability using multiple master nodes with ETCD quorum, redundant router pods, multiple worker nodes, and load balancers to eliminate single points of failure and ensure continuous application availability.

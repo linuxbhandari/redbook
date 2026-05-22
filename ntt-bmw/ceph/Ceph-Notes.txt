@@ -1,0 +1,83 @@
+Ceph Storage
+============
+=> Ceph Storage is highly scalable storage solution. Ceph has the capability to store all three types of data storage i.e., object store, block store and file based store.
+=> It has distributed storage option due to which the load will be distributed and provide the best possible performance even from low config hardware.
+=> Red Hat Ceph Storage is an open source, distributed storage system primarily for object and block data, which can be scaled across commodity hardware. It provides unstructured object storage for cloud workloads, rich media, and archival use cases, which can be accessed either through a native API or by using the Amazon S3 or OpenStack Swift API protocols. Block- based storage access is provided through either a native block-based protocol or by using the
+iSCSI protocol. The latest version of Red Hat Ceph Storage can also provide clients access to a network file system compatible with POSIX by using its native CephFS file system.
+
+
+
+=> There are some major benefits of Ceph due to which many major vendors choose ceph has their storage option.
+   1)  Replication : In ceph storage, all the data are automatically copied from one node to another node. So even one node is failed it will work from other node automatically. So the data can be retried at any point of time. This is the great feature in cloud hosting.
+   2) Protection – In ceph storage it uses erasure coded pools. It is a data protection mechanism where the data is broken into small fragments, encoded and stored in distributed manner. It provides additional data protection to uses.
+   3) Snaphshots – Ceph offers facility to store snapshots in its storage space. Snapshots are images of virtual machines. Using snapshot VM can be recreated at any point of time.
+   4) Thin provisioning – Ceph uses thin provisioning option to efficiently store the data. It make sure the storage space is not occupied until the data is saved.
+   5) Open Source – It is a open source technology which will help many vendors to lower the cost in storage option.
+   6) Unified Storage – Ceph offers technology to save all three types of storage like block storage, file storage and image storage. Hence it is highly flexible.
+
+
+
+Red Hat Ceph Storage is designed primarily for the following use cases:
+
+ => Storing images and virtual block device storage for an OpenStack environment (using Glance, Cinder, and Nova)
+ => Applications that use standard APIs to access object-based storage
+ => Persistent storage for containers.
+ => Rich media applications.
+
+Red Hat Ceph Storage can be integrated with OpenStack through Nova to store cloud instance disks, through Glance to manage the images used to deploy cloud instances, through Cinder to provide persistent storage for cloud instances, and through Keystone to provide a replacement for the Swift object storage service.
+
+Red Hat Ceph Storage also offers the following features:
+
+. Multisite and disaster recovery options
+• Flexible storage policies
+• Data durability via erasure coding or replication
+• Deployment in a containerized environment
+
+
+The design of Ceph is designed to achieve the following goals:
+• Be scalable for every component
+• Provide no single point of failure
+• Be software-based (not an appliance) and open source (no vendor lock-in)
+• Run on readily available hardware
+• Be self-managed wherever possible, minimizing user intervention
+
+
+Red Hat Ceph Storage Technological Innovations
+One of the key innovations of Ceph is in how it stores data in the Ceph storage cluster. The RADOS (Reliable Autonomic Distributed Object Store) system stores data as objects in logical storage pools, and uses the Controlled Replication Under Scalable Hashing (CRUSH) data placement algorithm to automatically calculate where that object should be stored. Any client can use this algorithm to determine where an object is located, so it does not need to communicate with a central look-up server to find it. The client can get the object by directly communicating with a Ceph server which stores it. Likewise, the CRUSH algorithm allows the cluster software to automatically scale, rebalance objects, protect data, and recover from failures.
+
+Some of the key advantages of RADOS include:
+• CRUSH data placement algorithm, which dynamically adjusts to infrastructure changes
+• Quick reaction to failures using data location
+• No central look-up server
+• No need for location metadata
+• Direct communication between clients and Ceph servers
+• Parallel access by clients for enhanced throughput
+• Independent parallel operation of all storage devices
+• Automatic data protection
+
+
+The Red Hat Ceph Storage Architecture
+...
+
+Ceph's Storage Back end Components
+RADOS, the Ceph storage back end, is based on the following daemons, which can be scaled out to meet the requirements of the architecture being deployed:
+• Monitors (MONs), which maintain maps of the cluster state and are used to help the other daemons coordinate with each other.
+• Object Storage Devices (OSDs), which store data and handle data replication, recovery and rebalancing.
+• Managers (MGRs), which keep track of runtime metrics and expose cluster information through a web browser-based dashboard and REST API.
+• Metadata Servers (MDSs), which store metadata used by CephFS (but not object storage or block storage) to allow efficient POSIX command execution by clients.
+
+
+Ceph Monitors
+
+Ceph Object Storage Devices
+Ceph Managers
+Metadata Server
+Ceph Access Methods
+Ceph Native API (librados)
+RADOS Block Device
+Ceph Object Gateway (RADOS Gateway)
+Ceph File System (CephFS)
+
+
+Data Distribution and Organization in Ceph
+

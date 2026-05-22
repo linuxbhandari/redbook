@@ -1,0 +1,399 @@
+Now Topic is => Deployment controller/Application rollout and rollback?
+========================================================================
+RC: works on equalty based selector.
+RS: RC + set based selector.
+
+Difference
+==========
+---
+Key Differences: RC vs RS
+
+Feature	        | ReplicationController (RC)	                      | ReplicaSet (RS)
+Purpose	        | Ensures a fixed number of running pods	           | Same as RC but more powerful
+Label Matching	 | Supports only exact match (matchLabels)	         |Supports both exact match & expressions (matchLabels + matchExpressions)
+Recommended?	   | ❌ Deprecated (not recommended)	                 | ✅ Preferred for standalone pod replication (but Deployment is better)
+Updates Support	| ❌ No built-in rolling updates	                  | ❌ No built-in updates (use Deployments instead)
+Best Use Case	  | Legacy applications in older Kubernetes versions	| When you need replication without Deployment
+
+📌 Deployment uses ReplicaSet internally, so you should use Deployments instead of RS or RC!
+
+---
+
+=> ReplicaSet use Set-Based selectors which gives more flexibility while replication controllers use Equity-Based selectors.
+ReplicaSets example
+
+URL => https://blog.learncodeonline.in/kubernetes-core-concepts-replicasets-and-replication-controllers
+
+ReplicaSets supports Set-Based selectors. Three type of operators used in set-based selectors are -->
+  1. in
+  2. notin
+  3. exists
+
+ReplicationController supports equality based selectors. Three type of operators used in equality based selectors are -->
+  1. =
+  2. ==
+  3. !=
+
+  Note: rc and rs not provide live rollout and rollback that why deployment controller come in pitcure.
+
+Deployment controller: ( provide rc and rs all functionality )
+	1) Maintain pod state
+	2) Provide scalability
+	3) Rollout and rollback
+
+
+root@kube-master:~# kubectl api-resources | grep -i Deployment                  <<< To check in kubernetes resource catagauries
+deployments                       deploy       apps/v1                                true         Deployment
+
+root@kube-master:~# kubectl create deploy con1 --image=docker.io/nginx:1.16 --replicas=4
+
+   Note: no need to mention selector and label, deployment name become pod label and label become selector.
+
+
+root@kube-master:~# kubectl describe pod dep1-69f7d8989c-j62fq | grep -i contro   <<  still using rc controller
+Controlled By:  ReplicaSet/dep1-69f7d8989c
+
+root@kube-master:~# kubectl delete deployments.apps dep1    << if you delete deploment rc will also delete
+deployment.apps "dep1" deleted
+
+root@kube-master:~# kubectl get rs
+No resources found in default namespace.
+
+root@kube-master:~# kubectl scale --replicas=2 deployment con1
+
+ Note=> (21:00) Important dicussion regarding rc
+
+
+Rollout and Rollback
+====================
+--- 
+ - Rollout and Rollback in Kubernetes are key features of Deployments that help manage application updates smoothly.
+
+ Rollout => update packages on lastet version.
+ Rollback => rollback on previous version.
+
+
+Rollout (Deployment Updates)
+🔹 Rollout is the process of deploying a new version of an application in a controlled manner.
+🔹 Kubernetes ensures zero downtime using a rolling update strategy (default).
+
+
+# kubectl create deployment dep1 --image=docker.io/nginx:1.16 --replicas=10
+# kubectl rollout status deployment my-app
+# kubectl rollout history deployment my-app
+
+
+---
+Rollback (Reverting to a Previous Version)
+🔹 Rollback allows you to revert to a previous Deployment version if a new rollout fails.
+🔹 Kubernetes keeps a history of old rollouts to allow quick recovery.
+
+# kubectl rollout undo deployment my-app
+# kubectl rollout undo deployment my-app --to-revision=2
+
+
+
+---
+Q) Rollout Strategy: Recreate vs RollingUpdate
+
+ - Kubernetes supports two rollout strategies:
+
+ Strategy	               | Description	                                          | Pros	         | Cons
+ Recreate	               | Deletes all old pods before creating new ones	        | Simple	       | Causes downtime
+ RollingUpdate (default)	| Replaces old pods gradually	Zero downtime	Takes longer| Zero downtime | Takes longer
+
+
+---
+Best Practices for Rollouts & Rollbacks
+✅ Always test updates in a staging environment before rolling out.
+✅ Monitor rollout status (kubectl rollout status) to detect failures early.
+✅ Use rollback (kubectl rollout undo) to quickly revert bad deployments.
+✅ Set health checks (readiness & liveness probes) to prevent broken rollouts.
+
+
+root@kube-master:~# kubectl create deployment dep1 --image=docker.io/nginx:1.16 --replicas=10
+root@kube-master:~# kubectl describe deployments.apps dep1| grep -i max
+RollingUpdateStrategy:  25% max unavailable, 25% max surge                     <<== This is called partially updated
+
+
+root@kube-master:~# kubectl rollout history deployment dep1    					<<== check the deployment history first
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+
+root@kube-master:~# kubectl describe deployments.apps dep1 | grep -i image    <<== To check the image version
+    Image:        docker.io/nginx:1.16
+
+root@kube-master:~# kubectl rollout history deployment dep1 --revision=1      <<== Another way to check version
+deployment.apps/dep1 with revision #1
+Pod Template:
+  Labels:       app=dep1
+        pod-template-hash=69f7d8989c
+  Containers:
+   nginx:
+    Image:      docker.io/nginx:1.16     <<<<
+    Port:       <none>
+    Host Port:  <none>
+    Environment:        <none>
+    Mounts:     <none>
+  Volumes:      <none>
+
+root@kube-master:~# kubectl set image deploy dep1 nginx=nginx:1.17  <<< rollout
+deployment.apps/dep1 image updated
+
+root@kube-master:~# kubectl describe deployments.apps dep1 | grep -i image   << updated version
+    Image:        nginx:1.17
+
+root@kube-master:~# kubectl edit deployments.apps dep1                   <<< you can also update the etcd directly
+deployment.apps/dep1 edited
+
+root@kube-master:~# kubectl rollout history deployment dep1
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+
+root@kube-master:~# kubectl set image deploy dep1 nginx=nginx:1.19 --record=true        <<< record the comment
+Flag --record has been deprecated, --record will be removed in the future
+deployment.apps/dep1 image updated
+
+root@kube-master:~# kubectl rollout history deployment dep1
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+4         kubectl set image deploy dep1 nginx=nginx:1.19 --record=true      <<<<< record the comment
+
+
+Rollback
+========
+root@kube-master:~# kubectl rollout history deployment dep1
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+4         kubectl set image deploy dep1 nginx=nginx:1.19 --record=true
+
+root@kube-master:~# kubectl rollout undo deployment dep1                         <<< rollback one step back by default
+root@kube-master:~# kubectl rollout history deployment dep1
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+4         kubectl set image deploy dep1 nginx=nginx:1.19 --record=true
+5         <none>
+
+root@kube-master:~# kubectl rollout undo deployment dep1 --to-revision=1        << or you can directly move to version1
+
+
+Note: (49:19) about grace peoried of containers
+
+Important Note:
+Q) What is (Important)
+1) Blue-green :
+2) Canery Deployment :
+
+Note: if your application is not compatible with new version in that case kubernetes will not terminate containers after 25%. it will only deploy new containers once
+25% is successfull
+
+root@kube-master:~# kubectl set image deploy dep1 nginx=nginx:1.50      << This version is not avalible in market right now
+deployment.apps/dep1 image updated
+
+Every 2.0s: kubectl get pod     kube-master: Mon Jan 30 20:17:42 2023
+
+NAME                    READY   STATUS             RESTARTS   AGE
+dep1-69f7d8989c-5thjs   1/1     Running            0          30m
+dep1-69f7d8989c-c5lj2   1/1     Running            0          30m
+dep1-69f7d8989c-c7t76   1/1     Running            0          31m
+dep1-69f7d8989c-dqxfz   1/1     Running            0          30m
+dep1-69f7d8989c-l966s   1/1     Running            0          31m
+dep1-69f7d8989c-mt7fv   1/1     Running            0          31m
+dep1-69f7d8989c-rnp5p   1/1     Running            0          31m
+dep1-69f7d8989c-sqn6r   1/1     Running            0          31m
+dep1-86b8cbb87b-8lnqg   0/1     ImagePullBackOff   0          34s         <<<< after 25% failed it pause the deployment
+dep1-86b8cbb87b-l6zn6   0/1     ImagePullBackOff   0          33s
+dep1-86b8cbb87b-nslzw   0/1     ImagePullBackOff   0          33s
+dep1-86b8cbb87b-nwdf9   0/1     ImagePullBackOff   0          34s
+dep1-86b8cbb87b-nwpnz   0/1     ImagePullBackOff   0          34s
+
+Now change the formula during creation
+======================================
+Types of deployment strategies are"
+
+1. Rolling deployment
+   => the default strategy that allows you to update a set of pods without downtime. It replaces pods running the old version of the application with the new version, one by one.
+
+2. Recreate deployment
+   => A recreate deployment strategy is an all-or-nothing process that lets you update an application immediately, with some downtime.
+   => With this strategy, existing pods from the deployment are terminated and replaced with a new version.
+
+3. Ramped slow rollout
+4. Blue/green deployment
+5. Canary deployment
+6. Shadow deployment
+7. A/B testing
+
+======================================
+root@kube-master:~# cat  dep1.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dep1
+  name: dep1
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: dep1
+  strategy:
+    rollingUpdate:             <<<<<
+      maxSurge: 2              <<<<<
+      maxUnavailable: 2        <<<<<
+    type: RollingUpdate        <<<<<
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dep1
+    spec:
+      containers:
+      - image: docker.io/nginx:1.16
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl create -f dep1.yml
+deployment.apps/dep1 created
+
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS    RESTARTS   AGE
+dep1-69f7d8989c-6nkmx   1/1     Running   0          27s
+dep1-69f7d8989c-7nxct   1/1     Running   0          27s
+dep1-69f7d8989c-dq6l8   1/1     Running   0          27s
+dep1-69f7d8989c-kmdj8   1/1     Running   0          28s
+dep1-69f7d8989c-lxn4z   1/1     Running   0          27s
+dep1-69f7d8989c-mp6pc   1/1     Running   0          27s
+dep1-69f7d8989c-mw9j7   1/1     Running   0          28s
+dep1-69f7d8989c-rx959   1/1     Running   0          28s
+dep1-69f7d8989c-whp6g   1/1     Running   0          27s
+dep1-69f7d8989c-zj7mt   1/1     Running   0          27s
+
+root@kube-master:~# kubectl get deployments.apps
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+dep1   10/10   10           10          40s
+
+root@kube-master:~# kubectl describe deployments.apps dep1 | grep max
+RollingUpdateStrategy:  2 max unavailable, 2 max surge
+
+
+Now how to change formula after deployment
+===========================================
+root@kube-master:~# kubectl edit deployments.apps dep1
+deployment.apps/dep1 edited
+
+  strategy:
+    rollingUpdate:
+      maxSurge: 2                  <<< 25% to 2
+      maxUnavailable: 2            <<< 25% to 2
+    type: RollingUpdate
+
+root@kube-master:~# kubectl describe deployments.apps dep1 | grep max
+RollingUpdateStrategy:  2 max unavailable, 2 max surge
+
+Note: we have learn parshal upgradation. Now we are going to do fully upgradation
+=================================================================================
+Note: fully upgradation we mostly use in during testing
+
+root@kube-master:~# kubectl delete deployments.apps dep1
+deployment.apps "dep1" deleted
+
+root@kube-master:~# cat dep1.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dep1
+  name: dep1
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: dep1
+  strategy:
+    type: Recreate             <<<<<<
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dep1
+    spec:
+      containers:
+      - image: docker.io/nginx:1.16
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl create -f dep1.yml
+deployment.apps/dep1 created                <<< you can test this by creating the new containers
+
+
+
+Now how to pause deployment ( when you have do deployment multiple time for testing and you do not want to terminate containers)
+===============================================================================================================================
+
+root@kube-master:~# kubectl rollout pause deployment dep1
+deployment.apps/dep1 paused
+
+root@kube-master:~# kubectl describe deployments.apps dep1
+Name:               dep1
+Namespace:          default
+CreationTimestamp:  Mon, 30 Jan 2023 21:04:28 +0530
+Labels:             app=dep1
+Annotations:        deployment.kubernetes.io/revision: 2
+Selector:           app=dep1
+Replicas:           10 desired | 10 updated | 10 total | 10 available | 0 unavailable
+StrategyType:       Recreate
+MinReadySeconds:    0
+Pod Template:
+  Labels:  app=dep1
+  Containers:
+   nginx:
+    Image:        nginx:1.18
+    Port:         <none>
+    Host Port:    <none>
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status   Reason
+  ----           ------   ------
+  Available      True     MinimumReplicasAvailable
+  Progressing    Unknown  DeploymentPaused                             <<<<<<<<<<<<<<<<
+OldReplicaSets:  <none>
+NewReplicaSet:   dep1-66fcbd7c96 (10/10 replicas created)
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  20m    deployment-controller  Scaled up replica set dep1-69f7d8989c to 10
+  Normal  ScalingReplicaSet  8m46s  deployment-controller  Scaled down replica set dep1-69f7d8989c to 0
+  Normal  ScalingReplicaSet  8m38s  deployment-controller  Scaled up replica set dep1-66fcbd7c96 to 10
+
+
+root@kube-master:~# kubectl set image deploy dep1 nginx=nginx:1.18
+deployment.apps/dep1 image updated
+
+
+Note: containers will not update or terminate, because you have pause the deployment
+
+root@kube-master:~# kubectl rollout resume deployment dep1         << you can resume once your testing complete and you are ready for final code.
+deployment.apps/dep1 resumed
+
+Now after multiple deployment it will terminate the containers on the basis of last deployment.
+
+

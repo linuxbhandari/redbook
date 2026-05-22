@@ -1,0 +1,31 @@
+Explain OpenShift upgrade flow.
+
+In Red Hat OpenShift, upgrades are automated and coordinated mainly by the:
+	* Cluster Version Operator (CVO)
+	* Machine Config Operator (MCO)
+
+
+High-Level Upgrade Flow
+
+Admin starts upgrade
+        ↓
+CVO downloads release image
+        ↓
+CVO updates cluster operators
+        ↓
+Operators update components
+        ↓
+MCO updates cluster nodes
+        ↓
+Nodes reboot safely
+        ↓
+Cluster becomes healthy
+        ↓
+Upgrade completed
+
+
+OpenShift upgrades work by CVO coordinating operator upgrades while MCO safely updates and reboots cluster nodes in a rolling manner.
+
+
+
+

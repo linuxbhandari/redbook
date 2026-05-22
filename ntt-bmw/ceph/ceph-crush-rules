@@ -1,0 +1,31 @@
+ceph crush rules
+https://danielpersson.dev/2022/08/01/all-you-need-to-know-about-the-crush-map/
+
+ceph osd crush rule ls
+ceph osd crush rule dump
+ceph osd crush tree --show-shadow
+
+
+ceph osd crush set osd.0 1.0 root=default datacenter=dc1 room=room1 row=foo rack=bar host=foo-bar-1
+ceph osd crush set osd.0 1.0 root=default datacenter=dc1 room=room1 row=foo rack=bar host=foo-bar-1
+
+sudo ceph osd crush reweight osd.0 0.122
+sudo ceph osd crush remove osd.0
+
+
+[root@centos-ceph1 ~]# ceph osd crush add-bucket ssd root
+
+[root@centos-ceph1 ~]# ceph osd crush add-bucket centos-ceph1-ssd host
+[root@centos-ceph1 ~]# ceph osd crush add-bucket centos-ceph2-ssd host
+[root@centos-ceph1 ~]# ceph osd crush add-bucket centos-ceph3-ssd host
+
+[root@centos-ceph1 ~]# ceph osd crush move  centos-ceph1-ssd  root=ssd
+[root@centos-ceph1 ~]# ceph osd crush move  centos-ceph2-ssd  root=ssd
+[root@centos-ceph1 ~]# ceph osd crush move  centos-ceph3-ssd  root=ssd
+
+[root@centos-ceph1 ~]# ceph osd crush move osd.0 host=centos-ceph1-ssd root=ssd
+[root@centos-ceph1 ~]# ceph osd crush move osd.1 host=centos-ceph1-ssd root=ssd
+[root@centos-ceph1 ~]# ceph osd crush move osd.2 host=centos-ceph1-ssd root=ssd
+
+same do for node2 and node3
+

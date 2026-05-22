@@ -1,0 +1,30 @@
+- hosts: vm1
+  become: true
+  gather_facts: false
+  vars:
+    server_1: a # String varibles examples
+    server_2: b
+    user1: manish
+    pass1: abc
+    mypackages:  # Listing varibles examples
+          - ftp
+          - wget
+          - vsftpd
+  vars_files:
+          - ./crypt.yml
+  tasks:
+  - name: Creating directory
+    file:
+      path: /tmp/data
+      state: directory
+
+  - copy:
+      src: /etc/passwd
+      dest: /tmp/data
+
+  - service:
+      name: vsftpd.service
+      state: started
+
+  - name: import task
+    import_tasks: ./web.yaml

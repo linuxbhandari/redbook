@@ -1,0 +1,242 @@
+1. OpenShift Architecture (VERY IMPORTANT)
+==========================================
+You must explain clearly:
+	Control plane
+	ETCD quorum
+	API flow
+	Scheduler
+	CRI-O
+	Networking
+	Routes
+	SDN vs OVN
+	Infrastructure nodes
+	Router architecture
+	HA design
+
+Most expected questions:
+	Explain OpenShift architecture
+	How request flows internally
+	How scheduling works
+	What happens if master fails
+	How ETCD quorum works
+	How HA is designed
+
+
+2. Enterprise HA / DR Design (CRITICAL)
+=======================================
+This JD heavily focuses on:
+	* Multi-cluster
+	* Hybrid cloud
+	* Global architecture
+
+Prepare:
+	* Multi-zone architecture
+	* Active-active vs active-passive
+	* ETCD backup strategy
+	* DR failover
+	* Global load balancing
+	* Multi-region OpenShift
+
+Very likely questions:
+	* Design HA architecture
+	* Design DR strategy
+	* How do upgrades happen without downtime
+	* How do you recover from ETCD failure
+
+
+3. Operators Internals (VERY IMPORTANT)
+=======================================
+	Because JD explicitly mentions:
+	* Custom Operators
+	* Automation tooling
+
+	You MUST know:
+	* CRD
+	* Reconciliation loop
+	* OLM
+	* MCO
+	* CVO
+	* Operator lifecycle
+
+	Expected:
+	* Explain Operator internally
+	* What is reconciliation loop
+	* How MCO works
+	* How upgrades work internally
+
+4. GitOps / Argo CD (EXTREMELY IMPORTANT)
+This JD strongly emphasizes GitOps.
+
+	You should know:
+
+	* Argo CD architecture
+	* App-of-apps
+	* Multi-cluster GitOps
+	* Sync waves
+	* OutOfSync troubleshooting
+	* Drift detection
+	* Self-healing
+	* Disaster recovery via GitOps
+
+	Very likely:
+	* Explain enterprise GitOps
+	* Argo CD architecture
+	* OutOfSync troubleshooting
+	* GitOps benefits
+
+5. Security (VERY IMPORTANT)
+Strong focus in JD:
+	* Zero trust
+	* ACS/StackRox
+	* Istio
+	* Compliance
+
+	Must know:
+	* SCC
+	* RBAC
+	* OAuth
+	* Service Accounts
+	* Network Policies
+	* Secrets
+	* TLS
+	* Pod security
+	* ACS basics
+
+	Expected:
+	* How OpenShift maintains security
+	* Difference between SCC and PSP
+	* How zero-trust works
+
+6. Multi-Cluster / RHACM (VERY IMPORTANT)
+JD directly mentions:
+	* RHACM
+	* Fleet management
+
+Prepare:
+	* Cluster governance
+	* Policies
+	* Multi-cluster lifecycle
+	* Placement rules
+	* DR clusters
+
+Likely:
+	* How do you manage multiple clusters?
+	* How do you enforce policies globally?
+
+7. Monitoring / Observability
+
+Prepare:
+	* Prometheus
+	* Grafana
+	* Thanos
+	* Loki/ELK
+	* Alertmanager
+
+Also:
+	* SLI/SLO/Error Budget
+
+Likely:
+	* How do you monitor OpenShift?
+	* How do you troubleshoot performance issues?
+	* How do you handle global outages?
+
+8. Storage & Networking
+
+Must know:
+	* PV/PVC
+	* StorageClass
+	* CSI
+	* ODF/Ceph
+	* Dynamic provisioning
+	* SDN/OVN
+	* Routes/Ingress
+	* DNS
+
+Likely:
+	* Difference between Route and Ingress
+	* How networking works
+	* Storage troubleshooting
+
+9. Automation (VERY IMPORTANT)
+JD strongly emphasizes:
+	* Ansible
+	* Terraform
+	* Platform-as-Code
+
+Prepare:
+	* Cluster provisioning automation
+	* GitOps + Terraform workflow
+	* IaC governance
+
+10. Leadership & RCA Questions
+This JD is architect + leadership level.	
+
+Expect:
+	* Major outage handling
+	* RCA discussion
+	* Escalation management
+	* Stakeholder communication
+
+Examples:
+
+	* Tell me about a critical outage
+	* How did you handle production incident?
+	* How do you mentor teams?
+	* How do you manage platform standards?
+	* MOST IMPORTANT QUESTIONS FOR THIS JD
+
+These are highly probable:
+Architecture
+	* Explain OpenShift architecture
+	* Explain HA architecture
+	* How does ETCD quorum work?
+	* What happens if master node fails?
+	* Difference between SDN and OVN
+	* Explain OpenShift networking flow
+
+Operators & Upgrades
+	* Explain Operators internally
+	* What is reconciliation loop?
+	* Explain MCO
+	* Explain CVO
+	* How do upgrades work internally?
+
+GitOps
+	* Explain Argo CD architecture
+	* What causes OutOfSync?
+	* How do you manage GitOps at enterprise scale?
+
+Security
+	* Explain SCC
+	* How does OpenShift security work?
+	* Explain zero-trust architecture
+
+Troubleshooting
+	* Pod Pending troubleshooting
+	* OOMKilled troubleshooting
+	* Cluster performance troubleshooting
+	* ETCD troubleshooting
+
+Multi-Cluster
+	* Explain RHACM
+	* How do you manage multi-cluster governance?
+
+
+Most Important Advice
+=====================
+For this JD:
+
+Always answer with architecture thinking + production examples.
+
+Avoid only theoretical answers.
+
+Your answers should include:
+
+	* Internal flow
+	* HA impact
+	* Failure scenarios
+	* Best practices
+	* Enterprise considerations
+	* Monitoring/governance/security angle
+
+That is what differentiates architect-level interviews from admin-level interviews.

@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    {
+      "name": "overcloud-controller-0",
+      "pm_type": "ipmi",
+      "pm_addr": "192.168.122.1",
+      "pm_user": "admin",
+      "pm_password": "password",
+      "pm_port": 6001,
+      "ports": [
+        {
+          "address": "52:54:00:67:b1:7b",
+          "pxe": true
+        }
+      ],
+      "cpu": 2,
+      "memory": 4000,
+      "disk": 60,
+      "arch": "x86_64"
+    }
+  ]
+}

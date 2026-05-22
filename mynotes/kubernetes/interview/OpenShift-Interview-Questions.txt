@@ -1,0 +1,258 @@
+NTT Interview Questions
+==========================
+- Pod to pod communication
+- How to update file in mcp like dns
+- How to troubleshoot node if it stuck somewhere. and you did not found any error.
+- How to troubleshoot deployment. what is your approach.
+- Post-check before openShift-upgrade and process.
+	- etcd backup
+	- oc get co, nodes, mcp verify
+
+- How to upgrade openshift cluster from 4.14.x to 4.20.x
+	What is the standard way to do that.
+		- Sequential Updates: For standard minor versions
+		- you must upgrade step-by-step (e.g., 4.12 → 4.13 → 4.14). 
+			- you can Red Hat OpenShift Container Platform Update Graph
+			
+- OpenShift cluster running slow. How to troubleshoot this.
+- What is service, service flow. how to trublesheet service if not accessible to user.
+- Deployment flow and troubleshoot if end user unable to access site.
+- Deployment strategy | Affinity and their types.
+- How to do drain. Why we do draining the node and what are the commands we can use for that.
+- What is pv and pvc. how to are mapped which each other.
+	I means how to identify each other which one is right.
+
+- Have you done OpenShift Installation.
+- Have you work on cloud.
+- Different between Kubernetes and openShift.
+- What is the purpose of machine config and how you can update this.
+- Edge deployment.
+- What king of work you do with Ansbile in OpenShift.
+- how can you give admin right to user on specific namespace only.
+- Openshift network in UPS
+- diff in  StatefulSets and deployment
+- how to troubleshoot if Node NotReady
+- How to install prometheos, grafana and altermanager in openshift
+- how to use static and dynamic storage and reclaim policy
+- how pvc identify pvc?
+
+
+=======================================================
+Questions from vivek devops channel?
+- what is trivy tool in devops?
+- What is kubernetes, pod, deployment?
+- How does scaling work in kubernetes?
+- what is replicaset?
+- what is API Server, etcd, Scheduler, controller manager?
+- what is Label and Selector?
+- what is namespace?
+- what is configmap and secrects?
+- what is authentication and authorization?
+- what is ingress
+
+- pod is in crashloopbackoff- How would you trubleshoot.?
+- pod is restarting repeatedly. what could be the reason?
+- After scaling a deployment, some pods are stuck in pending. why?
+- A service is not accessible. what would you check?
+- ConfigMap updated, but changes are not refliected in the pod why?
+- Pod status shows ImagePullBackOff. How do you fix it?.
+- High latency observed in Kubernetes cluster. what is your approach?
+- pod logs are not visiable. what could be reason?
+- Application inside pod cannot access external internet. How to troubleshoot?
+- You get Unauthorized when trying to access kubetnetes API. Fix?
+- Horizontal pod Autoscaler not scaling up. why?
+- PVC is stuck in pending. cause.?
+- can't reach pod ip from another pod. what to check?
+- ingress is not routing traffic correctly. why?
+- kubelet is not running on a node. Result?
+- Deployment rollout is stuck. how to fix?
+- Readiness probe failing, but pod logs are clean. why?
+- Pod ip keeps changing - how to ensure stable access?
+- pod stuck in terminating state. How to handle?
+- How to you monitor kubernetes cluster health in real-time?
+- 
+
+
+Kubernetes Networking Explained
+
+Kubernetes networking is the system that allows:
+	* Pods to communicate with each other
+	* Services to expose applications
+	* External users to access applications
+	* Traffic routing and load balancing
+	* Secure communication inside the cluster
+	
+	Kubernetes networking is built around a flat network model.
+
+
+Core Networking Principles
+	Kubernetes defines these networking rules:
+	1. Every Pod Gets a Unique IP
+		- Each Pod has its own IP address.
+		- Pods communicate directly using these IPs.
+	
+	2. Pods Can Communicate Without NAT
+		- Any pod can directly reach another pod.
+			# curl http://10.244.2.8:8080
+		- No port mapping required.
+
+	3. Containers Inside Same Pod Share Network
+		Containers in the same pod:
+		- share IP
+		- share localhost
+		- share network namespace
+
+Kubernetes Networking Architecture
+                External User
+                       |
+                  Ingress / LB
+                       |
+                   Service
+                       |
+             +---------+---------+
+             |                   |
+          Pod A               Pod B
+             |                   |
+        Worker Node 1      Worker Node 2
+             \                /
+              \              /
+                Cluster Network
+
+Main Components
+
+Component	Purpose
+Pod Network	Pod-to-pod communication
+Service	Stable access to pods
+kube-proxy	Service traffic routing
+CoreDNS	DNS resolution
+CNI Plugin	Networking implementation
+Ingress	HTTP/HTTPS routing
+NetworkPolicy	Security rules
+
+
+1. Pod Networking
+	Pods are the smallest deployable units.
+	Each pod gets:
+	- Unique IP
+	- Virtual network interface
+	- Internal routing
+
+   Pod-to-Pod Communication
+   Same Node
+	Pod A → Linux bridge → Pod B
+	
+	Uses:
+	- veth pairs
+	- bridge network
+	- iptables
+
+	Different Nodes
+	Pod A → Node A → CNI overlay network → Node B → Pod B
+	
+	Handled by the CNI plugin.
+
+2. CNI (Container Network Interface)
+	CNI plugins implement networking.
+	Popular CNIs:
+	- Calico
+	- Flannel
+	- Cilium
+	- Weave Net
+
+	What CNI Does
+	CNI plugin handles:
+	- Pod IP allocation
+	- Routing
+	- Overlay networking
+	- Cross-node communication
+	- Network policies
+	
+	Without CNI:
+	- Pods cannot communicate
+
+3. Services
+	Pod IPs are temporary.
+	If a pod restarts:
+	- Old IP gone
+	- New IP assigned
+	
+	So Kubernetes uses Services.
+
+    Service Types
+	ClusterIP (Default)
+	- Internal communication only.
+
+	NodePort
+	Exposes service on node port.
+
+	LoadBalancer
+	- Creates cloud load balancer.
+	
+	Used in:
+	- AWS
+	- Azure
+	- GCP
+
+	ExternalName
+	- Maps service to external DNS.
+
+4. kube-proxy
+	kube-proxy runs on every node.
+		Responsibilities:
+		- Service routing
+		- Load balancing
+		- iptables/ipvs rules
+
+	Traffic Flow Example
+	
+	Client → Service IP → kube-proxy → Backend Pod
+
+5. DNS in Kubernetes
+	Kubernetes includes DNS using:
+	CoreDNS
+
+6. Ingress
+	Ingress exposes HTTP/HTTPS routes.
+		Instead of:
+				Many LoadBalancers
+	
+		Ingress provides:
+				Single entry point
+
+7. Network Policies
+	Control traffic between pods.
+		Without policies:
+		
+		All pods can talk to all pods
+
+
+
+External User to Pod
+Internet
+   ↓
+LoadBalancer / Ingress
+   ↓
+Service
+   ↓
+Pod
+
+
+Internal Pod Communication
+Pod A
+  ↓
+CNI Network
+  ↓
+Pod B
+
+
+
+Important Networking Concepts
+Concept					Meaning
+- Flat Network			All pods reachable
+- Overlay Network		Virtual network across nodes
+- Service Discovery		DNS-based access
+- Load Balancing		Traffic distribution
+- Network Segmentation	Security isolation
+- NAT-free Pod Network	Direct communication
+
+

@@ -1,0 +1,14 @@
+Phase 4 — Networking
+====================
+Very important in interviews.
+
+Understand:
+  * Pod networking
+  * Service flow
+  * ClusterIP
+  * NodePort
+  * LoadBalancer
+  * Routes vs Ingress
+  * DNS flow
+  * OVN-Kubernetes basics
+  

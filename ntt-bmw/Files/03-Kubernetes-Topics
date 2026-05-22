@@ -1,0 +1,148 @@
+🧱 1. Kubernetes Basics
+What is Kubernetes?
+
+Kubernetes vs Docker
+
+Kubernetes architecture:
+
+Master components: API Server, Scheduler, Controller Manager, etcd
+
+Node components: Kubelet, Kube-proxy, Container runtime
+
+Pod, Node, Cluster
+
+kubectl basics: get, describe, logs, exec
+
+📦 2. Kubernetes Objects
+Pod
+
+ReplicaSet
+
+Deployment
+
+StatefulSet
+
+DaemonSet
+
+Job & CronJob
+
+Namespace
+
+Service
+
+ConfigMap & Secret
+
+Volume & PersistentVolume (PV/PVC)
+
+🌐 3. Services & Networking
+ClusterIP, NodePort, LoadBalancer
+
+Ingress & Ingress Controllers
+
+Network Policies
+
+DNS in Kubernetes
+
+Service discovery
+
+📁 4. Storage in Kubernetes
+Volumes (emptyDir, hostPath, etc.)
+
+PersistentVolume (PV) and PersistentVolumeClaim (PVC)
+
+StorageClass
+
+Dynamic provisioning
+
+🔐 5. Security & RBAC
+Service accounts
+
+Roles and RoleBindings
+
+ClusterRoles and ClusterRoleBindings
+
+NetworkPolicies
+
+Secrets management
+
+Pod Security Standards (baseline/restricted)
+
+⚙️ 6. Configuration Management
+ConfigMaps
+
+Secrets
+
+Environment variables
+
+Command & args override
+
+Init containers
+
+📈 7. Monitoring & Logging
+Probes: Readiness, Liveness, Startup
+
+Logging with Fluentd, ELK, or Loki
+
+Monitoring with Prometheus & Grafana
+
+Metrics-server
+
+Resource limits & requests
+
+🌀 8. Scaling & Auto-healing
+Horizontal Pod Autoscaler (HPA)
+
+Vertical Pod Autoscaler (VPA)
+
+Cluster Autoscaler
+
+ReplicaSets
+
+Self-healing: Restart failed pods
+
+🔄 9. Updates & Rollbacks
+Rolling update
+
+Blue/Green deployment
+
+Canary deployment
+
+Rollback a Deployment
+
+☁️ 10. Advanced Concepts
+Taints and Tolerations
+
+Affinity and Anti-Affinity
+
+Custom Resource Definitions (CRDs)
+
+Operators
+
+Helm charts
+
+Multi-tenancy
+
+Admission controllers
+
+🛠️ 11. Tools & Ecosystem
+Helm
+
+Kustomize
+
+Lens (UI tool)
+
+Minikube, Kind, k3s (local Kubernetes)
+
+K9s (terminal UI)
+
+ArgoCD, FluxCD (GitOps tools)
+
+📚 12. Troubleshooting
+kubectl commands: logs, describe, exec, top
+
+Events & status
+
+CrashLoopBackOff / ImagePullBackOff
+
+Debugging Pods
+

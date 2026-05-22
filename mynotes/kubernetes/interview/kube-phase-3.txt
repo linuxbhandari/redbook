@@ -1,0 +1,43 @@
+Phase 3 — Troubleshooting (MOST IMPORTANT)
+==========================================
+This is where senior roles are evaluated.
+
+Practice:
+  * Pod failures
+  * Node NotReady
+  * ImagePullBackOff
+  * CrashLoopBackOff
+  * OOMKilled
+  * Route issues
+  * DNS issues
+  * Pending pods
+  * PVC issues
+  * Operator degraded
+  * MCP degraded
+  * Learn This Troubleshooting Flow
+Problem
+  |
+  v
+Events
+  |
+  v
+Logs
+  |
+  v
+Describe resource
+  |
+  v
+Check networking/runtime/node
+
+Important Commands
+You should become fast with:
+oc get
+oc describe
+oc logs
+oc exec
+oc debug
+oc adm
+
+and
+
+kubectl

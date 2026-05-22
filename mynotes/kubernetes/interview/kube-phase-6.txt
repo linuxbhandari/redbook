@@ -1,0 +1,83 @@
+Argo CD follows the GitOps model:
+  - Git Repository = Source of Truth
+    
+    Everything in the cluster should match Git.
+
+Learn:
+  * sync : Apply the manifests from Git into the Kubernetes cluster.
+          Flow : Git→ArgoCD→Kubernetes
+
+          What Happens During Sync
+          ArgoCD:
+          - Pulls manifests from Git
+          - Compares with live cluster
+          - Finds differences
+          - Applies changes using kubectl apply
+
+  * Application lifecycle: An ArgoCD Application moves through states.
+          Lifecycle Flow
+          Git Commit
+              ↓
+          ArgoCD Detects Change
+              ↓
+          OutOfSync
+              ↓
+          Sync
+              ↓
+          Healthy
+
+      Important States
+        State          Meaning
+        - Synced:      Cluster matches Git
+        - OutOfSync:   Cluster differs from Git
+        - Healthy:     App working correctly
+        - Degraded:    App unhealthy
+        - Missing:     Resources missing
+        - Progressing: Deployment ongoing
+
+      Example
+        Deployment rollout:
+
+        New Git commit
+            ↓
+        ArgoCD detects
+            ↓
+        OutOfSync
+            ↓
+        Sync triggered
+            ↓
+        Pods updated
+            ↓
+        Healthy
+
+
+  * drift:
+        - Cluster state differs from Git state.
+        - This is one of the MOST important GitOps concepts.
+
+        Why Drift Detection Matters
+        Prevents:
+        - manual changes
+        - configuration inconsistency
+        - snowflake environments
+        - production surprises
+
+  * auto-sync
+        - ArgoCD automatically syncs whenever Git changes.
+        - Without manual approval.
+
+        Example:
+          Developer pushes changes:
+
+          ArgoCD automatically:
+            - detects commit
+            - syncs app
+            - updates deployment
+
+      prune: Deletes resources removed from Git.
+      selfHeal: Fixes drift automatically.
+
+  * rollback : Return application to a previous version.
+  
+  * repo structure
+

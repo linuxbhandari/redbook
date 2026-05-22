@@ -1,0 +1,283 @@
+https://achchusnulchikam.medium.com/deploy-ceph-cluster-with-cephadm-on-centos-8-257b300e7b42 <== ceph pacific
+==============================================================================================================
+
+Destroy cluster   https://www.flamingbytes.com/blog/how-to-uninstall-ceph-storage-cluster/
+===============
+# cephadm rm-cluster --fsid fec2332e-1b0b-11ec-abbe-ac1f6bc8d268 --force
+[root@ceph-node1 ~]# #cephadm rm-cluster --force --zap-osds  --fsid 5b8ce714-c1c4-11ee-b12b-525400d0aca2
+
+# rm -rf /etc/ceph
+# rm -rf /var/lib/ceph*
+# podman rm --all --force
+
+worked on redhat
+=================
+[root@ceph-node ~]# cephadm rm-cluster --fsid 70f4ccfe-0717-11f0-9cc3-5254007bd3d3 --force --zap-osds
+Using ceph image with id '77e55ec0d2bb' and tag 'latest' created on 2024-09-19 20:57:46 +0000 UTC
+registry.redhat.io/rhceph/rhceph-6-rhel9@sha256:15311d0ca7d6fcc9ca18760e751e359c6daf9745dfa4b7402c17e36e58e9765d
+Zapping /dev/vdb...
+Zapping /dev/vdc...
+Zapping /dev/vdd...
+[root@ceph-node ~]# 
+
+
+===========================
+1. 
+
+[root@centos-ceph0 ~]# ssh-keygen 
+[root@centos-ceph0 ~]# ssh-copy-id centos-ceph0
+[root@centos-ceph0 ~]# ssh-copy-id centos-ceph1
+[root@centos-ceph0 ~]# ssh-copy-id centos-ceph2
+
+2.
+[root@centos-ceph0 ~]# dnf install -y python3 lvm2 podman
+[root@centos-ceph1 ~]# dnf install -y python3 lvm2 podman
+[root@centos-ceph2 ~]# dnf install -y python3 lvm2 podman
+
+3.
+
+CEPH_RELEASE=18.2.0
+https://download.ceph.com/rpm-${CEPH_RELEASE}/el9/noarch/cephadm
+
+[root@centos-ceph0 ~]# curl --silent --remote-name --location https://github.com/ceph/ceph/raw/pacific/src/cephadm/cephadm
+[root@centos-ceph1 ~]# chmod +x cephadm
+
+4.
+[root@centos-ceph0 ~]# ./cephadm add-repo --release quincy
+[root@centos-ceph0 ~]# dnf install -y ceph-common
+[root@centos-ceph0 ~]# ./cephadm bootstrap --mon-ip 192.168.122.156
+or
+[root@ceph-node1 ~]# cephadm bootstrap --mon-ip 192.168.122.148 --skip-monitoring-stack --skip-dashboard
+
+or 
+cephadm  bootstrap --mon-ip 192.168.126.225  --skip-monitoring-stack --skip-dashboard --skip-pull  
+
+5.
+[root@centos-ceph0 ~]# podman ps
+[root@centos-ceph0 ~]# systemctl --type=service| grep -i ceph
+[root@centos-ceph0 ~]# ceph -s
+ 
+6. Add new host
+==================
+[root@ceph-node0 ~]# ceph orch host add ceph-node1 192.168.122.249
+Error EINVAL: Failed to connect to ceph-node1 (192.168.122.249). Permission denied     #  if you face this issue run below command
+
+
+[root@ceph-node0 ~]# ceph cephadm get-pub-key > ~/ceph.pub
+[root@ceph-node0 ~]# ssh-copy-id -f -i ~/ceph.pub root@ceph-node1
+[root@ceph-node0 ~]# ceph orch host add ceph-node1 192.168.122.249
+Added host 'ceph-node1' with addr '192.168.122.249'
+
+or
+
+[ceph: root@centos-ceph0 /]# ceph orch host add centos-ceph1 192.168.122.58
+[ceph: root@centos-ceph0 /]# ceph orch host add centos-ceph2 192.168.122.185
+[ceph: root@centos-ceph0 /]# ceph orch host ls
+
+[ceph: root@centos-ceph0 /]# ceph orch device ls              
+[ceph: root@centos-ceph0 /]# ceph orch device ls --hostname=centos-ceph0
+               
+
+7. Add manual osds
+
+for i in {1..6};do qemu-img create -f qcow2 dirk-$i.qcow2 6G;done
+
+
+================== 
+[ceph: root@centos-ceph0 /]#  ceph orch device ls --wide --refresh     <<< wait to visiable disks
+
+# ceph orch daemon add osd --method raw centos-ceph2:/dev/vdb          <<< without lvm
+# ceph orch daemon add osd centos-ceph2:/dev/vdb
+or
+# ceph orch apply osd --all-available-devices  <<< to add all
+
+# ceph orch daemon add osd ceph-node2:data_devices=/dev/vdd,/dev/vdc,db_devices=/dev/vdb
+# ceph orch daemon add osd centos-ceph1:data_devices=/dev/vdc,/dev/vdd,/dev/vde,db_devices=/dev/vdb
+
+db_devices = db(journal)
+data_devices= block(osds)
+
+8. Remove osd from cluster
+==========================
+https://www.ibm.com/docs/en/storage-ceph/6?topic=osds-removing-osd-daemons
+
+--zap => it remove osd completly (--zap option removed the volume groups, logical volumes, and the LVM metadata.)
+--replace => use for osd replacement: (it will not remove osd.id)
+
+[ceph: root@centos-ceph0 /]# ceph orch osd rm 0 --zap --replace      << remove lvm also
+[ceph: root@centos-ceph0 /]# ceph orch osd rm status
+
+
+How to purge osd (when you want to remove metadata also like destroyed)
+=======================================================================
+[ceph: root@centos-ceph0 /]# ceph orch daemon stop osd.0
+[ceph: root@centos-ceph0 /]# ceph osd purge 0 --yes-i-really-mean-it
+[ceph: root@centos-ceph0 /]# ceph orch osd rm status
+
+Stop osd daemon
+================
+[ceph: root@centos-ceph0 /]# ceph orch daemon stop osd.0
+[ceph: root@centos-ceph0 /]# ceph orch daemon start osd.0
+
+
+Issue: Need to remove osd manually from ceph. ansible script was failed
+========================================================================
+
+1. check the osd status.
+
+[root@centos-ceph1 ~]# ceph osd tree
+ID  CLASS  WEIGHT   TYPE NAME              STATUS  REWEIGHT  PRI-AFF
+-1         0.03918  root default                                    
+-3         0.01469      host centos-ceph1                           
+ 0    hdd  0.00490          osd.0              up   1.00000  1.00000
+ 1    hdd  0.00490          osd.1              up   1.00000  1.00000
+ 2    hdd  0.00490          osd.2              up   1.00000  1.00000
+-5         0.01469      host centos-ceph2                           
+ 3    hdd  0.00490          osd.3              up   1.00000  1.00000
+ 4    hdd  0.00490          osd.4              up   1.00000  1.00000
+ 5    hdd  0.00490          osd.5              up   1.00000  1.00000
+-7         0.00980      host centos-ceph3                           
+ 6    hdd  0.00490          osd.6              up   1.00000  1.00000
+ 7    hdd  0.00490          osd.7              up   1.00000  1.00000
+ 8               0  osd.8                    down         0  1.00000    <<==osd showing down, but still part of cluster
+
+
+[root@centos-ceph1 ~]# ./cephadm shell -- ceph orch ps 
+Inferring fsid ea2bac78-b9b6-11ee-8b66-525400f6d06e
+Using recent ceph image quay.io/ceph/ceph@sha256:11a3c84dabb0ce086774b6e234911c78b8e8f3c07b1c2a9209530560e400afd0
+NAME                        HOST          PORTS        STATUS        REFRESHED  AGE  MEM USE  MEM LIM  VERSION    IMAGE ID      CONTAINER ID  
+alertmanager.centos-ceph1   centos-ceph1  *:9093,9094  running (5h)     5m ago   5h    20.0M        -  0.23.0     ba2b418f427c  dc2e1410c092  
+crash.centos-ceph1          centos-ceph1               running (5h)     5m ago   5h     634k        -  16.2.14    94dcf0d6bf9f  2bdeec83b142  
+crash.centos-ceph2          centos-ceph2               running (5h)    75s ago   5h    2897k        -  16.2.14    94dcf0d6bf9f  f376ceef22cb  
+crash.centos-ceph3          centos-ceph3               running (5h)    74s ago   5h    6647k        -  16.2.14    94dcf0d6bf9f  034d2cae2e34  
+grafana.centos-ceph1        centos-ceph1  *:3000       running (5h)     5m ago   5h    44.7M        -  8.3.5      dad864ee21e9  7389dc82cf2e  
+mgr.centos-ceph1.pudtkk     centos-ceph1  *:9283       running (5h)     5m ago   5h     119M        -  16.2.14    94dcf0d6bf9f  d1a557a8a668  
+mgr.centos-ceph2.efduyn     centos-ceph2  *:8443,9283  running (5h)    75s ago   5h    60.7M        -  16.2.14    94dcf0d6bf9f  105a433abf5d  
+mon.centos-ceph1            centos-ceph1               running (5h)     5m ago   5h     287M    2048M  16.2.14    94dcf0d6bf9f  1a9eeb2d28d7  
+mon.centos-ceph2            centos-ceph2               running (5h)    75s ago   5h     571M    2048M  16.2.14    94dcf0d6bf9f  5ed9930d7ea7  
+mon.centos-ceph3            centos-ceph3               running (5h)    74s ago   5h     570M    2048M  16.2.14    94dcf0d6bf9f  c8e2cd67c874  
+node-exporter.centos-ceph1  centos-ceph1  *:9100       running (5h)     5m ago   5h    13.8M        -  1.3.1      1dbe0e931976  624bdcbf63d9  
+node-exporter.centos-ceph2  centos-ceph2  *:9100       running (5h)    75s ago   5h    16.4M        -  1.3.1      1dbe0e931976  5b3e7ef64fe2  
+node-exporter.centos-ceph3  centos-ceph3  *:9100       running (5h)    74s ago   5h    16.0M        -  1.3.1      1dbe0e931976  fd0204e3cad5  
+osd.0                       centos-ceph1               running (5h)     5m ago   5h    18.2M    4096M  16.2.14    94dcf0d6bf9f  8d14f2bb380e  
+osd.1                       centos-ceph1               running (5h)     5m ago   5h    16.8M    4096M  16.2.14    94dcf0d6bf9f  ef0358cdbdf9  
+osd.2                       centos-ceph1               running (5h)     5m ago   5h    18.1M    4096M  16.2.14    94dcf0d6bf9f  4ec67aa7a023  
+osd.3                       centos-ceph2               running (4h)    75s ago   4h    28.5M    4096M  16.2.14    94dcf0d6bf9f  b880a6754d7b  
+osd.4                       centos-ceph2               running (4h)    75s ago   4h    25.3M    4096M  16.2.14    94dcf0d6bf9f  8b28a15dac08  
+osd.5                       centos-ceph2               running (4h)    75s ago   4h    30.4M    4096M  16.2.14    94dcf0d6bf9f  751a1dc5f9af  
+osd.6                       centos-ceph3               running (4h)    74s ago   4h    34.0M    4096M  16.2.14    94dcf0d6bf9f  4903296eb6e1  
+osd.7                       centos-ceph3               running (4h)    74s ago   4h    34.9M    4096M  16.2.14    94dcf0d6bf9f  5fac8d500032  
+osd.8                       centos-ceph3               error           74s ago   4h        -    4096M  <unknown>  <unknown>     <unknown>     <<<=========
+prometheus.centos-ceph1     centos-ceph1  *:9095       running (5h)     5m ago   5h    74.4M        -  2.33.4     514e6a882f6e  3c448b040b4e  
+
+2. remove the osd manually
+==========================
+[root@centos-ceph1 ~]# ceph osd crush rm osd.8
+device 'osd.8' does not appear in the crush map
+[root@centos-ceph1 ~]# ceph auth del osd.8
+updated
+[root@centos-ceph1 ~]# ceph osd rm osd.8
+removed osd.8
+
+
+[root@centos-ceph1 ~]# ceph osd tree
+ID  CLASS  WEIGHT   TYPE NAME              STATUS  REWEIGHT  PRI-AFF
+-1         0.03918  root default                                    
+-3         0.01469      host centos-ceph1                           
+ 0    hdd  0.00490          osd.0              up   1.00000  1.00000
+ 1    hdd  0.00490          osd.1              up   1.00000  1.00000
+ 2    hdd  0.00490          osd.2              up   1.00000  1.00000
+-5         0.01469      host centos-ceph2                           
+ 3    hdd  0.00490          osd.3              up   1.00000  1.00000
+ 4    hdd  0.00490          osd.4              up   1.00000  1.00000
+ 5    hdd  0.00490          osd.5              up   1.00000  1.00000
+-7         0.00980      host centos-ceph3                           
+ 6    hdd  0.00490          osd.6              up   1.00000  1.00000
+ 7    hdd  0.00490          osd.7              up   1.00000  1.00000
+
+
+[root@centos-ceph1 ~]# ./cephadm shell -- ceph orch ps 
+Inferring fsid ea2bac78-b9b6-11ee-8b66-525400f6d06e
+Using recent ceph image quay.io/ceph/ceph@sha256:11a3c84dabb0ce086774b6e234911c78b8e8f3c07b1c2a9209530560e400afd0
+NAME                        HOST          PORTS        STATUS        REFRESHED  AGE  MEM USE  MEM LIM  VERSION    IMAGE ID      CONTAINER ID  
+alertmanager.centos-ceph1   centos-ceph1  *:9093,9094  running (5h)     9m ago   5h    20.0M        -  0.23.0     ba2b418f427c  dc2e1410c092  
+crash.centos-ceph1          centos-ceph1               running (5h)     9m ago   5h     634k        -  16.2.14    94dcf0d6bf9f  2bdeec83b142  
+crash.centos-ceph2          centos-ceph2               running (5h)     5m ago   5h    2897k        -  16.2.14    94dcf0d6bf9f  f376ceef22cb  
+crash.centos-ceph3          centos-ceph3               running (5h)     5m ago   5h    6647k        -  16.2.14    94dcf0d6bf9f  034d2cae2e34  
+grafana.centos-ceph1        centos-ceph1  *:3000       running (5h)     9m ago   5h    44.7M        -  8.3.5      dad864ee21e9  7389dc82cf2e  
+mgr.centos-ceph1.pudtkk     centos-ceph1  *:9283       running (5h)     9m ago   5h     119M        -  16.2.14    94dcf0d6bf9f  d1a557a8a668  
+mgr.centos-ceph2.efduyn     centos-ceph2  *:8443,9283  running (5h)     5m ago   5h    60.7M        -  16.2.14    94dcf0d6bf9f  105a433abf5d  
+mon.centos-ceph1            centos-ceph1               running (5h)     9m ago   5h     287M    2048M  16.2.14    94dcf0d6bf9f  1a9eeb2d28d7  
+mon.centos-ceph2            centos-ceph2               running (5h)     5m ago   5h     571M    2048M  16.2.14    94dcf0d6bf9f  5ed9930d7ea7  
+mon.centos-ceph3            centos-ceph3               running (5h)     5m ago   5h     570M    2048M  16.2.14    94dcf0d6bf9f  c8e2cd67c874  
+node-exporter.centos-ceph1  centos-ceph1  *:9100       running (5h)     9m ago   5h    13.8M        -  1.3.1      1dbe0e931976  624bdcbf63d9  
+node-exporter.centos-ceph2  centos-ceph2  *:9100       running (5h)     5m ago   5h    16.4M        -  1.3.1      1dbe0e931976  5b3e7ef64fe2  
+node-exporter.centos-ceph3  centos-ceph3  *:9100       running (5h)     5m ago   5h    16.0M        -  1.3.1      1dbe0e931976  fd0204e3cad5  
+osd.0                       centos-ceph1               running (5h)     9m ago   5h    18.2M    4096M  16.2.14    94dcf0d6bf9f  8d14f2bb380e  
+osd.1                       centos-ceph1               running (5h)     9m ago   5h    16.8M    4096M  16.2.14    94dcf0d6bf9f  ef0358cdbdf9  
+osd.2                       centos-ceph1               running (5h)     9m ago   5h    18.1M    4096M  16.2.14    94dcf0d6bf9f  4ec67aa7a023  
+osd.3                       centos-ceph2               running (5h)     5m ago   5h    28.5M    4096M  16.2.14    94dcf0d6bf9f  b880a6754d7b  
+osd.4                       centos-ceph2               running (5h)     5m ago   5h    25.3M    4096M  16.2.14    94dcf0d6bf9f  8b28a15dac08  
+osd.5                       centos-ceph2               running (5h)     5m ago   5h    30.4M    4096M  16.2.14    94dcf0d6bf9f  751a1dc5f9af  
+osd.6                       centos-ceph3               running (5h)     5m ago   5h    34.0M    4096M  16.2.14    94dcf0d6bf9f  4903296eb6e1  
+osd.7                       centos-ceph3               running (4h)     5m ago   4h    34.9M    4096M  16.2.14    94dcf0d6bf9f  5fac8d500032  
+osd.8                       centos-ceph3               error            5m ago   5h        -    4096M  <unknown>  <unknown>     <unknown>     <<<= Still there
+prometheus.centos-ceph1     centos-ceph1  *:9095       running (5h)     9m ago   5h    74.4M        -  2.33.4     514e6a882f6e  3c448b040b4e  
+
+3. Remove the daemon also.
+
+[root@centos-ceph1 ~]# ceph orch daemon rm osd.8
+Error EINVAL: must pass --force to REMOVE daemon with potentially PRECIOUS DATA for osd.8
+[root@centos-ceph1 ~]# ceph orch daemon rm osd.8 --force
+Removed osd.8 from host 'centos-ceph3'
+
+[root@centos-ceph1 ~]# ./cephadm shell -- ceph orch ps 
+Inferring fsid ea2bac78-b9b6-11ee-8b66-525400f6d06e
+Using recent ceph image quay.io/ceph/ceph@sha256:11a3c84dabb0ce086774b6e234911c78b8e8f3c07b1c2a9209530560e400afd0
+NAME                        HOST          PORTS        STATUS        REFRESHED  AGE  MEM USE  MEM LIM  VERSION  IMAGE ID      CONTAINER ID  
+alertmanager.centos-ceph1   centos-ceph1  *:9093,9094  running (5h)    78s ago   5h    20.1M        -  0.23.0   ba2b418f427c  dc2e1410c092  
+crash.centos-ceph1          centos-ceph1               running (5h)    78s ago   5h     634k        -  16.2.14  94dcf0d6bf9f  2bdeec83b142  
+crash.centos-ceph2          centos-ceph2               running (5h)     7m ago   5h    2897k        -  16.2.14  94dcf0d6bf9f  f376ceef22cb  
+crash.centos-ceph3          centos-ceph3               running (5h)     4s ago   5h    6647k        -  16.2.14  94dcf0d6bf9f  034d2cae2e34  
+grafana.centos-ceph1        centos-ceph1  *:3000       running (5h)    78s ago   5h    44.2M        -  8.3.5    dad864ee21e9  7389dc82cf2e  
+mgr.centos-ceph1.pudtkk     centos-ceph1  *:9283       running (5h)    78s ago   5h     378M        -  16.2.14  94dcf0d6bf9f  d1a557a8a668  
+mgr.centos-ceph2.efduyn     centos-ceph2  *:8443,9283  running (5h)     7m ago   5h    60.7M        -  16.2.14  94dcf0d6bf9f  105a433abf5d  
+mon.centos-ceph1            centos-ceph1               running (5h)    78s ago   5h     142M    2048M  16.2.14  94dcf0d6bf9f  1a9eeb2d28d7  
+mon.centos-ceph2            centos-ceph2               running (5h)     7m ago   5h     571M    2048M  16.2.14  94dcf0d6bf9f  5ed9930d7ea7  
+mon.centos-ceph3            centos-ceph3               running (5h)     4s ago   5h     577M    2048M  16.2.14  94dcf0d6bf9f  c8e2cd67c874  
+node-exporter.centos-ceph1  centos-ceph1  *:9100       running (5h)    78s ago   5h    15.7M        -  1.3.1    1dbe0e931976  624bdcbf63d9  
+node-exporter.centos-ceph2  centos-ceph2  *:9100       running (5h)     7m ago   5h    16.4M        -  1.3.1    1dbe0e931976  5b3e7ef64fe2  
+node-exporter.centos-ceph3  centos-ceph3  *:9100       running (5h)     4s ago   5h    14.1M        -  1.3.1    1dbe0e931976  fd0204e3cad5  
+osd.0                       centos-ceph1               running (5h)    78s ago   5h    11.5M    4096M  16.2.14  94dcf0d6bf9f  8d14f2bb380e  
+osd.1                       centos-ceph1               running (5h)    78s ago   5h    9.94M    4096M  16.2.14  94dcf0d6bf9f  ef0358cdbdf9  
+osd.2                       centos-ceph1               running (5h)    78s ago   5h    9.89M    4096M  16.2.14  94dcf0d6bf9f  4ec67aa7a023  
+osd.3                       centos-ceph2               running (5h)     7m ago   5h    28.5M    4096M  16.2.14  94dcf0d6bf9f  b880a6754d7b  
+osd.4                       centos-ceph2               running (5h)     7m ago   5h    25.3M    4096M  16.2.14  94dcf0d6bf9f  8b28a15dac08  
+osd.5                       centos-ceph2               running (5h)     7m ago   5h    30.4M    4096M  16.2.14  94dcf0d6bf9f  751a1dc5f9af  
+osd.6                       centos-ceph3               running (5h)     4s ago   5h    33.9M    4096M  16.2.14  94dcf0d6bf9f  4903296eb6e1  
+osd.7                       centos-ceph3               running (4h)     4s ago   4h    35.0M    4096M  16.2.14  94dcf0d6bf9f  5fac8d500032  
+prometheus.centos-ceph1     centos-ceph1  *:9095       running (5h)    78s ago   5h    70.6M        -  2.33.4   514e6a882f6e  3c448b040b4e  
+
+
+4. On ceph node side ceph disk lvm still same. you can remove the lvm or leave it.
+
+# Note : need to remove lvm manually if you want.
+
+
+[root@centos-ceph3 ~]# lvscan 
+  ACTIVE            '/dev/ceph-63a0d8b4-a521-4bc2-96f0-dcbb1f20187f/osd-block-598108fd-dd9a-4aea-9b8f-2d123121e839' [<5.00 GiB] inherit
+  ACTIVE            '/dev/ceph-e4cedcd4-9bf3-44ea-a21f-6f5d80c1847a/osd-block-ecc26757-8cf8-4d22-abf7-3643c79ce577' [<5.00 GiB] inherit
+  ACTIVE            '/dev/ceph-6cf25f8c-802f-442f-9cb9-0d515d351f91/osd-block-3f486062-0104-458f-9eb3-f55b6248e383' [<5.00 GiB] inherit
+[root@centos-ceph3 ~]# lvs -a -o +devices
+  LV                                             VG                                        Attr       LSize  Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert Devices    
+  osd-block-598108fd-dd9a-4aea-9b8f-2d123121e839 ceph-63a0d8b4-a521-4bc2-96f0-dcbb1f20187f -wi-a----- <5.00g                                                     /dev/vdd(0)
+  osd-block-3f486062-0104-458f-9eb3-f55b6248e383 ceph-6cf25f8c-802f-442f-9cb9-0d515d351f91 -wi-ao---- <5.00g                                                     /dev/vdb(0)
+  osd-block-ecc26757-8cf8-4d22-abf7-3643c79ce577 ceph-e4cedcd4-9bf3-44ea-a21f-6f5d80c1847a -wi-ao---- <5.00g                                                     /dev/vdc(0)
+  
+
+
+[root@ceph-node1 ~]# cephadm shell -- ceph log last cephadm     <<< To check logs
+
+https://www.ibm.com/docs/en/storage-ceph/5?topic=installation-adding-manager-service   <<< Adding new mon nodes
+
+

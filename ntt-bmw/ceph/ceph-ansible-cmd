@@ -1,0 +1,162 @@
+ceph config set mon auth_allow_insecure_global_id_reclaim false 
+
+https://dannyda.com/2022/05/11/how-to-fix-mons-are-allowing-insecure-global_id-reclaim-warning-error-for-ceph-linux-proxmox-ve-pve-etc/
+
+ansible-playbook -i ../hosts site.yml  -l ceph0   << To all new disk on ceph0
+
+ansible-playbook -i hosts infrastructure-playbooks/purge-cluster.yml  -u root  <<== delete cluster
+
+ansible-playbook -i ../hosts infrastructure-playbooks/shrink-osd.yml -e osd_to_kill=6  -l ceph0      <<== to remove osd.6 
+
+https://github.com/ceph/ceph-ansible/issues/4891  <<==== containerized deployment
+
+[root@centos-ceph0 ~]# podman exec ceph-mon-centos-ceph0 ceph --version
+ceph version 14.2.22 (ca74598065096e6fcbd8433c8779a2be0c889351) nautilus (stable)
+
+
+manish@bhandari:~/ansible/ubuntu/ceph-ansible/group_vars$ grep -v '^#' all.yml| sed '/^$/d'
+---
+dummy:
+generate_fsid: true
+monitor_interface: enp1s0
+journal_size: 5120 # OSD journal size in MB
+public_network: 0.0.0.0/0
+cluster_network: 0.0.0.0/0
+radosgw_interface: enp1s0
+ceph_docker_image: "ceph/daemon"
+ceph_docker_image_tag: latest
+ceph_docker_registry: docker.io
+containerized_deployment: true
+
+or
+
+manish@bhandari:~/ansible/centos/ceph-ansible$ egrep -v '^#|$^' group_vars/all.yml 
+---
+dummy:
+ceph_origin: repository
+ceph_repository: community
+ceph_repository_type: cdn
+ceph_stable_release: nautilus
+generate_fsid: true
+monitor_interface: enp1s0
+public_network: 0.0.0.0/0
+radosgw_interface: enp1s0
+ceph_conf_overrides:
+  global:
+    osd_pool_default_size: 1
+    mon_warn_on_pool_no_redundancy: false
+dashboard_enabled: false
+dashboard_network: "{{ public_network }}"
+dashboard_admin_user: admin
+dashboard_admin_password: redhat@123
+node_exporter_container_image: "prom/node-exporter:v0.17.0"
+grafana_admin_user: admin
+grafana_admin_password: admin
+grafana_container_image: "grafana/grafana:5.4.3"
+grafana_dashboard_version: nautilus
+prometheus_container_image: "prom/prometheus:v2.7.2"
+alertmanager_container_image: "prom/alertmanager:v0.16.2"
+
+========= Containers nautilus version =============
+[root@centos-ceph0 ~]# podman exec ceph-mon-centos-ceph0 ceph --version
+ceph version 14.2.22 (ca74598065096e6fcbd8433c8779a2be0c889351) nautilus (stable)
+
+manish@bhandari:~/ansible/centos/ceph-ansible$ egrep -v '^#|$^' group_vars/all.yml 
+---
+dummy:
+ceph_origin: repository
+ceph_repository: community
+ceph_repository_type: cdn
+ceph_stable_release: nautilus
+generate_fsid: true
+monitor_interface: enp1s0
+public_network: 0.0.0.0/0
+radosgw_interface: enp1s0
+containerized_deployment: True
+ceph_docker_image: "ceph/daemon"
+ceph_docker_image_tag: latest-nautilus
+ceph_docker_registry: quay.io
+dashboard_enabled: true
+dashboard_network: "{{ public_network }}"
+dashboard_admin_user: admin
+dashboard_admin_password: redhat@123
+node_exporter_container_image: "prom/node-exporter:v0.17.0"
+grafana_admin_user: admin
+grafana_admin_password: admin
+grafana_container_image: "grafana/grafana:5.4.3"
+grafana_dashboard_version: nautilus
+prometheus_container_image: "prom/prometheus:v2.7.2"
+alertmanager_container_image: "prom/alertmanager:v0.16.2"
+
+========= Containers octopus version =============
+
+[root@centos-ceph0 ~]# podman exec ceph-mon-centos-ceph0 ceph -v
+ceph version 15.2.17 (8a82819d84cf884bd39c17e3236e0632ac146dc4) octopus (stable)
+
+
+manish@bhandari:~/ansible/centos/ceph-ansible$ egrep -v '^#|$^' group_vars/all.yml 
+---
+dummy:
+ceph_origin: repository
+ceph_repository: community
+ceph_repository_type: cdn
+ceph_stable_release: octopus
+generate_fsid: true
+monitor_interface: enp1s0
+public_network: 0.0.0.0/0
+radosgw_interface: enp1s0
+containerized_deployment: True
+ceph_docker_image: "ceph/daemon"
+ceph_docker_image_tag: latest-octopus
+ceph_docker_registry: quay.io
+dashboard_enabled: true
+dashboard_network: "{{ public_network }}"
+dashboard_admin_user: admin
+dashboard_admin_password: redhat@123
+node_exporter_container_image: "prom/node-exporter:v0.17.0"
+grafana_admin_user: admin
+grafana_admin_password: admin
+grafana_container_image: "grafana/grafana:5.4.3"
+grafana_dashboard_version: octopus
+prometheus_container_image: "prom/prometheus:v2.7.2"
+alertmanager_container_image: "prom/alertmanager:v0.16.2"
+
+============ Container pacific version ===========
+
+manish@bhandari:~/ceph-ansible$ egrep -v '^#|^$' group_vars/all.yml
+---
+dummy:
+ceph_origin: repository
+ceph_repository: community
+ceph_stable_release: pacific
+generate_fsid: true
+monitor_interface: enp1s0
+public_network: 0.0.0.0/0
+cluster_network: "{{ public_network }}"
+radosgw_interface: enp1s0
+ceph_docker_image: "ceph/daemon"
+ceph_docker_image_tag: latest-pacific
+ceph_docker_registry: quay.io
+containerized_deployment: True
+dashboard_enabled: True
+dashboard_network: "{{ public_network }}"
+dashboard_admin_user: admin
+dashboard_admin_password: redhat@123
+node_exporter_container_image: "docker.io/prom/node-exporter:v0.17.0"
+node_exporter_port: 9100
+grafana_admin_user: admin
+grafana_admin_password: admin
+grafana_container_image: "docker.io/grafana/grafana:6.7.4"
+grafana_dashboard_version: pacific
+prometheus_container_image: "docker.io/prom/prometheus:v2.7.2"
+alertmanager_container_image: "docker.io/prom/alertmanager:v0.16.2"
+
+manish@bhandari:~/ceph-ansible$ egrep -v '^#|^$' group_vars/osds.yml
+---
+dummy:
+copy_admin_key: true
+osd_auto_discovery: true
+
+
+
+

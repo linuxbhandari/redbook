@@ -1,0 +1,11 @@
+Phase 5 — OpenShift Operations
+==============================
+Focus on:
+  * cluster upgrades
+  * node management
+  * operator upgrades
+  * certificate handling
+  * monitoring
+  * scaling
+  * RBAC
+These match your current work.

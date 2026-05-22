@@ -1,0 +1,284 @@
+OpenShift Core & Architecture
+==============================
+Platform Overview & Core Concepts
+	What is Red Hat OpenShift?
+		Openshift = kuberntes + Enterprise features + Developer Tools.
+	Difference between OpenShift and Kubernetes?
+	Explain OpenShift architecture. | main components of OpenShift architecture?
+	
+------------------------------------------------------------------------
+Control Plane (Master Node Layer)
+API Server
+	What is the role of the API Server?
+	How does the API server interact with ETCD and controllers?
+	Explain the request flow in OpenShift.
+	What happens step-by-step when you deploy an application in OpenShift?
+
+
+ETCD
+	What is ETCD and why is it important?
+	How does ETCD quorum work?
+	What happens if ETCD goes down?
+	How do you backup and restore ETCD in a disaster scenario?
+	What are the risks of losing ETCD leader election?
+	How does ETCD handle data consistency?
+
+Scheduler
+	What is the role of the Scheduler?
+	How does pod scheduling work?
+	What are scheduling policies and priorities?
+	What are taints, tolerations, and node affinity? How do they impact scheduling?
+
+Controller Manager
+	What does Controller Manager do?
+	What are controllers in Kubernetes/OpenShift?
+	How does a Deployment controller work internally?
+
+Control Plane HA
+	How does HA work in OpenShift control plane?
+	What happens if one master node fails in a multi-master cluster?
+
+Runtime & Platform Internals
+	What is CRI-O?
+	Why does OpenShift use CRI-O instead of Docker?
+
+Operators
+	What are Operators?
+	How do Operators work internally?
+	What is the reconciliation loop?
+	What is a CRD (Custom Resource Definition)?
+	What is Operator Lifecycle Manager (OLM)?
+
+----------------------------------------------------------------
+Worker Node (Data Plane Layer)
+Node Basics
+	What are worker nodes?
+	What is kubelet?
+	What is the role of container runtime (CRI-O / containerd)?
+	What happens when kubelet fails?
+
+Services & Communication
+	What is a Service in Kubernetes/OpenShift?
+	How does service discovery work internally?
+	What is kube-proxy and how does it work?
+
+DNS
+	How does DNS work inside OpenShift?
+	What is CoreDNS and how does it resolve services?
+
+Networking & Traffic Flow
+	How does networking work in OpenShift?
+	Difference between OpenShift SDN and OVN-Kubernetes?
+	How does OVN-Kubernetes handle pod-to-pod communication?
+	What are network policies and how are they enforced?
+
+External Traffic
+	How does external traffic reach an application?
+	What is the flow from external client → route → service → pod?
+	What are Routes in OpenShift?
+	Difference between Route and Ingress?
+	How does TLS termination work in OpenShift Routes?
+	What is the role of the Router (HAProxy router)?
+
+Node Failure Handling
+	What happens when a worker node becomes NotReady?
+	How are pods rescheduled when a node fails?
+	What is the role of eviction in node failure scenarios?
+
+----------------------------------------------------------------
+Upgrade & Lifecycle Management
+	Explain OpenShift upgrade flow.
+	How do upgrades happen in OpenShift?
+	What is Cluster Version Operator (CVO)?
+	How does MCO work?
+	What is Machine Config Operator (MCO)?
+	How you can update machineconfig?
+
+High Availability (HA) & Architecture Design
+	What happens if a master node fails?
+	How do you design High Availability (HA) architecture?
+	Explain OpenShift HA architecture flow.
+	Why are load balancers needed in OpenShift? | Where are load balancers used in OpenShift?
+	Difference between API Load Balancer and Application Load Balancer?
+	What is Infrastructure Node in OpenShift? | Why are infrastructure nodes used?
+	Difference between IPI and UPI installation?
+
+---------------------------------------------------------------
+User Management & Authentication
+	How does user management work in OpenShift?
+	What authentication methods does OpenShift support?
+	What is OAuth in OpenShift?
+	How do you create a new user in OpenShift?
+	How do you view all users and groups?
+	How do you switch users in oc CLI?
+
+RBAC (Role-Based Access Control)
+	What is RBAC in OpenShift?
+	How does RBAC work in OpenShift?
+	Difference between Role and ClusterRole?
+	Difference between RoleBinding and ClusterRoleBinding?
+	How do you grant admin access to a user?
+	How do you remove permissions from a user?
+	How do you check permissions for a user?
+
+Groups & Identity
+	What are Groups in OpenShift?
+	What is the default security model in OpenShift?
+	What is least privilege access?
+
+Service Accounts
+	What are Service Accounts?
+	Difference between Users and Service Accounts?
+	How do Pods authenticate to the API server?
+
+-----------------------------------------------------------------
+Resource Management Basics
+	Explain requests and limits in Kubernetes/OpenShift.
+	Difference between CPU request and CPU limit?
+	Difference between memory request and memory limit?
+	Can a pod be created without resource requests and limits?
+
+ResourceQuota (Namespace Level Controls)
+	What is a ResourceQuota in OpenShift?
+	Why are ResourceQuotas used?
+	What resources can be limited using ResourceQuota?
+	How do you create a ResourceQuota?
+	How do you check ResourceQuotas in a project?
+	What happens when a quota limit is exceeded?
+	How do you assign quotas to a namespace/project?
+	How do you update an existing quota?
+	How do you delete a quota?
+	How do you view quota consumption?
+	How do you troubleshoot quota exceeded errors?
+	How do quotas affect deployments?
+
+LimitRange (Default & Per-Pod Controls)
+	What is LimitRange in OpenShift?
+	Difference between ResourceQuota and LimitRange?
+	How do default CPU and memory limits work?
+	What is the purpose of LimitRange defaults?
+
+CPU & Memory Behavior
+	What happens if memory limits are exceeded?
+	What happens if CPU limits are exceeded?
+
+Cluster-Level Quotas
+	What is ClusterResourceQuota?
+	Difference between ResourceQuota and ClusterResourceQuota?
+
+Capacity Planning & Multi-Tenancy
+	How do administrators prevent resource starvation in clusters?
+	How do quotas help in multi-tenant environments?
+	What are best practices for setting quotas?
+	What is overcommitment in Kubernetes/OpenShift?
+
+Monitoring & Usage
+	How do you check resource usage in OpenShift?
+	How do you monitor cluster capacity and quotas?
+
+------------------------------------------------------------------------
+Storage Fundamentals
+	What is Persistent Volume (PV)?
+	What is Persistent Volume Claim (PVC)?
+	What is StorageClass?
+	What is the lifecycle of a PV and PVC?
+	What is reclaim policy in PV? (Retain, Delete, Recycle)
+	What is volume binding mode?
+
+Provisioning & Storage Types
+	What is dynamic provisioning?
+	What is static provisioning in OpenShift?
+	What storage solutions are supported in OpenShift?	
+	Difference between block storage and file storage?
+	Difference between ReadWriteOnce, ReadOnlyMany, ReadWriteMany access modes?
+	What is volume expansion and how does it work?
+
+CSI & Storage Architecture
+	How do CSI drivers work in OpenShift?
+	What is the role of CSI Controller and CSI Node plugin?
+	How does Kubernetes interact with external storage via CSI?
+	What happens when a CSI driver fails?
+	How are storage plugins deprecated and replaced with CSI?
+
+OpenShift Storage Solutions
+	What is OpenShift Data Foundation (ODF)?
+	What components are part of ODF?
+	How does ODF provide high availability for storage?
+
+Troubleshooting Storage
+	How do you troubleshoot storage issues in OpenShift?
+	What happens when PVC is stuck in Pending state?
+	Why does a Pod go into ContainerCreating state due to storage?
+	How do you debug volume mount failures?
+	How do you check PV/PVC binding issues?
+	How do you verify CSI driver logs?
+
+Advanced Storage Concepts (L3 Level)
+	What happens when a node hosting a PV goes down?
+	How is data consistency maintained in distributed storage?
+	What is volume snapshot and restore?
+	How do you back up persistent volumes in OpenShift?
+	What is storage performance tuning in OpenShift?
+	How do quotas impact storage consumption in a namespace?
+
+
+
+
+
+
+CI/CD, Pipelines & GitOps
+=========================
+What is CI/CD?
+	Explain CI/CD workflow.
+	What is OpenShift Pipelines?
+What is Tekton?
+Difference between Jenkins and Tekton?
+	Difference between Task, Pipeline, and PipelineRun?
+How do you troubleshoot failed pipelines?
+How do you secure CI/CD pipelines?
+How do you manage secrets in pipelines?
+What is BuildConfig?
+What are ImageStreams?
+How do image triggers work in OpenShift?
+What is Source-to-Image (S2I)?
+What deployment strategies are supported in OpenShift?
+Difference between Rolling and Recreate deployment strategies?
+How do you rollback deployments in OpenShift?
+
+What is GitOps in OpenShift?
+What is Argo CD?
+	How does Argo CD work?
+	Difference between push-based and pull-based deployment?
+	Why is Argo CD pull-based?
+	What is an Argo CD Application?
+	What is sync in Argo CD?
+	Difference between manual sync and auto sync?
+	What is self-healing in Argo CD?
+	What is drift detection?
+	What causes OutOfSync state?
+	How do you rollback applications in Argo CD?
+	How does Argo CD handle Helm charts?
+	How do you use Kustomize in Argo CD?
+	How do you troubleshoot Argo CD sync failures?
+	How do you deploy applications in OpenShift using GitOps?
+
+
+
+Scenario-Based Questions
+========================
+A developer cannot deploy a pod because of quota errors. How do you troubleshoot?
+Pods are getting OOMKilled. What could be the reason?
+One namespace is consuming too much CPU. How would you control it?
+How would you enforce default memory limits for all pods in a project?
+How do you prevent users from creating very large pods?
+A deployment is stuck in Pending state due to resources. What do you check?
+How would you manage resources in a multi-team OpenShift cluster?
+How do you identify which project is consuming the most resources?
+How would you restrict the number of pods a team can create?
+What happens if a namespace reaches its storage quota?
+
+
+Argo CD app is continuously OutOfSync. What do you check?
+Git changes are not reflecting in the cluster. What do you check?
+Deployment failed after image update. How do you debug?
+Pipeline is failing during image build. What do you check?

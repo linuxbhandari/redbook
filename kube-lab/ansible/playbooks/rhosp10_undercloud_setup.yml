@@ -1,0 +1,156 @@
+---
+- name: RHOSP 10.2 Undercloud Setup
+  hosts: undercloud
+  become: true
+  vars:
+    interface_eth0_ip: 192.168.150.10
+    interface_eth1_ip: 192.168.122.11
+    repo_server: 192.168.122.1
+    hostname_fqdn: director-rhosp-10.2.kvm.lab.com
+    stack_user_password: a
+
+  tasks:
+
+  - name: Stop and disable NetworkManager and firewalld
+    systemd:
+      name: "{{ item }}"
+      state: stopped
+      enabled: no
+    loop:
+      - NetworkManager
+      - firewalld
+
+  - name: Enable IP forwarding
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: '1'
+      state: present
+      reload: yes
+
+  - name: Set hostname
+    hostname:
+      name: "{{ hostname_fqdn }}"
+
+  - name: Configure eth0
+    copy:
+      dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+      content: |
+        TYPE=Ethernet
+        BOOTPROTO=none
+        DEFROUTE=yes
+        IPV6INIT=no
+        NAME=eth0
+        DEVICE=eth0
+        ONBOOT=yes
+        IPADDR={{ interface_eth0_ip }}
+        PREFIX=24
+        GATEWAY=192.168.150.1
+        DNS1=192.168.122.1
+
+  - name: Configure eth1
+    copy:
+      dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+      content: |
+        TYPE="Ethernet"
+        BOOTPROTO="none"
+        DEFROUTE="yes"
+        IPV6INIT="no"
+        NAME="eth1"
+        DEVICE="eth1"
+        ONBOOT="yes"
+        IPADDR={{ interface_eth1_ip }}
+        PREFIX="24"
+        GATEWAY="192.168.122.1"
+        DNS1="192.168.122.1"
+
+  - name: Set YUM repositories
+    copy:
+      dest: /etc/yum.repos.d/all.repo
+      content: |
+        [rhel7.3]
+        name=rhel7.3
+        baseurl=ftp://{{ repo_server }}/rhel7.3
+        gpgcheck=0
+
+        [HighAvailability]
+        name=HighAvailability
+        baseurl=ftp://{{ repo_server }}/rhel7.3/addons/HighAvailability/
+        gpgcheck=0
+
+        [ResilientStorage]
+        name=ResilientStorage
+        baseurl=ftp://{{ repo_server }}/rhel7.3/addons/ResilientStorage/
+        gpgcheck=0
+
+        [rhosp-10.2]
+        name=rhosp-10.2
+        baseurl=ftp://{{ repo_server }}/repos/openstack/openstack-v10
+        gpgcheck=0
+
+  - name: Reboot the system to apply changes
+    reboot:
+      reboot_timeout: 300
+
+  - name: Create 'stack' user and set password
+    user:
+      name: stack
+      password: "{{ stack_user_password | password_hash('sha512') }}"
+      shell: /bin/bash
+
+  - name: Add stack user to sudoers with no password prompt
+    copy:
+      dest: /etc/sudoers.d/stack
+      content: "stack ALL=(root) NOPASSWD:ALL\n"
+      mode: '0440'
+
+  - name: Install python-tripleoclient
+    yum:
+      name: python-tripleoclient
+      state: present
+
+  - name: Add hosts entry
+    lineinfile:
+      dest: /etc/hosts
+      line: "{{ interface_eth1_ip }} {{ hostname_fqdn }} director-rhosp-10.2"
+      state: present
+
+  - name: Switch to stack user and set up undercloud config
+    become_user: stack
+    block:
+      - name: Create required directories
+        file:
+          path: "{{ item }}"
+          state: directory
+        loop:
+          - /home/stack/images
+          - /home/stack/templates
+
+      - name: Create undercloud.conf
+        copy:
+          dest: /home/stack/undercloud.conf
+          content: |
+            [DEFAULT]
+            undercloud_hostname = {{ hostname_fqdn }}
+            local_ip = 192.168.150.10/24
+            network_gateway = 192.168.150.10
+            undercloud_public_vip = 192.168.150.2
+            undercloud_admin_vip = 192.168.150.3
+            generate_service_certificate = true
+            certificate_generation_ca = local
+            local_interface = eth0
+            local_mtu = 1500
+            network_cidr = 192.168.150.0/24
+            masquerade_network = 192.168.150.0/24
+            dhcp_start = 192.168.150.100
+            dhcp_end = 192.168.150.150
+            inspection_interface = br-ctlplane
+            inspection_iprange = 192.168.150.160,192.168.150.199
+            undercloud_debug = true
+            ipxe_enabled = true
+
+  - name: Run openstack undercloud install
+    become_user: stack
+    shell: |
+      openstack undercloud install
+    args:
+      executable: /bin/bash

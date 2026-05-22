@@ -1,0 +1,301 @@
+1.
+
+hostnamectl set-hostname rhosp-17-0-standalone.example.com
+
+
+systemctl disable --now firewalld
+
+setenforce 0
+
+useradd stack
+echo a |passwd --stdin stack 
+echo "stack ALL=(root) NOPASSWD:ALL" | tee -a /etc/sudoers.d/stack
+chmod 0440 /etc/sudoers.d/stack
+
+
+su - stack
+
+sudo subscription-manager register --username amit.chopra@partner.bmw.de  --password Comnet#123456
+sudo subscription-manager release --list
+sudo subscription-manager release --set=9.0
+
+### Or for offline setup
+
+cat <<EOF>/etc/yum.repos.d/a.repo 
+[rhel9-BaseOS]
+name=rhel9-BaseOS
+baseurl=ftp://192.168.122.1/rhel9.0/BaseOS
+gpgcheck=0
+
+[rhel9-App]
+name=rhel9-AppStream
+baseurl=ftp://192.168.122.1/rhel9.0/AppStream/
+gpgcheck=0
+
+[osk]
+name=osk
+baseurl=ftp://192.168.122.1/repos/openstack-17.0.1-Wallaby-rhel9.0-standalone/repos/
+gpgcheck=0
+EOF
+
+
+2. Install packages
+
+sudo dnf install -y dnf-utils vim net-tools
+sudo subscription-manager repos --disable=*
+sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-eus-rpms --enable=rhel-9-for-x86_64-appstream-eus-rpms --enable=rhel-9-for-x86_64-highavailability-eus-rpms --enable=openstack-17-for-rhel-9-x86_64-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms
+
+additioanl repo
+===============
+sudo subscription-manager repos --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms   # for ceph
+
+
+sudo dnf update -y
+sudo reboot
+
+sudo dnf install -y python3-tripleoclient  podman podman-plugins netavark
+
+sudo dnf install -y python3-tripleoclient ceph-common
+
+
+[stack@openstack-standalone ~]$ ifconfig 
+enp1s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.126.14  netmask 255.255.255.0  broadcast 192.168.126.255
+        inet6 fe80::5054:ff:febc:3da2  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:bc:3d:a2  txqueuelen 1000  (Ethernet)
+        RX packets 137  bytes 8859 (8.6 KiB)
+        RX errors 0  dropped 126  overruns 0  frame 0
+        TX packets 18  bytes 1512 (1.4 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp7s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.122.14  netmask 255.255.255.0  broadcast 192.168.122.255
+        inet6 fe80::2872:2d69:a64d:60f8  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:d8:62:59  txqueuelen 1000  (Ethernet)
+        RX packets 59414  bytes 198014084 (188.8 MiB)
+        RX errors 0  dropped 126  overruns 0  frame 0
+        TX packets 45047  bytes 8744735 (8.3 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+
+
+3. Genetate file
+
+sudo openstack tripleo container image prepare default --local-push-destination --output-env-file containers-prepare-parameters.yaml
+
+cat <<EOF> containers-prepare-parameters.yaml
+# Generated with the following on 2025-03-21T18:34:23.393438
+#
+#   openstack tripleo container image prepare default --output-env-file /home/stack/containers-prepare-parameters.yaml
+#
+
+parameter_defaults:
+  ContainerImagePrepare:
+  - set:
+      ceph_alertmanager_image: ose-prometheus-alertmanager
+      ceph_alertmanager_namespace: registry.redhat.io/openshift4
+      ceph_alertmanager_tag: 4.6
+      ceph_grafana_image: rhceph-5-dashboard-rhel8
+      ceph_grafana_namespace: registry.redhat.io/rhceph
+      ceph_grafana_tag: latest
+      ceph_image: rhceph-5-rhel8
+      ceph_namespace: registry.redhat.io/rhceph
+      ceph_node_exporter_image: ose-prometheus-node-exporter
+      ceph_node_exporter_namespace: registry.redhat.io/openshift4
+      ceph_node_exporter_tag: v4.6
+      ceph_prometheus_image: ose-prometheus
+      ceph_prometheus_namespace: registry.redhat.io/openshift4
+      ceph_prometheus_tag: 4.6
+      ceph_tag: latest
+      name_prefix: openstack-
+      name_suffix: ''
+      namespace: registry.redhat.io/rhosp-rhel9
+      neutron_driver: ovn
+      rhel_containers: false
+      tag: '17.0'
+    tag_from_label: '{version}-{release}'
+  ContainerImageRegistryCredentials:
+    registry.redhat.io:
+      chopraamit_bmw: "Comnet#123456"
+EOF
+
+
+
+or (for Offline)
+
+configure local registey server
+=============================
+sudo dnf install -y podman httpd-tools
+sudo mkdir -p /opt/registry/data
+sudo mkdir /home/stack/registry/data -p
+
+sudo podman run -d --name registry --restart=always -p 8787:5000 -v /home/manish/ssd/registry-data:/var/lib/registry docker.io/library/registry:2
+sudo podman run -d --name registry --restart=always -p 8787:5000 -v /home/stack/registry/data:/var/lib/registry docker.io/library/registry:2
+sudo podman run -d --name registry --restart=always -p 8787:5000 -e REGISTRY_VALIDATION_DISABLED=true -v /opt/registry/data:/var/lib/registry docker.io/library/registry:2
+
+docker run -d --name=registry-local --restart=always -p 8787:5000 -v /home/manish/ssd/registry-data:/var/lib/registry registry:2
+
+
+sudo vim /etc/containers/registries.conf
+
+[[registry]]
+location="localhost:8787"
+insecure=true
+
+wq!
+
+sudo podman tag registry.redhat.io/rhosp-rhel9/openstack-keystone:17.0 localhost:8787/rhosp-rhel9/openstack-keystone:17.0
+
+sudo podman push localhost:8787/rhosp-rhel9/openstack-keystone:17.0
+curl -X GET http://localhost:8787/v2/_catalog
+{"repositories":["rhosp-rhel9/openstack-keystone"]}
+
+sudo podman pull localhost:8787/rhosp-rhel9/openstack-keystone:17.0
+
+containers-prepare-parameters.yaml
+parameter_defaults:
+  ContainerImagePrepare:
+    - push_destination: false
+      set:
+        name_prefix: localhost:8787/rhosp-rhel9/openstack-
+        namespace: localhost:8787/rhosp-rhel9
+        name_suffix: ''
+        tag: '17.0'
+  ContainerImageRegistryLogin: false
+===============================================
+
+
+
+3. set ips
+
+export IP=192.168.122.45 
+export VIP=192.168.122.100
+export NETMASK=24
+export INTERFACE=enp1s0
+export DNS1=1.1.1.1
+export DNS2=8.8.8.8
+
+
+cat <<EOF > $HOME/standalone_parameters.yaml
+parameter_defaults:
+  CloudName: $IP
+  CloudDomain: localdomain
+  ControlPlaneStaticRoutes: []
+  Debug: true
+  DeploymentUser: $USER
+  KernelIpNonLocalBind: 1
+  DockerInsecureRegistryAddress:
+    - $IP:8787
+  NeutronPublicInterface: $INTERFACE
+  NeutronDnsDomain: localdomain
+  NeutronBridgeMappings: datacentre:br-ctlplane
+  NeutronPhysicalBridge: br-ctlplane
+  StandaloneEnableRoutedNetworks: false
+  StandaloneHomeDir: $HOME
+  StandaloneLocalMtu: 1500
+EOF
+
+
+sudo podman login registry.redhat.io --username chopraamit_bmw --password Comnet#123456   
+sudo podman login registry.redhat.io --username manishbhandari148 --password cG9aczQ$  (not download images)
+
+
+
+
+ sudo openstack tripleo deploy \
+  --templates \
+  --local-ip=$IP/$NETMASK \
+  --control-virtual-ip=$VIP \
+  -e /usr/share/openstack-tripleo-heat-templates/environments/standalone/standalone-tripleo.yaml \
+  -r /usr/share/openstack-tripleo-heat-templates/roles/Standalone.yaml \
+  -e $HOME/containers-prepare-parameters.yaml \
+  -e $HOME/standalone_parameters.yaml \
+  --output-dir $HOME \
+  --standalone
+
+
+
+[stack@openstack-standalone ~]$ export OS_CLOUD=standalone
+[stack@openstack-standalone ~]$ openstack endpoint list
++----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------------------------------+
+| ID                               | Region    | Service Name | Service Type | Enabled | Interface | URL                                               |
++----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------------------------------+
+| 00202cd6fd5345428c6de28f557c7b53 | regionOne | keystone     | identity     | True    | public    | http://192.168.126.100:5000                       |
+| 09912992bb6c4be69ab1a148c69ed6bb | regionOne | nova         | compute      | True    | admin     | http://192.168.126.100:8774/v2.1                  |
+| 1dfd1c1a131f47b0940dd25f84a9867f | regionOne | swift        | object-store | True    | public    | http://192.168.126.100:8080/v1/AUTH_%(tenant_id)s |
+| 26b261e57ead4ea4bff1795bc76486d7 | regionOne | neutron      | network      | True    | public    | http://192.168.126.100:9696                       |
+| 36810fa167604658919b3026a8e31e1c | regionOne | nova         | compute      | True    | internal  | http://192.168.126.100:8774/v2.1                  |
+| 3797a248e1eb4641b8ae0b10805e97fb | regionOne | keystone     | identity     | True    | internal  | http://192.168.126.100:5000                       |
+| 3f7dc16d49fc4667b16bc8a790d742e5 | regionOne | glance       | image        | True    | admin     | http://192.168.126.100:9292                       |
+| 40e4025c0abd4f4c9b15fd6a32ddf634 | regionOne | placement    | placement    | True    | internal  | http://192.168.126.100:8778/placement             |
+| 5063628cd9aa4e6aaee6a11ba7bef66f | regionOne | swift        | object-store | True    | internal  | http://192.168.126.100:8080/v1/AUTH_%(tenant_id)s |
+| 6731e9f18f3d470493470b128ffaec28 | regionOne | glance       | image        | True    | public    | http://192.168.126.100:9292                       |
+| 7d5f4bedbfd443e6b8c7a5ef1e36a6e5 | regionOne | neutron      | network      | True    | admin     | http://192.168.126.100:9696                       |
+| 829a3726d1514544a9e3e863b51f82e6 | regionOne | keystone     | identity     | True    | admin     | http://192.168.126.100:35357                      |
+| 8903fd4e6a354cedb987869a2c4de35f | regionOne | cinderv3     | volumev3     | True    | admin     | http://192.168.126.100:8776/v3/%(tenant_id)s      |
+| 982dc0ace6b844e385442723d9dc1459 | regionOne | nova         | compute      | True    | public    | http://192.168.126.100:8774/v2.1                  |
+| c0c10b42633446cabd5f30b4b187b29d | regionOne | neutron      | network      | True    | internal  | http://192.168.126.100:9696                       |
+| c7c95498c1514bcbbe82b6e6d1ad3960 | regionOne | placement    | placement    | True    | admin     | http://192.168.126.100:8778/placement             |
+| cc3fe7ae69474d56b02dab6d222ebded | regionOne | cinderv3     | volumev3     | True    | internal  | http://192.168.126.100:8776/v3/%(tenant_id)s      |
+| d46511f6435347c0904996b7a9c142e2 | regionOne | cinderv3     | volumev3     | True    | public    | http://192.168.126.100:8776/v3/%(tenant_id)s      |
+| de05a157b46f456ea601bd0c18673735 | regionOne | placement    | placement    | True    | public    | http://192.168.126.100:8778/placement             |
+| ea4bbd28f1e849a1877ec6bcdcf80a8a | regionOne | glance       | image        | True    | internal  | http://192.168.126.100:9292                       |
+| f88a4b6a2cb0447c87879f8a3acd0df7 | regionOne | swift        | object-store | True    | admin     | http://192.168.126.100:8080                       |
++----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------------------------------+
+
+[stack@openstack-standalone ~]$ openstack compute service list --long
++----+----------------+----------------------------------+----------+---------+-------+----------------------------+-----------------+
+| ID | Binary         | Host                             | Zone     | Status  | State | Updated At                 | Disabled Reason |
++----+----------------+----------------------------------+----------+---------+-------+----------------------------+-----------------+
+|  1 | nova-conductor | openstack-standalone.localdomain | internal | enabled | up    | 2025-03-22T10:17:44.000000 | None            |
+|  2 | nova-scheduler | openstack-standalone.localdomain | internal | enabled | up    | 2025-03-22T10:17:45.000000 | None            |
+|  6 | nova-compute   | openstack-standalone.localdomain | nova     | enabled | up    | 2025-03-22T10:17:43.000000 | None            |
++----+----------------+----------------------------------+----------+---------+-------+----------------------------+-----------------+
+[stack@openstack-standalone ~]$ openstack service list
++----------------------------------+-----------+--------------+
+| ID                               | Name      | Type         |
++----------------------------------+-----------+--------------+
+| 115b6c59db754be7bf2740d83780ccff | swift     | object-store |
+| 195e36d4fcad435a8e7b070155d1f98d | placement | placement    |
+| 1a54321c13af4ac29a2bf5bfdd353d55 | nova      | compute      |
+| 69a528693b534bb7be01237b7b79a7fd | cinderv3  | volumev3     |
+| 974d8570ab47492eac128fb1f04ac3d5 | glance    | image        |
+| d44f801fa59347c3901c1ca51e4c829c | neutron   | network      |
+| e7996eca8e8f482db55f18a33ccb874b | keystone  | identity     |
++----------------------------------+-----------+--------------+
+
+
+==============================================================================
+
+[stack@rhosp-17-0-standalone ~]$ cat tripleo-standalone-passwords.yaml   # admin password
+parameter_defaults:
+  AdminPassword: mI9vXd04PcU0yKUaxN4Yjce8C
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

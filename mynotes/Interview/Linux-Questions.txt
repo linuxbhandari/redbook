@@ -1,0 +1,326 @@
+Linux Topics
+=============
+1. Linux Basics
+	Linux architecture
+	Kernel vs shell
+	Linux distributions
+	File system hierarchy
+	Boot process
+	Runlevels/systemd targets
+
+Commands:
+	uname -a
+	hostnamectl
+	
+2. Linux File System
+	ext4 / xfs
+	inode
+	mount points
+	partitioning
+	filesystem permissions
+	hard link vs soft link
+
+Commands:
+	df -h
+	du -sh
+	ls -li
+	mount
+
+3. User & Permission Management
+	User creation
+	Groups
+	File permissions
+	chmod/chown
+	SUID/SGID/sticky bit
+	ACLs
+Commands:
+	useradd
+	chmod
+	chown
+	getfacl
+
+4. Process Management
+	Process lifecycle
+	Process states
+	Zombie process
+	Daemon process
+	Nice/renice
+	Foreground/background jobs
+Commands:
+	ps -ef
+	top
+	htop
+	kill
+	nice
+	renice
+
+5. CPU & Memory Troubleshooting
+	Load average
+	CPU utilization
+	Memory leak
+	Swap
+	OOM killer
+	iowait
+Commands:
+	top
+	vmstat
+	free -m
+	iostat
+	sar
+
+6. Disk Management
+	LVM
+	RAID basics
+	Disk partitioning
+	Filesystem expansion
+	Mounting/unmounting
+
+Commands:
+	fdisk
+	lsblk
+	pvs
+	vgs
+	lvs
+
+7. Linux Networking
+	TCP/IP
+	DNS
+	Routing
+	SSH
+	Firewall
+	Network troubleshooting
+
+Commands:
+	ip a
+	ip route
+	ping
+	traceroute
+	ss -tulnp	
+	netstat
+8. Service Management
+	systemd
+	systemctl
+	service troubleshooting
+	logs analysis
+Commands:
+	systemctl
+	journalctl
+
+9. Log Analysis
+	System logs
+	Application logs
+	journalctl
+	rsyslog
+Commands:
+	tail -f
+	grep
+	journalctl
+	dmesg
+
+10. Shell Scripting
+	Variables
+	Loops
+	Conditions
+	Functions
+	awk/sed/grep
+	Automation scripts
+Commands:
+	bash
+	awk
+	sed
+	grep
+
+11. Linux Boot Process
+	BIOS/UEFI
+	GRUB
+	Kernel
+	initramfs
+	systemd
+Commands:
+	journalctl -b
+	systemctl get-default
+
+12. Security
+	SSH hardening
+	SELinux
+	Firewall
+	Fail2Ban
+	PAM
+	Sudo access
+Commands:
+	getenforce
+	firewall-cmd
+	sudo
+Tools:
+	OpenSSH
+	Fail2Ban
+
+13. Monitoring & Performance
+	CPU monitoring
+	Memory monitoring
+	Network monitoring
+	Disk monitoring
+Tools:
+	Prometheus
+	Grafana
+	Nagios
+
+14. Package Management
+	RPM/YUM/DNF
+	APT
+	Repository troubleshooting
+Commands:
+	yum
+	dnf
+	rpm
+	apt
+
+15. Production Troubleshooting
+	High CPU
+	High memory
+	Disk full
+	Service down
+	SSH issue
+	Read-only filesystem
+Important commands:
+	top
+	vmstat
+	iostat
+	df -h
+	journalctl
+
+16. Advanced Networking Topics
+	DNS troubleshooting
+	Packet capture
+	Load balancer basics
+	Ports & sockets
+Commands:
+	tcpdump
+	dig
+	nslookup
+	ss
+
+17. Cron & Scheduling
+	Crontab
+	Scheduled automation
+	Cron troubleshooting
+Commands:
+	crontab -e
+	crontab -l
+
+18. Text Processing Commands
+	Most important commands:
+	grep
+	awk
+	sed
+	cut
+	sort
+	uniq
+	tr
+	xargs
+	find
+
+19. Linux Internals
+	Advanced topics:
+	fork()
+	exec()
+	signals
+	threads
+	/proc
+	kernel panic
+Commands:
+	cat /proc/cpuinfo
+	strace
+	lsof
+
+20. DevOps Linux Topics
+	Linux for Kubernetes
+	Docker troubleshooting
+	CI/CD Linux usage
+	Cloud VM troubleshooting
+Tools:
+	Docker
+	Kubernetes
+	Jenkins
+Most Asked Linux Commands in Interviews
+	top
+	ps
+	grep
+	awk
+	sed
+	find
+	df
+	du
+	free
+	vmstat
+	iostat
+	netstat
+	ss
+	journalctl
+	systemctl
+	curl
+	tar
+
+High-Frequency Scenario Questions
+
+Interviewers commonly ask:
+	Server slow troubleshooting
+	Disk full issue
+	CPU spike issue
+	Memory leak issue
+	Application down
+	SSH not working
+	Network issue
+	Service restart issue
+	Log analysis
+	RCA process
+
+	
+=====================================
+
+Q) Explain the Linux boot process.
+Q) Difference Between Process and Thread
+Q) A server has 100% CPU usage. How do you troubleshoot?
+Q) How do you troubleshoot memory issues?
+Q) Difference Between Hard Link and Soft Link
+Q) What is Load Average?
+Q) Production server disk is full. What do you do?
+Q) Explain Inode
+Q) What Happens When You Run a Command?
+Q) What is a zombie process?
+Q) What is Swap?
+Q) Server cannot reach internet. How do you troubleshoot?
+Q) Difference Between TCP and UDP
+Q) How to Check Open Ports?
+Q) Explain systemd
+Q) User cannot access file. How do you troubleshoot?
+Q) LVM provides flexible disk management.
+Q) Extend lvm
+Q) Explain Crontab
+Q) What is iowait?
+Q) nginx service is not starting. What do you check?
+Q) Explain Fork Bomb
+Q) What is ulimit?
+Q) How Do You Monitor Linux Servers?
+Q) A Linux server suddenly becomes slow. What is your troubleshooting approach?
+Q) Explain SSH Authentication
+Q) Linux Security Best Practices
+Q) Explain /proc Filesystem
+Q) What is kernel panic?
+Q) Application is down after deployment. How do you troubleshoot?
+
+
+Real Production Scenario
+
+Q) Filesystem is mounted as read-only. What do you do?
+
+
+Shell Scripting Questions
+Q) What is shell scripting?
+Q) What is the difference between sh and bash?
+Q) What is a shebang?
+Q) How do you execute a shell script?
+Q) Difference between $* and $@
+Q) Difference between local and environment variables?
+Q) How do you take user input?
+Q) 

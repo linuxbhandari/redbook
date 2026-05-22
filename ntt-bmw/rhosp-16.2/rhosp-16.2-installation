@@ -1,0 +1,796 @@
+1. Set networks
+
+manish@bhandari:~/vms/rhosp16.2-lab$ virsh net-list
+ Name                           State    Autostart   Persistent
+-----------------------------------------------------------------
+ 1-provisioning-192.168.150.0   active   yes         yes
+ 2-external-192.168.122.0       active   yes         yes
+ 3-internalApi-172.16.0.0       active   yes         yes
+ 4-storage-172.16.1.0           active   yes         yes
+
+
+manish@bhandari:~/vms/rhosp16.2-lab$ sudo virsh net-dhcp-leases 1-provisioning-192.168.150.0
+ Expiry Time           MAC address         Protocol   IP address          Hostname             Client ID or DUID
+---------------------------------------------------------------------------------------------------------------------
+ 2025-04-07 07:34:04   52:54:00:3b:2d:92   ipv4       192.168.150.10/24   undercloud-rhosp16   01:52:54:00:3b:2d:92
+
+manish@bhandari:~/vms/rhosp16.2-lab$ sudo virsh net-dhcp-leases 2-external-192.168.122.0
+ Expiry Time           MAC address         Protocol   IP address          Hostname             Client ID or DUID
+---------------------------------------------------------------------------------------------------------------------
+ 2025-04-07 07:34:04   52:54:00:20:d7:5e   ipv4       192.168.122.10/24   undercloud-rhosp16   01:52:54:00:20:d7:5e
+
+
+cat <<EOF> /etc/sysconfig/network-scripts/ifcfg-enp1s0 
+TYPE=Ethernet
+BOOTPROTO=none
+NAME=enp1s0
+DEVICE=enp1s0
+ONBOOT=yes
+IPADDR=192.168.200.10
+PREFIX=24
+EOF
+
+
+cat <<EOF> /etc/sysconfig/network-scripts/ifcfg-enp2s0 
+TYPE=Ethernet
+BOOTPROTO=none
+NAME=enp2s0
+DEVICE=enp2s0
+ONBOOT=yes
+IPADDR=192.168.122.10
+PREFIX=24
+GATEWAY=192.168.122.1
+DNS1=8.8.8.8
+EOF
+
+[root@director-rhosp-16 ~]# ip route
+default via 192.168.122.1 dev enp2s0 proto static metric 101 
+192.168.122.0/24 dev enp2s0 proto kernel scope link src 192.168.122.10 metric 101 
+192.168.200.0/24 dev enp1s0 proto kernel scope link src 192.168.200.10 metric 100 
+
+
+[root@localhost ~]# ifconfig 
+enp1s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.200.10  netmask 255.255.255.0  broadcast 192.168.200.255
+        inet6 fe80::5054:ff:fed9:961e  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:d9:96:1e  txqueuelen 1000  (Ethernet)
+        RX packets 46  bytes 2662 (2.5 KiB)
+        RX errors 0  dropped 41  overruns 0  frame 0
+        TX packets 21  bytes 1393 (1.3 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp2s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.122.10  netmask 255.255.255.0  broadcast 192.168.122.255
+        inet6 fe80::5054:ff:fe52:e451  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:52:e4:51  txqueuelen 1000  (Ethernet)
+        RX packets 189  bytes 16410 (16.0 KiB)
+        RX errors 0  dropped 41  overruns 0  frame 0
+        TX packets 107  bytes 14643 (14.2 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+Configure yum
+=============
+cat <<EOF> /etc/yum.repos.d/rhel8.repo
+[BaseOS]
+name=BaseOS
+baseurl=ftp://192.168.122.1/rhel8.4/BaseOS/
+gpgcheck=0
+
+[AppStream]
+name=AppStream
+baseurl=ftp://192.168.122.1/rhel8.4/AppStream/
+gpgcheck=0
+
+[rhosp-16.2]
+name=rhosp-16.2
+baseurl=ftp://192.168.122.1/repos/rhosp-16.2-rpms
+gpgcheck=0
+EOF
+
+
+2. Setup director machine on kvm.
+
+[root@director-rhosp-16 ~]# getenforce    # Selinux should be enabled 
+Enforcing
+
+hostnamectl set-hostname director-rhosp-16.2.kvm.lab.com
+
+useradd stack
+echo a |passwd --stdin stack 
+echo "stack ALL=(root) NOPASSWD:ALL" | tee -a /etc/sudoers.d/stack
+chmod 0440 /etc/sudoers.d/stack
+
+Install git
+sudo dnf install git
+
+
+git config --global credential.helper store
+
+git clone https://github.com/linuxbhandari/redbook.git
+
+
+
+cat<<EOF> setup.sh
+sudo subscription-manager release --set=8.4
+sudo subscription-manager repos --disable=*
+
+sudo subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rpms --enable=rhel-8-for-x86_64-appstream-rpms --enable=rhel-8-for-x86_64-highavailability-rpms --enable=ansible-2.9-for-rhel-8-x86_64-rpms --enable=openstack-16.2-for-rhel-8-x86_64-rpms --enable=fast-datapath-for-rhel-8-x86_64-rpms 
+
+sudo dnf module reset container-tools -y
+sudo dnf module enable -y container-tools:3.0
+sudo dnf update -y
+EOF
+
+sudo reboot
+sudo dnf install -y python3-tripleoclient
+
+
+
+
+
+3. Generate xml files
+=====================
+
+openstack tripleo container image prepare default --local-push-destination --output-env-file containers-prepare-parameters.yaml
+
+--------------------------------------
+cat <<EOF> containers-prepare-parameters.yaml 
+# Generated with the following on 2025-04-02T18:07:14.935216
+#
+#   openstack tripleo container image prepare default --local-push-destination --output-env-file containers-prepare-parameters.yaml
+#
+
+parameter_defaults:
+  ContainerImagePrepare:
+  - push_destination: true
+    set:
+      ceph_alertmanager_image: ose-prometheus-alertmanager
+      ceph_alertmanager_namespace: registry.redhat.io/openshift4
+      ceph_alertmanager_tag: v4.6
+      ceph_grafana_image: rhceph-4-dashboard-rhel8
+      ceph_grafana_namespace: registry.redhat.io/rhceph
+      ceph_grafana_tag: 4
+      ceph_image: rhceph-4-rhel8
+      ceph_namespace: registry.redhat.io/rhceph
+      ceph_node_exporter_image: ose-prometheus-node-exporter
+      ceph_node_exporter_namespace: registry.redhat.io/openshift4
+      ceph_node_exporter_tag: v4.6
+      ceph_prometheus_image: ose-prometheus
+      ceph_prometheus_namespace: registry.redhat.io/openshift4
+      ceph_prometheus_tag: v4.6
+      ceph_tag: latest
+      name_prefix: openstack-
+      name_suffix: ''
+      namespace: registry.redhat.io/rhosp-rhel8
+      neutron_driver: ovn
+      rhel_containers: false
+      tag: '16.2'
+    tag_from_label: '{version}-{release}'
+  ContainerImageRegistryLogin: false
+  ContainerImageRegistryCredentials:
+    registry.redhat.io:
+      chopraamit_bmw: "Comnet#123456"
+EOF
+---------------------------------
+
+minimum
+
+---==============================
+cat <<EOF>containers-prepare-parameters.yaml
+parameter_defaults:
+  ContainerImagePrepare:
+    - push_destination: false
+      set:
+        namespace: registry.redhat.io/rhosp16-openstack
+        name_prefix: openstack-
+        name_suffix: ''
+        tag: latest
+        neutron_driver: ovn
+        ceph_namespace: registry.redhat.io/rhceph
+        ceph_image: rhceph-4-rhel8
+        ceph_tag: latest
+  ContainerImageRegistryCredentials:
+    registry.redhat.io:
+      chopraamit_bmw: "Comnet#123456"
+EOF
+---------------------------------------
+
+
+cp /usr/share/python-tripleoclient/undercloud.conf.sample   ~/
+
+cat <<EOF>undercloud.conf 
+[DEFAULT]
+# Image preparation and custom parameters
+container_images_file = /home/stack/redbook/rhosp-16.2/stack/containers-prepare-parameters.yaml
+custom_env_files = /home/stack/redbook/rhosp-16.2/stack/custom-undercloud-params.yaml
+hieradata_override = /home/stack/redbook/rhosp-16.2/stack/hieradata.yaml
+
+# Feature toggles
+enable_telemetry = false
+enable_validations = true
+enable_ui = false
+generate_service_certificate = false
+cleanup = true
+
+# Host & network configuration
+undercloud_hostname = director-rhosp-16.2.kvm.lab.com
+local_interface = enp1s0
+local_ip = 192.168.150.10/24
+network_cidr = 192.168.150.0/24
+network_gateway = 192.168.150.1
+local_mtu = 1500
+ip_version = 4
+
+# DHCP & Inspection
+dhcp_start = 192.168.150.151
+dhcp_end = 192.168.150.200
+inspection_interface = enp1s0
+inspection_iprange = 192.168.150.151,192.168.150.200
+
+# DNS & Domain
+undercloud_nameservers = 8.8.8.8
+overcloud_domain_name = rhosp16.kvm.lab
+
+# Admin and public endpoints (optional override)
+undercloud_admin_host = 192.168.150.3
+undercloud_public_host = 192.168.150.4
+
+# Logging & debug
+undercloud_debug = true
+log_file = /home/stack/undercloud-install.log
+undercloud_timezone = Asia/Kolkata
+
+[ctlplane-subnet]
+cidr = 192.168.150.0/24
+gateway = 192.168.150.1
+dhcp_start = 192.168.150.151
+dhcp_end = 192.168.150.200
+inspection_iprange = 192.168.150.151,192.168.150.200
+masquerade = true
+EOF
+
+cat <<EOF> custom-undercloud-params.yaml
+parameter_defaults:
+  AdminPassword: 'redhat123'
+  Debug: true
+EOF
+
+cat <<EOF> hieradata.yaml
+ironic::config::ironic_config:
+  ipmi/use_ipmitool_retries:
+    value: true
+EOF
+
+
+
+Note : This ensures your overcloud gets FQDNs like controller-0.rhosp16.kvm.lab.
+
+
+
+sudo podman login registry.redhat.io --username chopraamit_bmw --password Comnet#123456 (found : not required in this version)
+
+openstack undercloud install --dry-run (to validate)
+openstack undercloud install
+
+########################################################
+
+Deployment successful!
+
+########################################################
+
+Writing the stack virtual update mark file /var/lib/tripleo-heat-installer/update_mark_undercloud
+
+##########################################################
+
+The Undercloud has been successfully installed.
+
+Useful files:
+
+Password file is at /home/stack/undercloud-passwords.conf
+The stackrc file is at ~/stackrc
+
+Use these files to interact with OpenStack services, and
+ensure they are secured.
+
+
+
+
+##########################################################
+
+
+[stack@undercloud-rhosp16 ~]$ ifconfig 
+br-ctlplane: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.150.10  netmask 255.255.255.0  broadcast 192.168.150.255
+        inet6 fe80::5054:ff:fe3b:2d92  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:3b:2d:92  txqueuelen 1000  (Ethernet)
+        RX packets 162  bytes 28064 (27.4 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 27  bytes 1902 (1.8 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp1s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.122.10  netmask 255.255.255.0  broadcast 192.168.122.255
+        inet6 fe80::5054:ff:fe20:d75e  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:20:d7:5e  txqueuelen 1000  (Ethernet)
+        RX packets 1785295  bytes 3237609386 (3.0 GiB)
+        RX errors 0  dropped 1614  overruns 0  frame 0
+        TX packets 1223501  bytes 104036719 (99.2 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp2s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::5054:ff:fe3b:2d92  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:3b:2d:92  txqueuelen 1000  (Ethernet)
+        RX packets 2850  bytes 204790 (199.9 KiB)
+        RX errors 0  dropped 1579  overruns 0  frame 0
+        TX packets 74  bytes 5346 (5.2 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp3s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.16.0.10  netmask 255.255.255.0  broadcast 172.16.0.255
+        inet6 fe80::5054:ff:fe73:b358  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:73:b3:58  txqueuelen 1000  (Ethernet)
+        RX packets 2845  bytes 204584 (199.7 KiB)
+        RX errors 0  dropped 1614  overruns 0  frame 0
+        TX packets 26  bytes 2538 (2.4 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp4s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.16.1.10  netmask 255.255.255.0  broadcast 172.16.1.255
+        inet6 fe80::5054:ff:fed1:ea2d  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:d1:ea:2d  txqueuelen 1000  (Ethernet)
+        RX packets 2845  bytes 204602 (199.8 KiB)
+        RX errors 0  dropped 1614  overruns 0  frame 0
+        TX packets 26  bytes 2538 (2.4 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 250960  bytes 2767424068 (2.5 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 250960  bytes 2767424068 (2.5 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+
+(undercloud) [stack@director-rhosp-16 ~]$ openstack baremetal driver list
++---------------------+---------------------------------+
+| Supported driver(s) | Active host(s)                  |
++---------------------+---------------------------------+
+| idrac               | director-rhosp-16.2.kvm.lab.com |
+| ilo                 | director-rhosp-16.2.kvm.lab.com |
+| ipmi                | director-rhosp-16.2.kvm.lab.com |
+| redfish             | director-rhosp-16.2.kvm.lab.com |
++---------------------+---------------------------------+
+
+
+
+
+sudo dnf install -y rhosp-director-images rhosp-director-images-ipa-x86_64
+
+mkdir /home/stack/images
+
+
+(undercloud) [stack@undercloud ~]$ cd images/
+(undercloud) [stack@undercloud images]$ for i in /usr/share/rhosp-director-images/overcloud-full-latest-16.2.tar /usr/share/rhosp-director-images/ironic-python-agent-latest-16.2.tar; do tar -xvf $i; done
+overcloud-full.qcow2
+overcloud-full.initrd
+overcloud-full.vmlinuz
+overcloud-full-rpm.manifest
+overcloud-full-signature.manifest
+ironic-python-agent.initramfs
+ironic-python-agent.kernel
+
+(undercloud) [stack@undercloud images]$ ls -l
+total 1871128
+-rw-r--r--. 1 stack stack  462074481 Feb 21  2024 ironic-python-agent.initramfs
+-rwxr-xr-x. 1 stack stack   10055024 Feb 21  2024 ironic-python-agent.kernel
+-rw-r--r--. 1 stack stack      35432 Feb 21  2024 overcloud-full-rpm.manifest
+-rw-r--r--. 1 stack stack      90082 Feb 21  2024 overcloud-full-signature.manifest
+-rw-r--r--. 1 stack stack   94490447 Feb 21  2024 overcloud-full.initrd
+-rw-r--r--. 1 stack stack 1339228160 Feb 21  2024 overcloud-full.qcow2
+-rw-r--r--. 1 stack stack   10055024 Feb 21  2024 overcloud-full.vmlinuz
+
+(undercloud) [stack@undercloud images]$ openstack overcloud image upload --image-path /home/stack/images/
+Image "overcloud-full-vmlinuz" was uploaded.
++--------------------------------------+------------------------+-------------+----------+--------+
+|                  ID                  |          Name          | Disk Format |   Size   | Status |
++--------------------------------------+------------------------+-------------+----------+--------+
+| 61b6c047-8d02-44a2-8c78-d8e01b058c9c | overcloud-full-vmlinuz |     aki     | 10055024 | active |
++--------------------------------------+------------------------+-------------+----------+--------+
+Image "overcloud-full-initrd" was uploaded.
++--------------------------------------+-----------------------+-------------+----------+--------+
+|                  ID                  |          Name         | Disk Format |   Size   | Status |
++--------------------------------------+-----------------------+-------------+----------+--------+
+| a57c50ef-fd48-4aec-93a8-ff71a1f8503f | overcloud-full-initrd |     ari     | 94490447 | active |
++--------------------------------------+-----------------------+-------------+----------+--------+
+Image "overcloud-full" was uploaded.
++--------------------------------------+----------------+-------------+------------+--------+
+|                  ID                  |      Name      | Disk Format |    Size    | Status |
++--------------------------------------+----------------+-------------+------------+--------+
+| 3bddb1c0-9887-4193-b53b-479fb183d8a7 | overcloud-full |    qcow2    | 1339228160 | active |
++--------------------------------------+----------------+-------------+------------+--------+
+(undercloud) [stack@undercloud images]$ openstack image list
++--------------------------------------+------------------------+--------+
+| ID                                   | Name                   | Status |
++--------------------------------------+------------------------+--------+
+| 3bddb1c0-9887-4193-b53b-479fb183d8a7 | overcloud-full         | active |
+| a57c50ef-fd48-4aec-93a8-ff71a1f8503f | overcloud-full-initrd  | active |
+| 61b6c047-8d02-44a2-8c78-d8e01b058c9c | overcloud-full-vmlinuz | active |
++--------------------------------------+------------------------+--------+
+
+(undercloud) [stack@undercloud images]$ ls -l /var/lib/ironic/httpboot/
+total 461076
+-rwxr-xr-x. 1 root  root   10055024 Apr  2 20:53 agent.kernel
+-rw-r--r--. 1 root  root  462074481 Apr  2 20:53 agent.ramdisk
+-rw-r--r--. 1 42422 42422       758 Apr  2 20:07 boot.ipxe
+-rw-r--r--. 1 42422 42422       464 Apr  2 19:56 inspector.ipxe
+
+
+(undercloud) [stack@undercloud images]$ openstack subnet list
++--------------------------------------+-----------------+--------------------------------------+------------------+
+| ID                                   | Name            | Network                              | Subnet           |
++--------------------------------------+-----------------+--------------------------------------+------------------+
+| 952aeda5-8f39-4a00-b974-248099ac00ac | ctlplane-subnet | f20fa45a-ccec-4743-b87e-a19e8d2fe6e6 | 192.168.126.0/24 |
++--------------------------------------+-----------------+--------------------------------------+------------------+
+(undercloud) [stack@undercloud images]$ openstack subnet show ctlplane-subnet
+(undercloud) [stack@undercloud images]$ openstack subnet set --dns-nameserver 8.8.8.8 ctlplane-subnet
+(undercloud) [stack@undercloud images]$ openstack subnet show 952aeda5-8f39-4a00-b974-248099ac00ac -c dns_nameservers
++-----------------+---------+
+| Field           | Value   |
++-----------------+---------+
+| dns_nameservers | 8.8.8.8 |
++-----------------+---------+
+
+(undercloud) [stack@undercloud images]$ openstack orchestration service list
++------------------------+-------------+--------------------------------------+------------------------+--------+----------------------------+--------+
+| Hostname               | Binary      | Engine ID                            | Host                   | Topic  | Updated At                 | Status |
++------------------------+-------------+--------------------------------------+------------------------+--------+----------------------------+--------+
+| undercloud.example.com | heat-engine | 0e09a0c1-6a45-48ca-93ae-3ba59d75e94d | undercloud.example.com | engine | 2025-04-02T15:27:48.000000 | up     |
+| undercloud.example.com | heat-engine | 97a42c48-2630-4324-ad88-7cccc27e9af6 | undercloud.example.com | engine | 2025-04-02T14:49:03.000000 | down   |
+| undercloud.example.com | heat-engine | 4c60bbcf-910c-4a7d-b31f-d26d995b6335 | undercloud.example.com | engine | 2025-04-02T14:49:03.000000 | down   |
+| undercloud.example.com | heat-engine | a165224d-49d2-4c6b-8736-274649f997e1 | undercloud.example.com | engine | 2025-04-02T14:49:03.000000 | down   |
+| undercloud.example.com | heat-engine | 947064ca-4cc9-41f4-9f9e-4878f1e384fc | undercloud.example.com | engine | 2025-04-02T15:27:48.000000 | up     |
+| undercloud.example.com | heat-engine | a42cd5aa-4373-419a-90bf-f5b4a9c04a6d | undercloud.example.com | engine | 2025-04-02T15:27:48.000000 | up     |
+| undercloud.example.com | heat-engine | e28deeba-cfe2-4f5b-a894-57c0810ae2a7 | undercloud.example.com | engine | 2025-04-02T15:27:48.000000 | up     |
+| undercloud.example.com | heat-engine | fe9d4da2-c86f-4ba8-820e-fd4edd8ec999 | undercloud.example.com | engine | 2025-04-02T14:49:03.000000 | down   |
++------------------------+-------------+--------------------------------------+------------------------+--------+----------------------------+--------+
+
+==========Install this on base machine ======================
+sudo dnf install -y gcc python3-devel libvirt-devel pkg-config
+sudo pip3 install virtualbmc
+
+(undercloud) [stack@undercloud ~]$ vbmc --version
+vbmc 2.2.2
+
+# if you faced below error
+==========================
+[stack@undercloud ~]$ vbmc list
+2025-04-02 21:48:46,771 141659 ERROR VirtualBMC [-] Failed to connect to the vbmcd server on port 50891, error: Server response timed out
+Failed to connect to the vbmcd server on port 50891, error: Server response timed out
+[stack@undercloud ~]$ sudo pkill -f vbmcd
+[stack@undercloud ~]$ vbmcd --foreground &
+[1] 143541
+[stack@undercloud ~]$ 2025-04-02 21:50:00,034 143541 INFO VirtualBMC [-] Started vBMC server on port 50891
+
+[stack@undercloud ~]$ ps aux| grep vbmcd
+stack     143541  3.0  0.4 388144 47164 pts/1    Sl   21:49   0:00 /usr/bin/python3.6 /usr/local/bin/vbmcd --foreground
+stack     144049  0.0  0.0  16396  1056 pts/1    S+   21:50   0:00 grep --color=auto vbmcd
+[stack@undercloud ~]$ 
+
+
+manish@bhandari:~$ vbmc add overcloud-controller-0 --address 0.0.0.0 --port 6001 --username admin --password password
+manish@bhandari:~$ vbmc add overcloud-controller-1 --address 0.0.0.0 --port 6001 --username admin --password password
+
+in fedora
+=========
+manish@bhandari:~/ssd/vms/rhosp16.2-lab$ vbmc list
+
+manish@bhandari:~/ssd/vms/rhosp16.2-lab$ sudo vbmc add overcloud-controller-0 --port 6001 --username admin --password password --address 192.168.122.1
+manish@bhandari:~/ssd/vms/rhosp16.2-lab$ vbmc list
++------------------------+--------+---------------+------+
+| Domain name            | Status | Address       | Port |
++------------------------+--------+---------------+------+
+| overcloud-controller-0 | down   | 192.168.122.1 | 6001 |
++------------------------+--------+---------------+------+
+manish@bhandari:~/ssd/vms/rhosp16.2-lab$ vbmc delete overcloud-controller-0
+manish@bhandari:~/ssd/vms/rhosp16.2-lab$ sudo vbmc add overcloud-controller-0 --port 6001 --username admin --password password --address 0.0.0.0
+manish@bhandari:~/ssd/vms/rhosp16.2-lab$ vbmc list
++------------------------+--------+---------+------+
+| Domain name            | Status | Address | Port |
++------------------------+--------+---------+------+
+| overcloud-controller-0 | down   | 0.0.0.0 | 6001 |
++------------------------+--------+---------+------+
+manish@bhandari:~/ssd/vms/rhosp16.2-lab$ sudo vbmc add overcloud-controller-1 --port 6002 --username admin --password password --address 0.0.0.0
+
+=============================================
+
+
+[stack@undercloud ~]$ vbmc add overcloud-controller0 --port 6001 --username admin --password password --libvirt-uri qemu+ssh://manish@192.168.122.1/system
+[stack@undercloud ~]$ 
+[stack@undercloud ~]$ 
+[stack@undercloud ~]$ vbmc list
++-----------------------+--------+---------+------+
+| Domain name           | Status | Address | Port |
++-----------------------+--------+---------+------+
+| overcloud-controller0 | down   | ::      | 6001 |
++-----------------------+--------+---------+------+
+[stack@undercloud ~]$ vbmc add overcloud-controller1 --port 6002 --username admin --password password --libvirt-uri qemu+ssh://manish@192.168.122.1/system
+[stack@undercloud ~]$ vbmc add overcloud-controller2 --port 6003 --username admin --password password --libvirt-uri qemu+ssh://manish@192.168.122.1/system
+[stack@undercloud ~]$ vbmc add overcloud-compute0 --port 6004 --username admin --password password --libvirt-uri qemu+ssh://manish@192.168.122.1/system
+[stack@undercloud ~]$ vbmc list
++-----------------------+--------+---------+------+
+| Domain name           | Status | Address | Port |
++-----------------------+--------+---------+------+
+| overcloud-compute0    | down   | ::      | 6004 |
+| overcloud-controller0 | down   | ::      | 6001 |
+| overcloud-controller1 | down   | ::      | 6002 |
+| overcloud-controller2 | down   | ::      | 6003 |
++-----------------------+--------+---------+------+
+
+[stack@undercloud ~]$ vbmc start overcloud-controller0
+2025-04-02 21:52:20,966 143541 INFO VirtualBMC [-] Started vBMC instance for domain overcloud-controller0
+[stack@undercloud ~]$ vbmc list
++-----------------------+---------+---------+------+
+| Domain name           | Status  | Address | Port |
++-----------------------+---------+---------+------+
+| overcloud-compute0    | down    | ::      | 6004 |
+| overcloud-controller0 | running | ::      | 6001 |
+| overcloud-controller1 | down    | ::      | 6002 |
+| overcloud-controller2 | down    | ::      | 6003 |
++-----------------------+---------+---------+------+
+[stack@undercloud ~]$ vbmc start overcloud-controller1
+2025-04-02 21:52:29,940 143541 INFO VirtualBMC [-] Started vBMC instance for domain overcloud-controller1
+[stack@undercloud ~]$ vbmc start overcloud-controller2
+2025-04-02 21:52:31,932 143541 INFO VirtualBMC [-] Started vBMC instance for domain overcloud-controller2
+[stack@undercloud ~]$ vbmc start overcloud-compute0
+2025-04-02 21:52:35,755 143541 INFO VirtualBMC [-] Started vBMC instance for domain overcloud-compute0
+[stack@undercloud ~]$ vbmc list
++-----------------------+---------+---------+------+
+| Domain name           | Status  | Address | Port |
++-----------------------+---------+---------+------+
+| overcloud-compute0    | running | ::      | 6004 |
+| overcloud-controller0 | running | ::      | 6001 |
+| overcloud-controller1 | running | ::      | 6002 |
+| overcloud-controller2 | running | ::      | 6003 |
++-----------------------+---------+---------+------+
+
+# virtualbmc installation on linux mint.
+-----------------------------------------
+manish@bhandari:~$ sudo apt install virtualbmc                    # install base machine
+manish@bhandari:~$ sudo systemctl status vbmcd
+
+
+# verificaton from client side.
+------------------------------
+
+(undercloud) [stack@undercloud-rhosp16 stack]$ sudo dnf install -y ipmitool
+
+
+(undercloud) [stack@undercloud ~]$ ipmitool -I lanplus -U admin -P password -H 192.168.122.1 -p 6001 power status
+Chassis Power is off
+(undercloud) [stack@undercloud ~]$ 
+(undercloud) [stack@undercloud ~]$ ipmitool -I lanplus -U admin -P password -H 192.168.122.1 -p 6002 power status
+Chassis Power is off
+(undercloud) [stack@undercloud ~]$ ipmitool -I lanplus -U admin -P password -H 192.168.122.1 -p 6003 power status
+Chassis Power is off
+(undercloud) [stack@undercloud ~]$ ipmitool -I lanplus -U admin -P password -H 192.168.122.1 -p 6004 power status
+Chassis Power is off
+
+manish@bhandari:~$ vbmc list
++------------------------+---------+---------------+------+
+| Domain name            | Status  | Address       | Port |
++------------------------+---------+---------------+------+
+| overcloud-compute-0    | running | 192.168.122.1 | 6004 |
+| overcloud-controller-0 | running | 192.168.122.1 | 6001 |
+| overcloud-controller-1 | running | 192.168.122.1 | 6002 |
+| overcloud-controller-2 | running | 192.168.122.1 | 6003 |
++------------------------+---------+---------------+------+
+
+
+
+(undercloud) [stack@undercloud ~]$ openstack overcloud node import --validate-only controller-nodes.json
+Waiting for messages on queue 'tripleo' with no timeout.
+
+Successfully validated environment file
+
+
+(undercloud) [stack@undercloud ~]$ openstack overcloud node import  controller-nodes.json
+Waiting for messages on queue 'tripleo' with no timeout.
+
+
+3 node(s) successfully moved to the "manageable" state.
+Successfully registered node UUID d31b08f0-07cb-4918-98a2-7731c5cec061
+Successfully registered node UUID c5da2af5-87a5-43f6-92ff-2a889592da5b
+Successfully registered node UUID c188dc80-ac49-4c75-9aba-120de3ce4001
+(undercloud) [stack@undercloud ~]$ openstack baremetal node list
++--------------------------------------+-----------------------+---------------+-------------+--------------------+-------------+
+| UUID                                 | Name                  | Instance UUID | Power State | Provisioning State | Maintenance |
++--------------------------------------+-----------------------+---------------+-------------+--------------------+-------------+
+| d31b08f0-07cb-4918-98a2-7731c5cec061 | overcloud-controller0 | None          | power off   | manageable         | False       |
+| c5da2af5-87a5-43f6-92ff-2a889592da5b | overcloud-controller1 | None          | power off   | manageable         | False       |
+| c188dc80-ac49-4c75-9aba-120de3ce4001 | overcloud-controller2 | None          | power off   | manageable         | False       |
++--------------------------------------+-----------------------+---------------+-------------+--------------------+-------------+
+
+
+if it found not bootable device
+
+
+(undercloud) [stack@undercloud ~]$ openstack baremetal node show 2e24c18f-15dc-4b26-8554-b841c0086ebe -c driver_info -f json
+{
+  "driver_info": {
+    "deploy_kernel": "file:///var/lib/ironic/httpboot/agent.kernel",
+    "rescue_kernel": "file:///var/lib/ironic/httpboot/agent.kernel",
+    "deploy_ramdisk": "file:///var/lib/ironic/httpboot/agent.ramdisk",
+    "rescue_ramdisk": "file:///var/lib/ironic/httpboot/agent.ramdisk",
+    "ipmi_address": "192.168.122.1",
+    "ipmi_username": "admin",
+    "ipmi_password": "******",
+    "ipmi_port": 6001
+  }
+}
+(undercloud) [stack@undercloud ~]$ openstack baremetal node set 2e24c18f-15dc-4b26-8554-b841c0086ebe --boot-interface pxe
+
+(undercloud) [stack@undercloud ~]$ openstack baremetal node show 2e24c18f-15dc-4b26-8554-b841c0086ebe -c boot_interface -c driver_info -f json
+{
+  "boot_interface": "pxe",
+  "driver_info": {
+    "deploy_kernel": "file:///var/lib/ironic/httpboot/agent.kernel",
+    "rescue_kernel": "file:///var/lib/ironic/httpboot/agent.kernel",
+    "deploy_ramdisk": "file:///var/lib/ironic/httpboot/agent.ramdisk",
+    "rescue_ramdisk": "file:///var/lib/ironic/httpboot/agent.ramdisk",
+    "ipmi_address": "192.168.122.1",
+    "ipmi_username": "admin",
+    "ipmi_password": "******",
+    "ipmi_port": 6001
+  }
+}
+
+
+
+
+<network>
+  <name>2-provisioning-192.168.150.0</name>
+  <uuid>0956c905-5c14-4512-afbc-7573bdaa4405</uuid>
+  <forward mode='nat'/>
+  <bridge name='virbr1' stp='on' delay='0'/>
+  <mac address='52:54:00:11:02:51'/>
+  <ip address='192.168.150.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.150.151' end='192.168.150.200'/>
+      <host mac='52:54:00:3b:2d:92' name='undercloud-rhosp16.2' ip='192.168.150.10'/>
+      <host mac='52:54:00:67:b1:7b' name='overcloud-controller-0' ip='192.168.150.21'/>
+      <host mac='52:54:00:75:80:c8' name='overcloud-controller-1' ip='192.168.150.22'/>
+    </dhcp>
+  </ip>
+</network>
+
+
+<host mac='52:54:00:20:d7:5e' name='director-rhosp-16.2' ip='192.168.150.10'/>
+
+
+
+openstack overcloud node introspect --all-manageable --provide           # on all node
+
+(undercloud) [stack@undercloud ~]$ openstack overcloud node introspect  --provide a65eadb6-a653-4671-9c18-5722211ab495
+Waiting for introspection to finish...
+Waiting for messages on queue 'tripleo' with no timeout.
+Introspection of node completed:1a0ed74b-ab88-4f02-85f7-87160ac30719. Status:SUCCESS. Errors:null
+Successfully introspected 1 node(s).
+Waiting for messages on queue 'tripleo' with no timeout.
+1 node(s) successfully moved to the "available" state.
+
+
+Provisioning State → Should change from manageable → inspecting → available
+
+(undercloud) [stack@undercloud ~]$ openstack baremetal node list
++--------------------------------------+-----------------------+---------------+-------------+--------------------+-------------+
+| UUID                                 | Name                  | Instance UUID | Power State | Provisioning State | Maintenance |
++--------------------------------------+-----------------------+---------------+-------------+--------------------+-------------+
+| 1a0ed74b-ab88-4f02-85f7-87160ac30719 | overcloud-controller0 | None          | power off   | available          | False       |
+| b4eb9e4a-2f5f-4633-a9b3-c83c9c79dc0a | overcloud-controller1 | None          | power off   | available          | False       |
+| d68a5cea-d335-4dd2-b160-b935a2f0e093 | overcloud-controller2 | None          | power off   | available          | False       |
+| 305e6eed-aa53-4b6a-9bac-cbe2f8ea58bf | overcloud-compute0    | None          | power off   | available          | False       |
++--------------------------------------+-----------------------+---------------+-------------+--------------------+-------------+
+
+
+(undercloud) [stack@undercloud ~]$  openstack overcloud profiles list 
++--------------------------------------+-----------------------+-----------------+-----------------+-------------------+
+| Node UUID                            | Node Name             | Provision State | Current Profile | Possible Profiles |
++--------------------------------------+-----------------------+-----------------+-----------------+-------------------+
+| 1a0ed74b-ab88-4f02-85f7-87160ac30719 | overcloud-controller0 | available       | None            |                   |
+| b4eb9e4a-2f5f-4633-a9b3-c83c9c79dc0a | overcloud-controller1 | available       | None            |                   |
+| d68a5cea-d335-4dd2-b160-b935a2f0e093 | overcloud-controller2 | available       | None            |                   |
+| 305e6eed-aa53-4b6a-9bac-cbe2f8ea58bf | overcloud-compute0    | available       | None            |                   |
++--------------------------------------+-----------------------+-----------------+-----------------+-------------------+
+
+(undercloud) [stack@undercloud ~]$  openstack baremetal node set --property capabilities='profile:control,boot_option:local' 1a0ed74b-ab88-4f02-85f7-87160ac30719
+(undercloud) [stack@undercloud ~]$  openstack baremetal node set --property capabilities='profile:control,boot_option:local' b4eb9e4a-2f5f-4633-a9b3-c83c9c79dc0a
+(undercloud) [stack@undercloud ~]$  openstack baremetal node set --property capabilities='profile:control,boot_option:local' d68a5cea-d335-4dd2-b160-b935a2f0e093
+(undercloud) [stack@undercloud ~]$  openstack baremetal node set --property capabilities='profile:compute,boot_option:local' 305e6eed-aa53-4b6a-9bac-cbe2f8ea58bf
+
+(undercloud) [stack@undercloud ~]$  openstack overcloud profiles list 
++--------------------------------------+-----------------------+-----------------+-----------------+-------------------+
+| Node UUID                            | Node Name             | Provision State | Current Profile | Possible Profiles |
++--------------------------------------+-----------------------+-----------------+-----------------+-------------------+
+| 1a0ed74b-ab88-4f02-85f7-87160ac30719 | overcloud-controller0 | available       | control         |                   |
+| b4eb9e4a-2f5f-4633-a9b3-c83c9c79dc0a | overcloud-controller1 | available       | control         |                   |
+| d68a5cea-d335-4dd2-b160-b935a2f0e093 | overcloud-controller2 | available       | control         |                   |
+| 305e6eed-aa53-4b6a-9bac-cbe2f8ea58bf | overcloud-compute0    | available       | compute         |                   |
++--------------------------------------+-----------------------+-----------------+-----------------+-------------------+
+
+
+================================
+https://docs.redhat.com/en/documentation/red_hat_openstack_platform/17.0/html/director_installation_and_usage/assembly_composable-services-and-custom-roles#ref_supported-custom-roles_composable-services-and-custom-roles
+
+
+openstack overcloud role list
+openstack overcloud roles list
+
+openstack overcloud role show Compute
+openstack overcloud roles show Compute
+
+openstack overcloud roles generate -o <custom_role_file> Controller Compute Networker
+
+================================
+
+
+
+Only deploy 3 controller nodes
+
+openstack overcloud deploy \
+  --templates \
+  -r ~/templates/roles_data.yaml \
+  -e ~/templates/network-environment.yaml \
+  -e ~/templates/storage-environment.yaml \
+  -e ~/templates/custom-config.yaml \
+  --control-scale 3 \
+  --compute-scale 0 \
+  --control-flavor control
+
+
+==================================================================================
+  2025-04-05 12:34:35.129067 | ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Summary Information ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-04-05 12:34:35.129456 | ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Total Tasks: 876        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-04-05 12:34:35.129662 | ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Elapsed Time: 0:17:42.013061 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-04-05 12:34:35.129839 |                                 UUID |       Info |       Host |   Task Name |   Run Time
+2025-04-05 12:34:35.130022 | 5254007c-62f4-6d8f-b705-000000001910 |    SUMMARY | controller-0 | Wait for containers to start for step 3 using paunch | 144.15s
+2025-04-05 12:34:35.130200 | 5254007c-62f4-6d8f-b705-00000000267b |    SUMMARY | controller-0 | Wait for containers to start for step 4 using paunch | 75.77s
+2025-04-05 12:34:35.130349 | 5254007c-62f4-6d8f-b705-0000000016bd |    SUMMARY | controller-0 | tripleo_ha_wrapper : Run pacemaker restart if the config file for the service changed | 61.20s
+2025-04-05 12:34:35.130514 | 5254007c-62f4-6d8f-b705-0000000016ac |    SUMMARY | controller-0 | tripleo_ha_wrapper : Run init bundle puppet on the host for haproxy | 55.41s
+2025-04-05 12:34:35.130694 | 5254007c-62f4-6d8f-b705-000000001587 |    SUMMARY | controller-0 | Wait for container-puppet tasks (generate config) to finish | 54.21s
+2025-04-05 12:34:35.130868 | 5254007c-62f4-6d8f-b705-000000001520 |    SUMMARY | controller-1 | Wait for container-puppet tasks (generate config) to finish | 53.05s
+2025-04-05 12:34:35.131036 | 5254007c-62f4-6d8f-b705-000000001543 |    SUMMARY | controller-2 | Wait for container-puppet tasks (generate config) to finish | 52.60s
+2025-04-05 12:34:35.131177 | 5254007c-62f4-6d8f-b705-0000000016cd |    SUMMARY | controller-0 | tripleo_ha_wrapper : Run pacemaker restart if the config file for the service changed | 50.87s
+2025-04-05 12:34:35.131337 | 5254007c-62f4-6d8f-b705-0000000026b0 |    SUMMARY | controller-2 | Wait for containers to start for step 4 using paunch | 44.71s
+2025-04-05 12:34:35.131528 | 5254007c-62f4-6d8f-b705-000000002646 |    SUMMARY | controller-1 | Wait for containers to start for step 4 using paunch | 43.57s
+2025-04-05 12:34:35.131697 | 5254007c-62f4-6d8f-b705-000000002835 |    SUMMARY | controller-0 | Wait for puppet host configuration to finish | 43.43s
+2025-04-05 12:34:35.131894 | 5254007c-62f4-6d8f-b705-0000000016bc |    SUMMARY | controller-0 | tripleo_ha_wrapper : Run init bundle puppet on the host for mysql | 34.39s
+2025-04-05 12:34:35.132161 | 5254007c-62f4-6d8f-b705-0000000028a1 |    SUMMARY | controller-1 | Wait for puppet host configuration to finish | 33.65s
+2025-04-05 12:34:35.132418 | 5254007c-62f4-6d8f-b705-00000000286c |    SUMMARY | controller-2 | Wait for puppet host configuration to finish | 33.23s
+2025-04-05 12:34:35.132663 | 5254007c-62f4-6d8f-b705-0000000016cc |    SUMMARY | controller-0 | tripleo_ha_wrapper : Run init bundle puppet on the host for oslo_messaging_rpc | 32.13s
+2025-04-05 12:34:35.132885 | 5254007c-62f4-6d8f-b705-00000000178f |    SUMMARY | controller-1 | Wait for containers to start for step 2 using paunch | 31.76s
+2025-04-05 12:34:35.135602 | 5254007c-62f4-6d8f-b705-000000001759 |    SUMMARY | controller-2 | Wait for containers to start for step 2 using paunch | 31.38s
+2025-04-05 12:34:35.138289 | 5254007c-62f4-6d8f-b705-000000001864 |    SUMMARY | controller-0 | Wait for containers to start for step 2 using paunch | 31.20s
+2025-04-05 12:34:35.138515 | 5254007c-62f4-6d8f-b705-000000001936 |    SUMMARY | controller-1 | Wait for puppet host configuration to finish | 21.59s
+2025-04-05 12:34:35.138717 | 5254007c-62f4-6d8f-b705-000000001945 |    SUMMARY | controller-1 | Wait for containers to start for step 3 using paunch | 21.54s
+2025-04-05 12:34:35.138883 | ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End Summary Information ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Ansible passed.Overcloud configuration completed.
+The output file /home/stack/overcloud-deploy/overcloud/overcloud-deployment_status.yaml will be overriden
+Overcloud Endpoint: http://192.168.150.218:5000
+Overcloud Horizon Dashboard URL: http://192.168.150.218:80/dashboard
+Overcloud rc file: /home/stack/templates/overcloudrc
+Overcloud Deployed without error
+(undercloud) [stack@undercloud templates]$ 
+===============================================================================1

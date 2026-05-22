@@ -1,0 +1,7 @@
+---
+# handlers file for dev
+- name: Restart Nginx Service
+  listen: Restart Nginx 
+  service:
+    name: nginx
+    state: restarted

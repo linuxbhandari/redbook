@@ -1,0 +1,44 @@
+kubectl get nodes
+kubectl get pod -A | --all-namespaces
+kubectl get pod -n kube-system
+
+kubectl config view                      # Show Merged kubeconfig settings.
+kubectl config get-contexts              # display list of contexts
+
+URL for commands => https://kubernetes.io/docs/reference/kubectl/quick-reference/
+
+kubeadm token list
+kubectl describe pod|node|sc|deployment <name>
+kubectl delete pod test
+kubectl delete pod --all
+
+kubectl run mysql-db --image=docker.io/mysql:5.6  --env MYSQL_ROOT_PASSWORD=redhat
+kubectl run test --image=docker.io/nginx
+kubectl exec -it test bash
+kubectl create namespace myns --dry-run=client -o yaml
+
+kubectl get pod --show-labels
+kubectl get pod -l color=red
+kubectl label pod test team=openstack
+kubectl run app --image=nginx -l color=sky
+kubectl label node kube-node1 flavor=redhat
+kubectl get nodes -l flavor=redhat
+
+
+kubectl get ep                           # list endpoint
+
+kubectl create deployment nginx --image=nginx --replicas=3
+kubectl scale deployment nginx --replicas=6
+or
+kubectl scale deployment nginx --replicas=0              # Do not delete deployment.
+kubectl expose deployment nginx --type=LoadBalancer
+kubectl delete deployments.apps nginx
+
+
+kubectl expose pod red --port=80 --dry-run=client -o yaml
+kubectl expose pod red --name=red-service --port=80 --dry-run=client -o yaml
+kubectl expose pod red --name=red-service --type=NodePort --port=80 --dry-run=client -o yaml
+kubectl get svc
+
+
+

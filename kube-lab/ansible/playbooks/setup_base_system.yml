@@ -1,0 +1,5 @@
+- hosts: local
+  become: true
+  gather_facts: true
+  roles:
+    - laptop_setup 

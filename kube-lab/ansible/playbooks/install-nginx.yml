@@ -1,0 +1,38 @@
+- hosts: all
+  name: Install packages
+  tasks:
+    - block:
+      - name: Install nginx on Ubuntu
+        apt:
+          name: nginx
+          state: present
+
+      - name: Ensure nginx service is started on Ubuntu
+        service:
+          name: nginx
+          state: started
+
+      when: ansible_facts['distribution'] == 'Ubuntu'
+
+    - block:
+      - name: Install nginx on RedHat
+        dnf:
+          name: nginx
+          state: present
+
+      - name: Ensure nginx service is started on RedHat
+        service:
+          name: nginx
+          state: started
+
+      when: ansible_facts['distribution'] == 'RedHat'
+
+      rescue:
+        - name: Log the error in case of failure
+          debug:
+            msg: "Nginx service failed to start on {{ inventory_hostname }}. Admin has been notified."
+
+      always:
+        - name: Cleanup or post-error action
+          debug:
+            msg: "This cleanup action runs regardless of the result of the block."

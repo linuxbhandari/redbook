@@ -1,0 +1,121 @@
+kubernetes
+==========
+=> Kubernetes is a container orchestration platform designed to automate the deployment, scaling, and management of containerized applications.
+=> It is highly flexible and scalable, making it ideal for running containerized workloads in production environments
+
+Kubernetes Architecture:
+==============
+1. Control Plane (master node)
+The control plane is responsible for managing the state of the Kubernetes cluster, making global decisions (such as scheduling), detecting and responding to events, and ensuring that the desired state of the system matches the actual state.
+
+  (a) API Server(kube-apiserver):
+     => The API server is the front-end of the Kubernetes control plane and serves as the entry point for commands and interactions with the cluster.
+     => It exposes the Kubernetes REST API, which clients (such as kubectl or internal services) use to communicate with the cluster.
+    
+  (b) Controller Manager (kube-controller-manager):
+     => The controller manager runs controllers that manage the state of the cluster. For example:
+     => It continually watches the state of the cluster and takes corrective actions as necessary.
+
+  (c) Scheduler (kube-scheduler):
+     => The scheduler is responsible for assigning tasks (such as pods) to worker nodes based on resource availability and constraints (e.g., CPU, memory).
+    
+  (d) etcd:
+     => etcd is a highly available key-value store used to store all the cluster's configuration data and state (such as the state of pods, nodes, and deployments).
+
+2. Worker Nodes
+Worker nodes are where the containerized applications run. Each node in a Kubernetes cluster contains the necessary components to run containers and communicate with the control plane.
+
+  (a) kubelet:
+     => The kubelet is an agent that runs on each node. It ensures that containers described in PodSpecs are running and healthy.
+     => It communicates with the API server to report the node's status and updates the control plane with node health and container status.
+
+  (b) kube-proxy:
+     => The kube-proxy is responsible for managing networking for services within a node. It enables communication between different services in the cluster and external traffic by maintaining network rules (like load balancing).
+    
+  (c) Container Runtime:
+     => Kubernetes supports different container runtimes, such as Docker, containerd, or CRI-O. The container runtime is responsible for pulling container images and running the containers on the node.
+
+
+Kubernetes Key Components:
+==========================
+Kubernetes uses several key components for managing and orchestrating containers. Here are some of the most important ones:
+1. Pod
+   => A pod is the smallest and simplest unit in Kubernetes, representing a single instance of a running application or process.
+   => A pod can contain one or more containers that share the same network namespace, which means they can communicate with each other using localhost.
+
+2. Deployment
+   => A deployment is a higher-level object that manages a set of replicas of a pod.
+   => It provides declarative updates to pods and replicas, ensuring that the desired state (e.g., number of replicas) is met.
+   => It also handles rolling updates and rollbacks for application upgrades.
+
+3. Service
+   => Service is an object that represents a group of pods that provide a specific service.
+   => Services allow you to expose your application to other parts of the cluster or to the outside world in a flexible and scalable way.
+   => A Service is defined by a set of labels that are used to identify the pods that belong to the Service. When you create a Service, you specify the labels that the Service should match, and the Service will automatically discover and proxy traffic to the matching pods.
+
+   There are several types of Services in Kubernetes, each with its own set of characteristics and uses. The most common types of Services are:
+   a. ClusterIP: Accessible within the cluster only.
+      (This type of Service is only accessible within the cluster and is not exposed to the outside world. It is useful for exposing services to other parts of the cluster, such as for load balancing or for accessing other services within the cluster.)
+
+   b. NodePort: Exposes the service on a specific port on each node in the cluster.
+      (This type of Service exposes a specific port on each node in the cluster, allowing you to access the Service from outside the cluster using the node’s IP address and the specified port)
+   c. LoadBalancer: Exposes the service externally using a cloud provider’s load balancer.
+      (This type of Service creates a load balancer in the cloud provider’s infrastructure, allowing you to access the Service from the outside world using a public IP address.)
+
+4. Namespace
+  => A namespace is a way to divide cluster resources between multiple users or teams, providing a mechanism for isolating resources.
+  => Namespaces allow for the management of resources in a more organized way, especially in multi-tenant clusters.
+
+5. ReplicaSet
+  => A ReplicaSet ensures that a specified number of identical pod replicas are running at any given time.
+  => If a pod fails or is deleted, the ReplicaSet will automatically create a new pod to replace it.
+
+6. ConfigMap and Secret
+  => ConfigMap allows you to separate configuration data from application code and store it in a key-value format.
+  => Secret is similar to ConfigMap, but it is used for sensitive data like passwords and API tokens and is stored in an encrypted format.
+
+7. Persistent Volumes (PVs) and Persistent Volume Claims (PVCs)
+  => Persistent Volumes (PVs) are storage resources in the cluster, typically backed by external storage systems.
+  => Persistent Volume Claims (PVCs) are requests for storage by a user. A PVC binds to a PV to provide persistent storage for pods.
+
+
+How Kubernetes Works: A Typical Workflow
+========================================
+Here’s a simplified view of how Kubernetes orchestrates the running of applications:
+
+1. Deployment: A user defines a deployment object, specifying the desired number of replicas for a specific pod, the container image to use, environment variables, etc. This is done using a YAML file.
+
+2. Scheduler: The Kubernetes scheduler looks at the available worker nodes and selects the most appropriate node to run the pods based on available resources (CPU, memory, etc.).
+
+3. Pod Creation: Once the scheduler assigns the pod to a node, the kubelet on that node pulls the container image from a registry and runs the containers inside the pod.
+
+4. Service Discovery: If the pods need to communicate with each other or be accessed externally, Kubernetes uses a service to provide a stable network identity and load balancing.
+
+5. Scaling: If there is a need for more instances of a pod, Kubernetes can scale up the deployment by creating more pod replicas. Similarly, if demand decreases, Kubernetes can scale down the number of pods.
+
+6. Health Checks: Kubernetes regularly checks the health of pods using liveness probes and readiness probes. If a pod fails, Kubernetes will automatically replace it.
+
+7. Auto-scaling: Kubernetes can automatically scale the number of pods based on resource usage metrics, ensuring that the application runs efficiently.
+
+8. Rolling Updates: Kubernetes can perform rolling updates to update an application without downtime. It gradually replaces old pods with new ones while maintaining the desired number of replicas.
+
+
+Summary of Kubernetes Workflow:
+===============================
+A deployment object is created, specifying the desired state.
+The scheduler assigns pods to available nodes based on resource requirements.
+The kubelet on the worker nodes runs the containers.
+Services manage how pods are accessed by other services or external clients.
+Kubernetes maintains the desired state by continuously monitoring and adjusting the system, including scaling and replacing failed pods.
+
+Kubernetes High-Level Workflow:
+===============================
+User Action: A user interacts with the Kubernetes cluster via the kubectl CLI or the API.
+API Server: The request is received by the Kubernetes API server, which acts as the gateway to the system.
+Controller Manager: The controller manager watches for changes and manages the state of resources (e.g., scaling replicas).
+Scheduler: If pods need to be scheduled, the scheduler assigns them to nodes.
+Kubelet: The kubelet on each node ensures that the correct containers are running.
+etcd: The cluster's state is continuously stored in etcd, allowing Kubernetes to monitor and manage resources consistently.
+
+
+

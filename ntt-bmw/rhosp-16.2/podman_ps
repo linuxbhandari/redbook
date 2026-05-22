@@ -1,0 +1,43 @@
+CONTAINER ID  IMAGE                                                                                                 COMMAND               CREATED         STATUS                PORTS   NAMES
+363fac962d0b  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-memcached:16.2                  kolla_start           12 hours ago    Up About an hour ago          memcached
+171cd996a2ea  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-rabbitmq:16.2                   kolla_start           12 hours ago    Up About an hour ago          rabbitmq
+9c35c6d9a4c9  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-mariadb:16.2                    kolla_start           12 hours ago    Up About an hour ago          mysql
+feab370fd4c2  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-iscsid:16.2                     kolla_start           12 hours ago    Up About an hour ago          iscsid
+8648368bc375  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-keystone:16.2                   kolla_start           12 hours ago    Up About an hour ago          keystone
+2fa20c44dc34  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-swift-account:16.2              kolla_start           12 hours ago    Up About an hour ago          swift_account_reaper
+aff38dc1d814  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-swift-account:16.2              kolla_start           12 hours ago    Up About an hour ago          swift_account_server
+28f42a875315  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-swift-container:16.2            kolla_start           12 hours ago    Up About an hour ago          swift_container_server
+ecda05fe05d3  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-swift-container:16.2            kolla_start           12 hours ago    Up About an hour ago          swift_container_updater
+030da3967c8b  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-swift-proxy-server:16.2         kolla_start           12 hours ago    Up About an hour ago          swift_object_expirer
+cbb3fdf79f82  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-swift-object:16.2               kolla_start           12 hours ago    Up About an hour ago          swift_object_server
+472618c851bb  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-zaqar-wsgi:16.2                 kolla_start           12 hours ago    Up About an hour ago          zaqar
+3cbb82df89f3  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-zaqar-wsgi:16.2                 kolla_start           12 hours ago    Up About an hour ago          zaqar_websocket
+2bd326579af4  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-heat-api:16.2                   kolla_start           12 hours ago    Up About an hour ago          heat_api
+c3525f86ae75  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-heat-api:16.2                   kolla_start           12 hours ago    Up About an hour ago          heat_api_cron
+c7208213a81d  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-heat-engine:16.2                kolla_start           12 hours ago    Up About an hour ago          heat_engine
+4fffa72c7fa9  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-cron:16.2                       kolla_start           12 hours ago    Up About an hour ago          logrotate_crond
+ae316d9d964d  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-mistral-engine:16.2             kolla_start           12 hours ago    Up About an hour ago          mistral_engine
+9ab4b64d8103  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-mistral-event-engine:16.2       kolla_start           12 hours ago    Up About an hour ago          mistral_event_engine
+9cb294447c56  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-mistral-executor:16.2           kolla_start           12 hours ago    Up About an hour ago          mistral_executor
+ec2a8c64bc83  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-neutron-server-ovn:16.2         kolla_start           12 hours ago    Up About an hour ago          neutron_api
+e4a14a07d800  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-nova-conductor:16.2             kolla_start           12 hours ago    Up About an hour ago          nova_conductor
+7e2e790026f9  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-nova-scheduler:16.2             kolla_start           12 hours ago    Up About an hour ago          nova_scheduler
+dc48d3207c94  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-swift-object:16.2               kolla_start           12 hours ago    Up About an hour ago          swift_object_updater
+7ed5460ec360  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-placement-api:16.2              kolla_start           12 hours ago    Up About an hour ago          placement_api
+d36a21c079d3  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-swift-proxy-server:16.2         kolla_start           12 hours ago    Up About an hour ago          swift_proxy
+c79497349b8f  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-glance-api:16.2                 kolla_start           12 hours ago    Up About an hour ago          glance_api
+5a5c01a58b69  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-nova-api:16.2                   kolla_start           12 hours ago    Up About an hour ago          nova_api
+470b9166b587  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-nova-api:16.2                   kolla_start           12 hours ago    Up About an hour ago          nova_api_cron
+af1f6959feaf  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-ironic-api:16.2                 kolla_start           12 hours ago    Up About an hour ago          ironic_api
+b669ec96361e  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-neutron-dhcp-agent:16.2         kolla_start           12 hours ago    Up About an hour ago          neutron_dhcp
+6a148c9fcd52  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-neutron-l3-agent:16.2           kolla_start           12 hours ago    Up About an hour ago          neutron_l3_agent
+be30da0befca  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-neutron-openvswitch-agent:16.2  kolla_start           12 hours ago    Up About an hour ago          neutron_ovs_agent
+6c6766f8d4c8  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-mistral-api:16.2                kolla_start           12 hours ago    Up About an hour ago          mistral_api
+e96be917f5a4  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-ironic-conductor:16.2           kolla_start           12 hours ago    Up About an hour ago          ironic_conductor
+57287b3b3164  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-ironic-neutron-agent:16.2       kolla_start           12 hours ago    Up About an hour ago          ironic_neutron_agent
+6219483bc14c  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-ironic-pxe:16.2                 /bin/bash -c BIND...  12 hours ago    Up About an hour ago          ironic_pxe_tftp
+5d3af07da697  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-ironic-pxe:16.2                 kolla_start           12 hours ago    Up About an hour ago          ironic_pxe_http
+cf6ecda98c9a  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-ironic-inspector:16.2           kolla_start           12 hours ago    Up About an hour ago          ironic_inspector
+0d5fa960955b  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-ironic-inspector:16.2           kolla_start           12 hours ago    Up About an hour ago          ironic_inspector_dnsmasq
+69f0e65106fb  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-nova-compute-ironic:16.2        kolla_start           12 hours ago    Up About an hour ago          nova_compute
+daba08df316b  director-rhosp-16.ctlplane.rhosp16.kvm.lab:8787/rhosp-rhel8/openstack-neutron-dhcp-agent:16.2         /usr/sbin/dnsmasq...  10 minutes ago  Up 10 minutes ago             neutron-dnsmasq-qdhcp-5c013553-ab0f-47be-97da-4b56c82a972a

@@ -1,0 +1,82 @@
+								   Manish Singh Bhandari
+								    Galaxy Royale Gaur city 2, Greater Noida
+					                           +91-9711287629  | manishbhandari148@gmail.com
+-----------------------------------------------------------------------------------------------------------------------------------
+Objective
+Seasoned IT professional with more than 12 years of hands-on experience in managing IT infrastructures and OpenStack environments. Proficient in automation using Ansible, server monitoring with Prometheus and Grafana, and Docker container management. Eager to leverage extensive expertise to drive efficiency and contribute to the success of a forward-thinking team.
+
+Experience
+---------------------------------------------------------------------------------------------------------------
+NTT DATA  Services Private Ltd (April 2021 - Present)
+Sr. System Administrator Advisor
+    • Deploy OpenStack Compute and Ceph nodes using Ansible playbooks by defining an inventory, creating playbooks to install and configure Nova (Compute) and Ceph (Monitor/OSD), and running the playbooks to automate the deployment.
+    • Red Hat Satellite is a systems management solution for provisioning, configuring, and managing the lifecycle of Red Hat-based infrastructure.
+    • GitOps is used to collaborate with other engineers by using Git repositories as the source of truth, ensuring that configuration files are kept in sync and updated automatically.
+    • ArgoCD is used to automatically deploy the desired state of an application to a specified target environment by synchronizing it with a Git repository.
+    • Automated monitoring generates incidents in real-time to quickly identify and address failures, reducing downtime.
+    • Monitoring applications using Prometheus for data collection, Alertmanager for notifications, exporters for metrics, Grafana for visualization, and Graylog for log management.
+    • Launched instances, created projects, assigned user roles, set resource quotas, and managed storage (Object, Block, and Ephemeral) in a cloud environment.
+    • Troubleshooted OS-level issues and applied necessary fixes and patches to resolve system errors and ensure stability.
+    • Provisioned and decommissioned OpenStack compute nodes and Ceph servers to manage and scale cloud infrastructure efficiently.
+    • Managed Controller, Compute, and Ceph nodes during maintenance activities, ensuring system availability and performance through updates, patches, and optimizations.
+    • Communicated with vendors to resolve hardware-related issues, coordinating troubleshooting, repairs, and replacements as needed.
+
+
+Velocis System Private Ltd (2017 – 2021)
+Sr. System Administrator
+    • Configured and managed Apache Tomcat to deploy, monitor, and optimize Java-based web applications, ensuring smooth performance and availability.
+    • Secured operating systems by applying hardening measures and performing regular patching to protect against vulnerabilities and ensure system integrity.
+    • Used pgAdmin for executing daily queries, managing PostgreSQL databases, and performing administrative tasks like backups and user management.
+    • Managed PostgreSQL roles and permissions to control access, ensure data security, and assign appropriate privileges to users and groups.
+    • Performed PostgreSQL installation, upgrades, replication setup, and backup & restore procedures to ensure database reliability, availability, and data integrity.
+    • Implemented file system-level backups and online Point-in-Time Recovery (PITR) to ensure data integrity and the ability to restore databases to a specific state after a failure.
+    • Installed and provisioned operating systems in data center environments, ensuring proper configuration, optimization, and readiness for application deployment.
+    • Managed SFTP servers to ensure secure file transfer capabilities over SSH, maintaining data security and access control for file exchanges.
+    • Set up and managed Pacemaker clusters to provide high availability and fault tolerance, ensuring seamless operation and automatic failover in distributed systems.
+    • Configured and managed an email relay server to ensure efficient, secure, and reliable email routing between internal and external systems.
+
+
+Keen & Able Computers Private Ltd (2012 – 2017)
+DevOps Engineer
+    • Proficient in OS troubleshooting, including diagnosing and resolving kernel-level issues to ensure system stability and performance.
+    • Experienced in using Puppet for centralized configuration management and automating service deployment across multiple systems.
+    • Skilled in managing Docker containers and using Docker Compose to define, deploy, and orchestrate multi-container applications.
+    • Automated daily tasks using Bash scripting to streamline processes, improve efficiency, and reduce manual intervention.
+    • Configured the ELK stack (Elasticsearch, Logstash, Kibana) for real-time reporting, enabling comprehensive insights into system performance through log aggregation, analysis, and visualization.
+    • Oversaw Git repositories for version control, ensuring efficient collaboration, code management, and tracking of changes across development teams.
+    • Proficient in MySQL replication administration, including setting up, managing, and troubleshooting master-slave replication for data redundancy and high availability.
+
+Education
+------------------------------------------------------------------------------------------------------------------------
+    • Master of Compute Application (M.C.A)  : Integral University
+    • Bachelor of Science in information Technology (B.S.c-IT) : PTU University
+    • Intermediate : H.P. Board
+
+Skills
+------------------------------------------------------------------------------------------------------------------------
+    • OpenStack
+    • Ceph Storage
+    • Kubernetes & OpenShift
+    • Helm Chart
+    • Docker & Docker Compose
+    • Red Hat Clustering (Corosync Pacemaker)
+    • Apache Tomcat
+    • Monitoring Tools (Nagios, Prometheous, Grafana)
+    • ELK Stack( Elasticsearch, Logstash, Kibana)
+    • Configuration Management (Puppet, Ansible)
+    • Version Control (Git)
+    • Bash Scripting
+    • Database (MySQL, PostgreSQL
+
+Certifications
+------------------------------------------------------------------------------------------------------------------------
+    • Certified RedHat OpenShift Administrator.
+    • Certified Kubernetes Administrator (CKA) LF-s0mdp18kp.
+    • Certified Red Hat Enterprise Linux OpenStack Platform
+    • Red Hat Certified Engineer (RHCE)
+    • Red Hat Certified System Administrator (RHCSA)
+    • Completed JCHNP (Jetking Hardware & Networking Premium).
+
+Summary
+------------------------------------------------------------------------------------------------------------------------
+I am a seasoned IT professional with over 12 years of experience in managing IT infrastructures and OpenStack environments. I excel in automation using Ansible, server monitoring with Prometheus and Grafana, and Docker container management. My goal is to leverage my extensive expertise to drive efficiency and contribute to the success of a forward-thinking team.

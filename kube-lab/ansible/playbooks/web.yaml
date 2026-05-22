@@ -1,0 +1,4 @@
+- name: create file
+  copy:
+     content: "helloworld"
+     dest: /tmp/report

@@ -1,0 +1,7 @@
+#!/bin/bash
+sudo subscription-manager register --username amit.chopra@partner.bmw.de  --password Comnet#123456
+echo
+sudo subscription-manager status
+#subscription-manager release --set=9.0
+#subscription-manager repos --disable=*
+#subscription-manager repos --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms

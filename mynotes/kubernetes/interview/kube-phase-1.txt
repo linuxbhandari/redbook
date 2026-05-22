@@ -1,0 +1,773 @@
+Phase 1 — Kubernetes Fundamentals (Very Important)
+==================================================
+* Pods(High)
+  - A Pod is the smallest deployable unit that can run in the cluster.
+    A Pod usually contains:
+        - Network (same IP address)
+        - Storage volumes
+        - Configuration
+
+    Important note: In real production environments, you usually do not create Pods directly.
+      Instead, you create:
+          - Deployments
+          - StatefulSets
+          - DaemonSets
+          - Jobs
+            These controllers manage Pods automatically.
+
+           # kubectl create deployment nginx --image=nginx
+
+Pod lifecycle : A Pod in Kubernetes goes through different phases during its lifecycle. These phases tell you what is happening with the Pod and its containers.
+
+      A Pod can be in states like:
+        - Pending : 
+          What happens in this phase?
+            Kubernetes is preparing the Pod:
+              - Finding a node
+              - Pulling container images
+              - Creating networking
+              - Mounting volumes
+
+          Common reasons for staying in Pending
+              - No available node resources (CPU/RAM)
+              - Image pull delays
+              - Persistent Volume not available
+              - Scheduling constraints
+
+          To troubleshoot:
+              # oc get pod
+              # oc describe pod < pod name>
+            Look for:
+                - FailedScheduling
+                - ImagePullBackOff
+                - volume errors
+
+        - Running : The Pod is successfully running on a node.
+
+          Important : Running does NOT always mean the application is healthy.
+            The app may still:
+            - crash internally
+            - reject requests
+            - fail readiness probes
+  
+          That’s why Kubernetes also uses:
+            - readiness probes
+            - liveness probes
+
+        - Succeeded : The Pod completed its work successfully and stopped.
+          Usually seen with:
+            - Jobs
+            - Batch processing
+            - One-time tasks
+              example : 
+                echo "backup complete"
+                  Then exits with status code 0.
+
+                NAME          READY   STATUS      AGE
+                backup-job    0/1     Completed   1m
+
+                (Completed is the user-facing display for Succeeded.)
+
+        - Failed : The Pod stopped because one or more containers exited with an error.
+          Causes : 
+            - Application crash
+            - Wrong command
+            - Missing files
+            - Permission issues
+
+
+        - CrashLoopBackOff : This is one of the most common and important states.
+          It means:
+            - Container starts
+            - Crashes
+            - Kubernetes restarts it
+            - It crashes again
+            - Kubernetes waits longer before retrying
+
+            This repeated restart cycle is called a crash loop.
+            
+            Common reasons for CrashLoopBackOff
+              - Application errors
+                Example:
+                  - bad configuration
+                  - syntax error
+                  - missing environment variables
+              
+              - Wrong startup command
+                  - command: ["wrong-command"]
+              
+              - Database connection failures
+                  - App crashes because DB is unreachable.
+      
+              - Port conflicts
+              - Missing secrets/configmaps
+              - Permission/security problems
+              - Especially common in OpenShift because of stricter security policies.
+
+            - How to troubleshoot CrashLoopBackOff
+              1. Check logs       # oc logs myapp
+              2. Describe the Pod # oc describe pod myapp
+              3. Check previous crashed container logs #kubectl logs myapp --previous
+
+
+  * Deployments	High
+      - A Deployment is a controller that manages Pods and ReplicaSets.
+      It helps you:
+        - Run applications reliably
+        - Maintain desired number of Pods
+        - Perform rolling updates
+        - Roll back to previous versions automatically
+
+        Main Responsibilities of Deployments
+        1. Maintain desired number of Pods
+        2. Rolling Updates : 
+            - You can update application versions without downtime.
+            - Deployment gradually replaces old Pods with new Pods.
+        3. Rollback
+            - If the new version is broken:
+            - Deployment restores the previous working version.
+                # kubectl rollout undo deployment/myapp
+        4. Scaling
+            - Increase or decrease number of Pods easily.
+                # kubectl scale deployment myapp --replicas=5
+
+  * Services	High
+      - A Service is an abstraction that provides a stable network endpoint to access a set of Pods.
+      - Since Pods are temporary and can change anytime, Services solve the problem of how to reliably 
+      connect to them.
+
+      What a Service does
+      A Service:
+        - Groups Pods using labels
+        - Gives them a stable virtual IP (ClusterIP)
+        - Load balances traffic across Pods
+
+      Simple architecture 
+        Client => services(Stable IP/ DNS) => pods
+
+      Key Features of Services
+        1. Stable Access Point : Even if Pods change, Service stays the same.
+        2. Load Balancing
+           - Service distributes traffic across Pods:
+              Request 1 → Pod A
+              Request 2 → Pod B
+              Request 3 → Pod C
+        3. Loose Coupling
+           - Clients don’t need to know Pod details.
+           They only talk to:
+            - Service name
+            - DNS
+
+      Types of Services
+       1. ClusterIP (default)
+          - Internal only
+          - Used for communication inside cluster
+
+       2. NodePort
+          - Exposes service on each Node’s IP + port
+          - External access possible
+       3. LoadBalancer
+          - Cloud provider creates external load balancer
+          - Used in AWS, Azure, GCP
+
+
+  * ConfigMaps/Secrets	High
+      - ConfigMaps and Secrets are used to store configuration data separately from application code.
+        This helps make applications:
+        - portable
+        - secure
+        - easier to manage
+        - environment-specific
+
+        Why ConfigMaps and Secrets exist
+          Imagine your application needs:
+          - Database URL
+          - Application mode
+          - API keys
+          - Passwords
+          - Feature flags
+
+        Hardcoding them inside container images is bad because:
+          changing config requires rebuilding image
+          - Secrets become exposed
+          - environments differ (dev/test/prod)
+          
+          Kubernetes solves this using:
+          - ConfigMaps → non-sensitive data
+               - application configs/settings
+               - URLs
+               - ports
+               - environment settings
+
+          - Secrets → sensitive data
+               - passwords
+               - API tokens
+               - SSH keys
+               - certificates
+
+            Important: Base64 Encoding
+              - Secrets use Base64 encoded values.
+                # echo -n "admin" | base64
+                  YWRtaW4=
+
+                Base64 is NOT encryption.
+                - It is only encoding.
+
+
+
+  * StatefulSets	Medium
+    - a StatefulSet is a workload controller used for stateful applications.
+
+
+  * Volumes/PVC/PV	High
+
+  * Namespaces	High
+    - a Namespace is a logical partition inside a cluster used to organize and isolate resources.
+      
+      Why Namespaces are needed
+        Imagine one Kubernetes cluster used by:
+        - Dev team
+        - QA team
+        - Production team
+
+      Without namespaces:
+        - resource names may conflict
+        - hard to manage permissions
+        - difficult to separate environments
+        
+        Namespaces solve this.
+
+      Example:
+        You can have:
+          - dev namespace
+          - prod namespace
+          - testing namespace
+
+      Each can contain:
+          - Pods
+          - Services
+          - Deployments
+          - ConfigMaps
+          - Secrets
+            
+          independently.
+
+
+Simple Architecture
+===================
+Kubernetes Cluster
+│
+├── Namespace: dev
+│     ├── Pods
+│     ├── Services
+│
+├── Namespace: qa
+│     ├── Pods
+│     ├── Deployments
+│
+└── Namespace: prod
+      ├── StatefulSets
+      ├── Secrets
+
+
+      Important Characteristics/ why namespance needed.
+      1. Resource Isolation
+          - Resources inside one namespace are logically separated from others.
+      
+      2. Access Control (RBAC)
+          - Permissions can be namespace-specific.
+          Example:
+            - Dev team accesses only dev
+            - QA team accesses only qa
+
+      3. Resource Quotas
+          You can limit:
+            - CPU
+            - memory
+            - storage
+            - Pod count
+          
+          per namespace.
+
+      4. Environment Separation/multi-team environments
+          Very commonly used for:
+            - development
+            - testing
+            - staging
+            - production
+
+      
+      Important Limitation
+        Namespaces do NOT isolate:
+        - Nodes
+        - PersistentVolumes
+        - Cluster-wide resources
+      
+        Examples of cluster-wide resources:
+        - Nodes
+        - StorageClasses
+        - CRDs
+
+
+  * RBAC	High
+  * Ingress/Routes	High
+
+  * Node lifecycle	High
+    - A Node is a worker machine (VM or physical server) where Pods run.
+        The Node lifecycle describes:
+        - How nodes join the cluster
+        - Become ready
+        - run workloads
+        - become unhealthy
+        - recover or get removed
+
+      Node Lifecycle Flow
+      ===================
+      Node Created
+        ↓
+      Registers with Cluster
+        ↓
+      Ready
+        ↓
+      Runs Pods
+        ↓
+      Healthy / Unhealthy checks
+        ↓
+      Cordoned / Drained / Removed
+
+
+      What is a Node?
+        A Node contains:
+        - kubelet
+        - container runtime
+        - kube-proxy
+        - Pods
+      
+        Examples:
+        - EC2 VM
+        - Azure VM
+        - Bare-metal server
+
+      
+      Q: What happens when a node becomes NotReady?
+      Answer:
+        - kubelet heartbeats stop
+        - node marked NotReady
+        - Pods may be evicted
+        - scheduler recreates Pods on healthy nodes
+
+      Q: Difference between cordon and drain?
+        Command Effect
+        cordon:  Stops new scheduling
+        drain: Evicts existing Pods
+
+
+  * Must Understand Internally
+
+Kubernetes Architecture
+=======================
+User/API Request
+       ↓
+API Server
+       ↓
+etcd (stores cluster state)
+       ↓
+Scheduler
+       ↓
+Controller Manager
+       ↓
+Worker Nodes
+
+  Components You MUST know
+  1. Control Plane Architecture ⭐ MOST IMPORTANT
+      - kube-apiserver
+      - etcd
+      - kube-scheduler
+      - controller-manager
+  
+  2. Desired State Reconciliation ⭐ CRITICAL
+  4. Container Runtime
+      Kubernetes itself does NOT run containers directly.
+      Uses:
+        - containerd
+        - CRI-O
+        - Docker (old)
+      
+      OpenShift mainly uses:
+        - CRI-O
+
+  5. Networking Internals ⭐ VERY IMPORTANT
+     You MUST understand:
+      Every Pod gets IP
+        - Pod-to-Pod communication without NAT
+
+      CNI Plugins
+        Networking provided by:
+        - Calico
+        - Flannel
+        - OVN-Kubernetes
+        - Cilium
+        
+        OpenShift commonly uses:
+        - OVN-Kubernete
+
+
+      Service Internals
+          Service works using:
+          - kube-proxy
+          - iptables/ipvs
+    
+Traffic flow:
+
+Client
+  ↓
+Service IP
+  ↓
+iptables rules
+  ↓
+Backend Pod
+  
+  6. DNS Internals
+      - CoreDNS provides service discovery.
+      
+      backend-service.default.svc.cluster.local
+
+  7. Scheduling Internals ⭐ IMPORTANT
+     Scheduler process:
+
+Filter Nodes
+    ↓
+Score Nodes
+    ↓
+Select Best Node
+
+      Factors
+      - CPU
+      - memory
+      - taints
+      - affinity
+      - anti-affinity
+      - topology spread
+
+  8. Storage Internals
+
+    Must understand:
+      Persistent Volume Flow
+        PVC → PV → Storage Backend
+
+      CSI Drivers
+        Storage integration through:
+          Container Storage Interface
+  
+      Examples:
+      - EBS CSI
+      - Ceph CSI
+      - vSphere CSI
+
+  9. Stateful vs Stateless ⭐ INTERVIEW FAVORITE
+      You must clearly explain:
+      - Deployment
+      - StatefulSet
+      - persistence
+      - identity
+
+  10. Security Internals ⭐ VERY IMPORTANT
+      RBAC
+        Controls:
+          Who can do what?
+
+        Components:
+        - Role
+        - ClusterRole
+        - RoleBinding
+      
+      Service Accounts
+        - Pods use service accounts to talk to API server.
+      
+      Secrets
+        Know:
+        - mounted as tmpfs
+        - base64 only
+        - etcd encryption
+      
+      OpenShift Security
+        OpenShift adds:
+        - SCC (Security Context Constraints)
+        - restricted containers
+        - random UID model
+      
+        VERY commonly asked.
+
+  11. Node Internals
+        Must know:
+        - kubelet
+        - kube-proxy
+        - node heartbeat
+        - node conditions
+
+  12. kubelet Internals ⭐ IMPORTANT
+        kubelet:
+        - watches API server
+        - ensures containers run
+         reports node status
+
+  13. Rolling Updates Internals
+
+Deployment update process:
+
+Old ReplicaSet
+      ↓
+New ReplicaSet
+      ↓
+Gradual replacement
+
+  Know:
+      - maxUnavailable
+      - maxSurge
+  
+  14. CrashLoopBackOff Internals
+    Understand:
+    - exponential backoff
+    - restart policy
+    - liveness failures
+
+  15. Admission Controllers ⭐ ADVANCED
+
+      Before object creation:
+
+Request
+  ↓
+Authentication
+  ↓
+Authorization
+  ↓
+Admission Controllers
+  ↓
+Persist to etcd
+
+Examples:
+  - LimitRanger
+  - ResourceQuota
+  - PodSecurity
+
+  
+  16. Operators (VERY IMPORTANT in OpenShift)
+  OpenShift heavily uses Operators.
+  Operator = Kubernetes-native automation.
+
+    Manages:
+      - upgrades
+      - backups
+      - failover
+      - scaling
+
+    Examples:
+      - database operators
+      - monitoring operators
+
+  17. OpenShift Internals ⭐
+      
+      Must understand:
+      - Routes
+      - SCC
+      - Operators
+      - ImageStreams
+      - BuildConfigs
+      - MachineConfigOperator
+  
+  18. Resource Management
+      
+      Understand:
+      - requests
+      - limits
+      - QoS classes
+          * Guaranteed
+          * Burstable
+          * BestEffort
+      
+      Important for eviction behavior.
+
+
+  19. Taints & Tolerations
+    
+    Control Pod placement.
+    
+    Example:
+      NoSchedule
+      
+      Used for:
+        - GPU nodes
+        - master isolation
+        - dedicated workloads
+  
+  20. Troubleshooting Flow ⭐ SUPER IMPORTANT
+
+      This is what real engineers do daily.
+      
+      You should know how to debug:
+      - Pod failures
+      - networking
+      - DNS
+      - image pull issues
+      - scheduling failures
+
+
+  Must Know Commands
+      - kubectl describe
+      - kubectl logs
+      - kubectl exec
+      - kubectl get events
+      - kubectl top
+
+
+
+
+
+
+
+Important Questions
+===================
+  * How pod gets IP.
+  * How service routes traffic.
+  * How scheduler places pods.
+  * How kubelet works.
+  * How etcd stores state.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Your Biggest Advantage
+
+You already understand:
+
+real production systems
+
+outages
+Linux internals
+operational pressure
+
+This is huge.
+
+Many Kubernetes learners do not have this.
+
+Very Important Advice
+
+Do NOT compare yourself with:
+
+YouTube “Kubernetes experts”
+social media architects
+people memorizing buzzwords
+
+Most production environments need:
+
+reliable operators/support engineers
+
+Best Learning Method for You
+=============================
+1. Learn One Topic Daily
+Example:
+  * Monday → Services
+  * Tuesday → Routes
+  * Wednesday → Operators
+
+2. Create Architecture Notes
+You are already learning well through:
+flow diagrams
+Continue that.
+
+This is excellent for interviews.
+
+3. Practice Troubleshooting
+
+Most important.
+
+Create issues intentionally:
+
+wrong image
+bad route
+resource limits
+failed probes
+
+Then fix them.
+
+Recommended Order for You
+=========================
+Month 1
+  * Kubernetes core
+  * Pods/services/deployments
+  * Networking basics
+
+Month 2
+  * OpenShift internals
+  * Operators
+  * MCO/Machine API
+  * Routes
+
+Month 3
+  * Troubleshooting
+  * Upgrades
+  * GitOps
+  * Monitoring
+
+What You Do NOT Need Immediately
+
+You do not need:
+  * advanced Golang
+  * Kubernetes development
+  * custom operators coding
+  * service mesh internals
+  * advanced CNCF ecosystem
+
+Those can come later.
+
+Your Best Career Direction
+==========================
+Based on your background, the best fit is:
+
+OpenShift/Kubernetes Platform Operations Engineer
+
+or
+
+Platform Support Engineer
+
+This is realistic and marketable.
+
+Important Final Point
+
+You already have:
+
+infrastructure maturity
+
+Now you mainly need:
+
+container platform maturity
+
+That transition is absolutely achievable with consistent practice.

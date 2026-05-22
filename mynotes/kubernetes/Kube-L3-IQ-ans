@@ -1,0 +1,264 @@
+Q) Explain the Complete Lifecycle of a Pod in Kubernetes
+
+Complete Pod Lifecycle
+
+1. User Creates the Pod
+    User runs: 
+        kubectl apply -f pod.yaml
+
+    The request goes to the API Server.
+
+2. API Server Validates Request
+    The API Server:
+        - Authenticates request
+        - Validates YAML configuration
+        - Checks RBAC permissions
+        - Stores desired state in etcd
+
+3. Pod Object Stored in etcd
+    The Pod definition is stored in etcd.
+    At this stage:
+        - Pod exists logically
+        - No container is running yet
+
+
+4. Scheduler Selects Worker Node
+    The Scheduler checks:
+        - CPU/Memory availability
+        - Node affinity
+        - Taints/Tolerations
+        - Resource requests
+        - Policies and constraints
+    
+    Then assigns the Pod to the best Worker Node.
+
+
+5. kubelet Detects Assigned Pod
+    The kubelet running on the selected Worker Node:
+        - Watches API Server
+        - Detects newly assigned Pod
+        - Starts Pod creation process
+
+6. Container Runtime Pulls Images
+    Container Runtime (containerd/CRI-O):
+        - Pulls container images
+        - Creates containers
+        - Starts containers
+
+    If image pull fails:
+        - Pod enters ImagePullBackOff
+
+7. Networking Configuration
+    kube-proxy and CNI plugin:
+        - Assign Pod IP
+        - Configure networking
+        - Enable Pod-to-Pod communication
+    
+    Now the Pod becomes reachable.
+
+8. Pod Status Changes
+    Pod moves through states:
+       Pending → ContainerCreating → Running
+
+    Possible states:
+        - Pending
+        - Running
+        - Succeeded
+        - Failed
+        - Unknown
+
+9. Readiness & Liveness Probes Start
+    Kubernetes starts monitoring:
+        - Readiness probe → Can Pod receive traffic?
+        - Liveness probe → Is application healthy?
+    
+    If liveness probe fails:
+        - Container restarts automatically
+
+
+10. Pod Running State
+      Application becomes available.
+      Traffic reaches Pod through:
+        - Service
+        - Ingress
+        - Load Balancer
+
+
+Pod Termination Lifecycle
+    When Pod is deleted:
+        - Pod receives SIGTERM signal
+        - Grace period starts
+        - Application shuts down gracefully
+        - Containers stop
+        - Resources released
+        - Pod removed from etcd
+
+
+
+Important Pod States
+State	    Meaning
+Pending	    Waiting for scheduling/resources
+Running	    Pod is active
+Succeeded	Completed successfully
+Failed	    Execution failed
+Unknown	    Node communication issue
+
+
+
+Real-Time Scenario
+Scenario:
+    Application crashes repeatedly.
+
+Result:
+    - kubelet detects failure
+    - Restarts container automatically
+    - If continuous failures occur:
+    - Pod enters CrashLoopBackOff
+
+
+Troubleshooting Commands
+kubectl get pods
+kubectl describe pod <pod>
+kubectl logs <pod>
+kubectl get events
+
+
+Interview One-Line Summary
+===========================
+A Pod lifecycle includes creation, scheduling, container startup, networking setup, health monitoring, running state, and graceful termination managed by Kubernetes components like API Server, Scheduler, kubelet, and Container Runtime.
+
+
+
+Q) What happens internally when you run kubectl apply? 
+
+Internal Workflow
+1. User Runs Command : kubectl reads the YAML manifest. 
+    kubectl apply -f deployment.yaml
+
+2. Request Sent to API Server
+    - kubectl sends an HTTP request to the API Server.
+    - The API Server acts as the entry point for all Kubernetes operations.
+
+3. Authentication & Authorization
+    API Server checks:
+        - User identity
+        - RBAC permissions
+        - Access rights
+    If unauthorized:
+        - Request is rejected
+
+4. Manifest Validation
+    API Server validates:
+        - YAML syntax
+        - API version
+        - Resource schema
+        - Required fields
+    
+    Admission Controllers may also:
+        - Enforce policies
+        - Modify requests
+        - Validate security rules
+
+5. Desired State Stored in etcd
+    After validation:
+        - Object definition is stored in etcd
+        - etcd becomes the source of truth
+    
+    At this stage:
+        - Resource exists logically
+        - Workload is not running yet
+
+6. Controllers Detect New Resource
+    Controller Manager notices:
+        - New Deployment/Pod/ReplicaSet
+    
+    It starts reconciliation to match:
+            - Desired state
+            - Actual state
+
+    Example:    
+    Deployment requests 3 replicas → Controller ensures 3 Pods exist.
+
+7. Scheduler Assigns Node
+    Scheduler checks:
+        - CPU/Memory availability
+        - Taints/Tolerations
+        - Affinity rules
+        - Resource requests
+        - Policies
+    Then selects the best Worker Node.
+
+
+8. kubelet Receives Instructions
+    kubelet on the selected node:
+        - Watches API Server
+        - Detects assigned Pod
+        - Starts Pod creation
+
+
+9. Container Runtime Starts Containers
+    Container Runtime:
+        - Pulls images
+        - Creates containers
+        - Starts application
+    
+    Examples:
+        - containerd
+        - CRI-O
+
+
+10. Networking Configured
+    CNI plugin and kube-proxy:
+        - Assign Pod IP
+        - Configure networking
+        - Enable Service communication
+
+
+11. Pod Becomes Running
+    Pod status changes:
+        Pending → ContainerCreating → Running
+    Application becomes available.
+
+
+Real-Time Example
+Deployment Creation
+    kubectl apply -f nginx-deployment.yaml
+
+Internally:
+    - Deployment object created
+    - ReplicaSet created
+    - Pods created
+    - Scheduler assigns nodes
+    - Containers start
+    - Service routes traffic
+
+
+
+Troubleshooting Commands
+kubectl get events
+kubectl describe pod <pod>
+kubectl logs <pod>
+kubectl get deployments
+
+
+
+Interview One-Line Summary
+==========================
+When kubectl apply is executed, Kubernetes validates the manifest through the API Server, stores the desired state in etcd, schedules workloads to nodes, and kubelet creates and runs the containers using the container runtime.
+
+
+
+Q) How does Kubernetes maintain the desired state?
+Kubernetes maintains the desired state through controllers that continuously compare the desired configuration stored in etcd with the actual cluster state and automatically reconcile any differences.
+
+
+Q) How does the Kubernetes Scheduler work internally?
+
+Q) Explain the roles of API Server, etcd, Scheduler, and Controller Manager. 
+Q) What happens when a node becomes NotReady? 
+Q) How does kubelet communicate with the Control Plane? 
+Q) Explain leader election in Kubernetes. 
+Q) What happens if etcd goes down? 
+Q) How does Kubernetes achieve self-healing?
+
+

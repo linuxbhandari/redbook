@@ -1,0 +1,180 @@
+Placing hosts in the maintenance mode
+=====================================
+[root@ceph-node1 ~]# cephadm shell -- ceph orch host ls
+[root@ceph-node1 ~]# cephadm shell -- ceph orch host maintenance enter ceph-node3
+
+[root@ceph-node1 ~]# cephadm shell -- ceph orch host ls
+Inferring fsid 4a4d2ba2-c201-11ee-aa04-525400d0aca2
+Using recent ceph image quay.io/ceph/ceph@sha256:74cfa4e2a969824494a4eaeca2df54d6c96e10d397532a9221222c72b34ccff6
+HOST        ADDR             LABELS  STATUS       
+ceph-node1  192.168.122.148  _admin               
+ceph-node2  192.168.122.89                        
+ceph-node3  192.168.122.71           Maintenance  
+3 hosts in cluster
+
+[root@ceph-node1 ~]# cephadm shell -- ceph orch host maintenance exit ceph-node3
+
+=============================================================================
+[root@ceph-node1 ~]# ceph config dump
+WHO     MASK  LEVEL     OPTION                                 VALUE                                                                                      RO
+global        basic     container_image                        quay.io/ceph/ceph@sha256:63cfd86e432825f8661879a5ea409b212e0a20e1e0691add4ed4813428c91db5  * 
+  mon         advanced  auth_allow_insecure_global_id_reclaim  false                                                                                        
+  mon         advanced  public_network                         192.168.122.0/24                                                                           * 
+  mgr         advanced  mgr/cephadm/container_init             True                                                                                       * 
+  mgr         advanced  mgr/cephadm/migration_current          5                                                                                          * 
+  mgr         advanced  mgr/orchestrator/orchestrator          cephadm                                                                                      
+  osd         advanced  osd_memory_target_autotune             true                                                                                         
+
+[root@ceph-node1 ~]# ceph config set osd osd_memory_target_autotune true/false
+
+
+remove osd when it is destroyed stage
+=====================================
+
+[root@ceph-node1 ~]# ceph osd tree
+ID  CLASS  WEIGHT   TYPE NAME            STATUS     REWEIGHT  PRI-AFF
+-1         0.08817  root default                                     
+-7         0.02939      host ceph-node1                              
+ 2    hdd  0.00490          osd.2               up   1.00000  1.00000
+ 5    hdd  0.00490          osd.5               up   1.00000  1.00000
+ 8    hdd  0.00490          osd.8               up   1.00000  1.00000
+11    hdd  0.00490          osd.11              up   1.00000  1.00000
+14    hdd  0.00490          osd.14              up   1.00000  1.00000
+17    hdd  0.00490          osd.17              up   1.00000  1.00000
+-5         0.02939      host ceph-node2                              
+ 0    hdd  0.00490          osd.0               up   1.00000  1.00000
+ 4    hdd  0.00490          osd.4               up   1.00000  1.00000
+ 7    hdd  0.00490          osd.7               up   1.00000  1.00000
+10    hdd  0.00490          osd.10              up   1.00000  1.00000
+13    hdd  0.00490          osd.13              up   1.00000  1.00000
+16    hdd  0.00490          osd.16              up   1.00000  1.00000
+-3         0.02939      host ceph-node3                              
+ 1    hdd  0.00490          osd.1               up   1.00000  1.00000
+ 3    hdd  0.00490          osd.3               up   1.00000  1.00000
+ 6    hdd  0.00490          osd.6               up   1.00000  1.00000
+ 9    hdd  0.00490          osd.9               up   1.00000  1.00000
+12    hdd  0.00490          osd.12              up   1.00000  1.00000
+15    hdd  0.00490          osd.15       destroyed         0  1.00000
+
+
+
+[root@ceph-node3 ~]# podman exec -it ceph-4a4d2ba2-c201-11ee-aa04-525400d0aca2-osd-1 bash
+
+[root@ceph-node3 /]# ceph-volume lvm zap /dev/vdg --destroy
+--> Zapping: /dev/vdg
+--> Zapping lvm member /dev/vdg. lv_path is /dev/ceph-86472709-69f1-4f5c-b1f6-fca90bce190f/osd-block-cd57dece-f494-4c90-9db8-4c79b05cef1d
+Running command: /usr/bin/dd if=/dev/zero of=/dev/ceph-86472709-69f1-4f5c-b1f6-fca90bce190f/osd-block-cd57dece-f494-4c90-9db8-4c79b05cef1d bs=1M count=10 conv=fsync
+ stderr: 10+0 records in
+10+0 records out
+10485760 bytes (10 MB, 10 MiB) copied, 0.0378968 s, 277 MB/s
+ stderr: 
+--> Only 1 LV left in VG, will proceed to destroy volume group ceph-86472709-69f1-4f5c-b1f6-fca90bce190f
+Running command: nsenter --mount=/rootfs/proc/1/ns/mnt --ipc=/rootfs/proc/1/ns/ipc --net=/rootfs/proc/1/ns/net --uts=/rootfs/proc/1/ns/uts /sbin/vgremove -v -f ceph-86472709-69f1-4f5c-b1f6-fca90bce190f
+ stderr: Removing ceph--86472709--69f1--4f5c--b1f6--fca90bce190f-osd--block--cd57dece--f494--4c90--9db8--4c79b05cef1d (252:3)
+ stderr: Releasing logical volume "osd-block-cd57dece-f494-4c90-9db8-4c79b05cef1d"
+  Archiving volume group "ceph-86472709-69f1-4f5c-b1f6-fca90bce190f" metadata (seqno 5).
+ stdout: Logical volume "osd-block-cd57dece-f494-4c90-9db8-4c79b05cef1d" successfully removed.
+ stderr: Removing physical volume "/dev/vdg" from volume group "ceph-86472709-69f1-4f5c-b1f6-fca90bce190f"
+ stdout: Volume group "ceph-86472709-69f1-4f5c-b1f6-fca90bce190f" successfully removed
+ stderr: Creating volume group backup "/etc/lvm/backup/ceph-86472709-69f1-4f5c-b1f6-fca90bce190f" (seqno 6).
+Running command: nsenter --mount=/rootfs/proc/1/ns/mnt --ipc=/rootfs/proc/1/ns/ipc --net=/rootfs/proc/1/ns/net --uts=/rootfs/proc/1/ns/uts /sbin/pvremove -v -f -f /dev/vdg
+ stdout: Labels on physical volume "/dev/vdg" successfully wiped.
+Running command: /usr/bin/dd if=/dev/zero of=/dev/vdg bs=1M count=10 conv=fsync
+ stderr: 10+0 records in
+10+0 records out
+ stderr: 10485760 bytes (10 MB, 10 MiB) copied, 0.022414 s, 468 MB/s
+--> Zapping successful for: <Raw Device: /dev/vdg>
+
+[root@ceph-node3 /]# lvscan 
+  ACTIVE            '/dev/ceph-008b130d-14f5-43da-82c8-7b3a5e93e762/osd-block-bebd3b0f-166e-40c0-91a2-f7283fd45b25' [<5.00 GiB] inherit
+  ACTIVE            '/dev/ceph-c016f146-02ee-4348-aa65-955d47013caa/osd-block-f17e81a2-2078-4fa1-bbd1-ca3a1d3592fa' [<5.00 GiB] inherit
+  ACTIVE            '/dev/ceph-4e2fe3de-c445-4ee2-94ec-d63539c498eb/osd-block-79ec8c4c-9c91-4fe8-9a2e-abaf8106b44e' [<5.00 GiB] inherit
+  ACTIVE            '/dev/ceph-1842e9f9-518c-4e07-8528-f5b2a0eb7e21/osd-block-a09bd305-ce5f-441c-b028-0f48d414bf82' [<5.00 GiB] inherit
+  ACTIVE            '/dev/ceph-2a0fa447-f418-4e7c-9e32-870128c60537/osd-block-08af029e-6720-4dd5-b4d1-afa20d48c697' [<5.00 GiB] inherit
+
+
+[root@ceph-node1 ~]# ceph osd tree
+ID  CLASS  WEIGHT   TYPE NAME            STATUS     REWEIGHT  PRI-AFF
+-1         0.08817  root default                                     
+-7         0.02939      host ceph-node1                              
+ 2    hdd  0.00490          osd.2               up   1.00000  1.00000
+ 5    hdd  0.00490          osd.5               up   1.00000  1.00000
+ 8    hdd  0.00490          osd.8               up   1.00000  1.00000
+11    hdd  0.00490          osd.11              up   1.00000  1.00000
+14    hdd  0.00490          osd.14              up   1.00000  1.00000
+17    hdd  0.00490          osd.17              up   1.00000  1.00000
+-5         0.02939      host ceph-node2                              
+ 0    hdd  0.00490          osd.0               up   1.00000  1.00000
+ 4    hdd  0.00490          osd.4               up   1.00000  1.00000
+ 7    hdd  0.00490          osd.7               up   1.00000  1.00000
+10    hdd  0.00490          osd.10              up   1.00000  1.00000
+13    hdd  0.00490          osd.13              up   1.00000  1.00000
+16    hdd  0.00490          osd.16              up   1.00000  1.00000
+-3         0.02939      host ceph-node3                              
+ 1    hdd  0.00490          osd.1               up   1.00000  1.00000
+ 3    hdd  0.00490          osd.3               up   1.00000  1.00000
+ 6    hdd  0.00490          osd.6               up   1.00000  1.00000
+ 9    hdd  0.00490          osd.9               up   1.00000  1.00000
+12    hdd  0.00490          osd.12              up   1.00000  1.00000
+15    hdd  0.00490          osd.15       destroyed         0  1.00000    <<< still there
+
+
+
+[root@ceph-node1 ~]# ceph osd purge 15      <<<<< to remove this
+purged osd.15
+[root@ceph-node1 ~]# ceph osd tree
+ID  CLASS  WEIGHT   TYPE NAME            STATUS  REWEIGHT  PRI-AFF
+-1         0.08327  root default                                  
+-7         0.02939      host ceph-node1                           
+ 2    hdd  0.00490          osd.2            up   1.00000  1.00000
+ 5    hdd  0.00490          osd.5            up   1.00000  1.00000
+ 8    hdd  0.00490          osd.8            up   1.00000  1.00000
+11    hdd  0.00490          osd.11           up   1.00000  1.00000
+14    hdd  0.00490          osd.14           up   1.00000  1.00000
+17    hdd  0.00490          osd.17           up   1.00000  1.00000
+-5         0.02939      host ceph-node2                           
+ 0    hdd  0.00490          osd.0            up   1.00000  1.00000
+ 4    hdd  0.00490          osd.4            up   1.00000  1.00000
+ 7    hdd  0.00490          osd.7            up   1.00000  1.00000
+10    hdd  0.00490          osd.10           up   1.00000  1.00000
+13    hdd  0.00490          osd.13           up   1.00000  1.00000
+16    hdd  0.00490          osd.16           up   1.00000  1.00000
+-3         0.02449      host ceph-node3                           
+ 1    hdd  0.00490          osd.1            up   1.00000  1.00000
+ 3    hdd  0.00490          osd.3            up   1.00000  1.00000
+ 6    hdd  0.00490          osd.6            up   1.00000  1.00000
+ 9    hdd  0.00490          osd.9            up   1.00000  1.00000
+12    hdd  0.00490          osd.12           up   1.00000  1.00000
+
+
+Placement specification of the Ceph Orchestrator (https://www.ibm.com/docs/en/storage-ceph/5?topic=services-placement-specification-ceph-orchestrator)
+================================================= 
+[root@ceph-node1 ~]# ceph orch apply mon --placement="3 ceph-node1 ceph-node2 ceph-node3"
+
+
+
+===================================
+Per service and per daemon event   (https://www.ibm.com/docs/en/storage-ceph/5?topic=troubleshooting-check-cephadm-logs)
+===================================
+[root@ceph-node1 ~]# ceph orch ls --service_name mon --format yaml
+service_type: mon
+service_name: mon
+placement:
+  count: 2
+  hosts:
+  - ceph-node1
+  - ceph-node3
+status:
+  created: '2024-02-04T06:14:53.283798Z'
+  last_refresh: '2024-02-04T07:37:24.566109Z'
+  running: 2
+  size: 2
+events:
+- 2024-02-04T06:01:18.496731Z service:mon [INFO] "service was created"
+
+
+[root@ceph-node1 ~]# ceph -W cephadm
+[root@ceph-node1 ~]# ceph log last cephadm
+[root@ceph-node1 ~]# cephadm logs --name mon.ceph-node
+[root@ceph-node1 ~]# ceph orch ls --service-type mon
+

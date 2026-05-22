@@ -1,0 +1,37 @@
+What is Ceph?
+	Ceph is a distributed storage platform providing scalable and highly available block, object, and file storage.
+
+What is OSD in Ceph?
+	OSD stands for Object Storage Daemon. It stores data and handles replication and recovery operations.
+
+What is a Placement Group(PG)?
+	Placement Groups are logical groupings used by Ceph to distribute and manage object data across OSDs.
+
+What Happens if an OSD Goes Down?
+	Ceph marks the OSD as down, replication and recovery operations start automatically, and data is redistributed to maintain redundancy.
+
+Difference Between qcow2 and raw?
+	qcow2				raw
+	Thin provisioned	Fixed allocation
+	Supports snapshots	Better performance
+	Smaller initially	Larger disk usage
+
+What is libvirt?
+	libvirt is a virtualization management layer used to manage hypervisors like KVM.
+
+What Automation Tools Have You Used?
+	I have used Ansible and shell scripting for operational automation and infrastructure-related tasks.
+
+What Logs Do You Usually Check?
+/var/log/nova/
+/var/log/neutron/
+/var/log/cinder/
+/var/log/ceph/
+journalctl
+
+
+Q) OSD Down in Ceph
+Question
+	“What happens if an OSD goes down?”
+Answer
+	Ceph automatically marks the OSD down and starts recovery and rebalancing operations to maintain data redundancy and cluster health.

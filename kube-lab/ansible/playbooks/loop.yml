@@ -1,0 +1,23 @@
+- hosts: all   # Standard/Simple Loop
+  gather_facts: false
+  tasks:
+  - name: add ravi shyam manish
+    user:
+        name: "{{ item }}"
+        state: absent
+    with_items:
+      - ravi
+      - shyam
+      - manish
+
+# Netseded Loop
+  - name: add user into seperate group
+    user:
+        name: "{{ item.x }}"
+        group: "{{ item.y }}"
+        password: "{{ item.p | password_hash('sha512')}}"
+        state: present
+    with_items:
+      - {  x: 'ram', y: 'manager', p: 'redhat' }
+      - {  x: 'shaym', y: 'staff', p: 'redhat' }
+      - {  x: 'manish', y: 'owner', p: 'redhat' }

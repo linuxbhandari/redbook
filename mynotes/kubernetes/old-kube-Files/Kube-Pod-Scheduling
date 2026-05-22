@@ -1,0 +1,1418 @@
+Topic: => Pod controller (It maintain pod state)
+RC
+RS
+
+
+
+Replication controller: 
+=================================
+Note: Pod controller like rc or rs not replicate data between pods. it only maintain containers state.
+
+1) RC: replication controller (it's control replica value)
+      1. It maintain pod state.
+      2. High Avaliable
+      3. Scalability
+
+          Note: replication controller create by only file method.
+
+root@kube-master:~# cat rc.yml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: con1-rc                 <<  name of rc controller
+spec:
+  replicas: 2
+  selector:
+    app: nginx                 
+  template:
+    metadata:
+      name: nginx
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+root@kube-master:~# kubectl create -f rc.yml
+root@kube-master:~# kubectl get rc       
+NAME      DESIRED   CURRENT   READY   AGE
+con1-rc   2         2         2       2m26s
+
+root@kube-master:~# kubectl get pod -o wide
+NAME            READY   STATUS    RESTARTS   AGE    IP               NODE         NOMINATED NODE   READINESS GATES
+con1-rc-n6rz4   1/1     Running   0          4m3s   172.16.233.197   kube-node2   <none>           <none>
+con1-rc-r5vxz   1/1     Running   0          4m3s   172.16.9.70      kube-node1   <none>           <none>
+
+root@kube-master:~# kubectl delete pod con1-rc-n6rz4                                                                   <<<< if you delete any pod
+pod "con1-rc-n6rz4" deleted
+
+root@kube-master:~# kubectl get pod -o wide
+NAME            READY   STATUS    RESTARTS   AGE     IP               NODE         NOMINATED NODE   READINESS GATES    <<<<< it will create automatically
+con1-rc-cfbfl   1/1     Running   0          9s      172.16.233.198   kube-node2   <none>           <none>
+con1-rc-r5vxz   1/1     Running   0          4m23s   172.16.9.70      kube-node1   <none>           <none>
+
+root@kube-master:~# kubectl scale --replicas=4 rc con1-rc                                                              <<< scale pod
+replicationcontroller/con1-rc scaled
+
+root@kube-master:~# kubectl get pod -o wide
+NAME            READY   STATUS    RESTARTS   AGE     IP               NODE         NOMINATED NODE   READINESS GATES
+con1-rc-7jdct   1/1     Running   0          32s     172.16.233.199   kube-node2   <none>           <none>
+con1-rc-cfbfl   1/1     Running   0          3m38s   172.16.233.198   kube-node2   <none>           <none>
+con1-rc-l2z48   1/1     Running   0          32s     172.16.9.71      kube-node1   <none>           <none>
+con1-rc-r5vxz   1/1     Running   0          7m52s   172.16.9.70      kube-node1   <none>           <none>
+
+root@kube-master:~# kubectl scale --replicas=2 rc con1-rc                                                             >>> reduce pod
+
+replicationcontroller/con1-rc scaled
+root@kube-master:~# kubectl get pod -o wide
+NAME            READY   STATUS    RESTARTS   AGE     IP               NODE         NOMINATED NODE   READINESS GATES
+con1-rc-cfbfl   1/1     Running   0          4m37s   172.16.233.198   kube-node2   <none>           <none>
+con1-rc-r5vxz   1/1     Running   0          8m51s   172.16.9.70      kube-node1   <none>           <none>
+
+root@kube-master:~# kubectl scale --replicas=0 rc con1-rc                                                            <<< stop application
+replicationcontroller/con1-rc scaled
+root@kube-master:~# kubectl get pod -o wide
+NAME            READY   STATUS        RESTARTS   AGE     IP               NODE         NOMINATED NODE   READINESS GATES
+con1-rc-cfbfl   1/1     Terminating   0          5m35s   172.16.233.198   kube-node2   <none>           <none>
+con1-rc-r5vxz   1/1     Terminating   0          9m49s   172.16.9.70      kube-node1   <none>           <none>
+
+
+Note: Two type of scalling in pod
+1) Horizental  ( all we have done this is horizenal scalling)
+2) Vertical    ( increase cpu, memeory this is call vertical scalling)
+
+root@kube-master:~# kubectl delete rc con1-rc                            <<<< delete rc 
+replicationcontroller "con1-rc" deleted
+
+root@kube-master:~# kubectl get pod -o wide
+No resources found in default namespace.
+root@kube-master:~#
+
+root@kube-master:~# kubectl create -f rc.yml
+replicationcontroller/con1-rc created
+
+root@kube-master:~# kubectl get pod
+NAME            READY   STATUS    RESTARTS   AGE
+con1-rc-kjrhb   1/1     Running   0          10s
+con1-rc-r87hf   1/1     Running   0          10s
+root@kube-master:~# vim rc.yml
+update the replicas from 2 to 4
+
+root@kube-master:~# kubectl apply -f rc.yml               <<< second time you will use apply to update, because you already created
+replicationcontroller/con1-rc unchanged
+
+root@kube-master:~# kubectl get pod
+NAME            READY   STATUS    RESTARTS   AGE
+con1-rc-kjrhb   1/1     Running   0          43s
+con1-rc-pc8ms   1/1     Running   0          12s
+con1-rc-r87hf   1/1     Running   0          43s
+con1-rc-shdd5   1/1     Running   0          12s
+
+root@kube-master:~# kubectl get rc                           
+NAME      DESIRED   CURRENT   READY   AGE
+con1-rc   4         4         4       6m21s
+
+root@kube-master:~# kubectl edit rc con1-rc             <<<< you can also update directly etcd database
+replicationcontroller/con1-rc edited
+
+root@kube-master:~# kubectl get rc
+NAME      DESIRED   CURRENT   READY   AGE
+con1-rc   6         6         6       6m58s
+
+root@kube-master:~# kubectl get rc con1-rc -o yaml > con1-rc-bkp.yml    >>>> Take rc backup on file.
+
+Topic : Label and selector? (we use lables to identify the pods)
+===========================
+Pod level labels
+
+create two containers
+root@kube-master:~# kubectl run test --image=docker.io/nginx --dry-run -o yaml > label.yml
+
+root@kube-master:~# cat label.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    env: prod
+    tier: frontend
+    team: security
+  name: demo2        <<== name of the container
+spec:
+  containers:
+  - image: docker.io/nginx
+    name: test
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+root@kube-master:~# cat label.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    color: green
+  name: demo3
+spec:
+  containers:
+  - image: docker.io/nginx
+    name: test
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+root@kube-master:~# kubectl get pod
+NAME    READY   STATUS    RESTARTS   AGE
+demo1   1/1     Running   0          3m51s
+demo2   1/1     Running   0          3m8s
+demo3   1/1     Running   0          38s
+
+root@kube-master:~# vim con1.yml   <<< Update and create first con1 container
+root@kube-master:~# cat con1.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+     env: prod     <<<
+     tier: frontend  <<
+     team: security2  <<
+  name: con2
+spec:
+  containers:
+  - image: docker.io/nginx
+    name: con1
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+root@kube-master:~# vim con1.yml                  
+root@kube-master:~# kubectl create -f con1.yml    <<<<<< create second container
+pod/con2 created
+root@kube-master:~# kubectl get pod
+NAME   READY   STATUS              RESTARTS   AGE
+con1   1/1     Running             0          56s
+con2   0/1     ContainerCreating   0          3s
+
+root@kube-master:~# kubectl get pod --show-labels               << show lables
+NAME   READY   STATUS    RESTARTS   AGE    LABELS
+con1   1/1     Running   0          109s   env=qa,team=security,tier=backend
+con2   1/1     Running   0          56s    env=prod,team=security2,tier=frontend
+root@kube-master:~#
+
+root@kube-master:~# kubectl get pod -l env=qa    <<< To check specific pod by label
+NAME   READY   STATUS    RESTARTS   AGE
+con1   1/1     Running   0          5m16s
+
+root@kube-master:~# kubectl get pod -l env!=qa   <<< not equal to qa
+NAME   READY   STATUS    RESTARTS   AGE
+con2   1/1     Running   0          5m11s
+root@kube-master:~#
+
+root@kube-master:~# kubectl delete pod -l color=green   <<< delete pod
+pod "demo3" deleted
+
+
+root@kube-master:~# kubectl label pod con1 color=red                   <<<< create label in run time
+pod/con1 labeled
+root@kube-master:~# kubectl get pod --show-labels
+NAME   READY   STATUS    RESTARTS   AGE     LABELS
+con1   1/1     Running   0          7m44s   color=red,env=qa,team=security,tier=backend
+con2   1/1     Running   0          6m51s   env=prod,team=security2,tier=frontend
+
+root@kube-master:~# kubectl run app --image=nginx -l color=sky        <<<< create label during creation time
+pod/app created
+
+root@kube-master:~# kubectl get pod --show-labels
+NAME   READY   STATUS    RESTARTS   AGE     LABELS
+app    1/1     Running   0          7s      color=sky
+con1   1/1     Running   0          9m37s   color=red,env=qa,team=security,tier=backend
+con2   1/1     Running   0          8m44s   env=prod,team=security2,tier=frontend
+
+root@kube-master:~# kubectl label node kube-node1 color=redhat
+node/kube-node1 labeled
+root@kube-master:~# kubectl get nodes
+NAME          STATUS   ROLES           AGE    VERSION
+kube-master   Ready    control-plane   2d3h   v1.28.2
+kube-node1    Ready    <none>          2d2h   v1.28.2
+kube-node2    Ready    <none>          2d2h   v1.28.2
+root@kube-master:~# kubectl get nodes -l color=redhat
+NAME         STATUS   ROLES    AGE    VERSION
+kube-node1   Ready    <none>   2d2h   v1.28.2
+
+
+Q) Label it option or mendataty ?
+==================================
+
+Topic : label in rc file
+=========================
+
+root@kube-master:~# kubectl delete pod --all  
+
+root@kube-master:~# kubectl create -f rc.yml
+replicationcontroller/nginx created
+root@kube-master:~# kubectl get rc
+NAME    DESIRED   CURRENT   READY   AGE
+nginx   2         2         0       6s
+
+root@kube-master:~# kubectl get rc --show-labels
+NAME    DESIRED   CURRENT   READY   AGE   LABELS
+nginx   2         2         2       32s   env=qa,tier=backend
+
+Now, we have two label to rc file
+
+root@kube-master:~# cat rc.yml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: nginx
+  labels:                     <<<< This lable for rc 
+      env: qa
+      tier: backend
+spec:
+  replicas: 2
+  selector:
+    app: nginx
+  template:
+    metadata:
+      name: nginx
+      labels:                 <<<< this label for containers which is created under rc.
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+
+root@kube-master:~# kubectl get pod --show-labels
+NAME          READY   STATUS    RESTARTS   AGE   LABELS
+nginx-bgb8h   1/1     Running   0          11s   app=nginx     << In Name nginx-bgb8h and nginx-tcmx2 is ramdam names
+nginx-tcmx2   1/1     Running   0          11s   app=nginx
+
+root@kube-master:~# kubectl get rc --show-labels               <<<< rc lables
+NAME    DESIRED   CURRENT   READY   AGE   LABELS
+nginx   2         2         2       11h   env=qa,tier=backend
+root@kube-master:~# kubectl get pod --show-labels              <<< pod labels
+NAME          READY   STATUS    RESTARTS   AGE   LABELS
+nginx-q5vg5   1/1     Running   0          51m   app=nginx
+nginx-sxfhh   1/1     Running   0          51m   app=nginx
+
+
+Now what is selecter in rc
+============================
+root@kube-master:~# kubectl delete pod --all
+
+root@kube-master:~# cat  pod1.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: demo
+    app: nginx
+  name: demo
+spec:
+  containers:
+  - image: docker.io/nginx
+    name: demo
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+root@kube-master:~# kubectl create -f pod1.yml
+pod/demo created
+
+root@kube-master:~# cat rc.yml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: nginx
+  labels:
+      env: qa
+      tier: backend
+spec:
+  replicas: 3
+  selector:
+    app: nginx
+  template:
+    metadata:
+      name: nginx
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+
+root@kube-master:~# kubectl create -f rc.yml
+replicationcontroller/nginx created
+
+root@kube-master:~# kubectl get pod                    <<< why 3 continars are running. it should be 4
+NAME          READY   STATUS    RESTARTS   AGE
+demo          1/1     Running   0          2m52s
+nginx-gwdql   1/1     Running   0          36s
+nginx-kpgcn   1/1     Running   0          36s
+root@kube-master:~# kubectl get pod --show-labels 
+NAME          READY   STATUS    RESTARTS   AGE    LABELS
+demo          1/1     Running   0          3m4s   app=nginx,run=demo
+nginx-gwdql   1/1     Running   0          48s    app=nginx
+nginx-kpgcn   1/1     Running   0          48s    app=nginx
+
+
+root@kube-master:~# kubectl describe pod demo | grep -i control   << demo was standalone container then why rc controlling this.
+Controlled By:  ReplicationController/nginx
+
+Note: because rc monitor the containers based on the pod label and selector label. ( with the help of selector)
+
+=> label value should be match with selector value.
+
+root@kube-master:~# kubectl get pod --show-labels
+NAME          READY   STATUS    RESTARTS   AGE   LABELS
+demo          1/1     Running   0          12m   app=nginx,run=demo
+nginx-gwdql   1/1     Running   0          10m   app=nginx
+nginx-kpgcn   1/1     Running   0          10m   app=nginx
+
+root@kube-master:~# kubectl run ram --image=nginx -l app=nginx
+pod/ram created
+
+root@kube-master:~# kubectl get pod --show-labels
+NAME          READY   STATUS        RESTARTS   AGE   LABELS
+demo          1/1     Running       0          13m   app=nginx,run=demo
+nginx-gwdql   1/1     Running       0          11m   app=nginx
+nginx-kpgcn   1/1     Running       0          11m   app=nginx
+ram           0/1     Terminating   0          3s    app=nginx      <<< why it's terminating, because we have defined 3 in rc.
+
+in short
+
+root@kube-master:~# kubectl run ram --image=nginx -l app=nginx
+pod/ram created
+
+root@kube-master:~# kubectl get pod
+NAME   READY   STATUS    RESTARTS   AGE
+ram    1/1     Running   0          17s
+
+root@kube-master:~# kubectl create -f rc.yml
+replicationcontroller/nginx created
+
+root@kube-master:~# kubectl get pod
+NAME          READY   STATUS              RESTARTS   AGE
+nginx-zcddn   0/1     ContainerCreating   0          7s
+nginx-zncv8   0/1     ContainerCreating   0          7s
+ram           1/1     Running             0          33s
+
+root@kube-master:~# kubectl describe pod ram| grep -i controller
+Controlled By:  ReplicationController/nginx                    <<<<< adept by rc
+
+RC match the label value on the bases of selector value
+
+Note: if the selector and lable value different, then yaml file will not work. because parent and children are different
+
+
+root@kube-master:~# cat rc.yml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: nginx
+  labels:
+      env: qa
+      tier: backend
+spec:
+  replicas: 3
+  selector:
+    app: ram             <<<<<<<
+  template:
+    metadata:
+      name: nginx
+      labels:
+        app: nginx      <<<<<<<<
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+
+Note: if I remove the selector from the yaml file, it will still work, becase selecter is not compalsery on yml file
+=> in that case label automatically become selecter.
+
+
+Q) what happend if I not mention selector in file (in 35:00 min)
+=================================================================
+root@kube-master:~# cat rc.yml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: con1-rc
+spec:
+  replicas: 2
+  selector:
+    app: nginx
+  template:
+    metadata:
+      name: nginx
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+=============================
+
+24-12-2022 
+RS: Replica set: (new pod controller in marker) (RC is not use to much in these days)
+
+Problem with ReplicaSet
+  1. During version upgradation, RS delete and create all the pods in one go. (application will not accessible till new pods are running) (give downtime)
+  2. No rollback.
+
+Benefit with Deployment
+  1. Deployment use rolling update strategy (delete and create pods one by one) (means application will always avalible to user). No downtime.
+  2. provide rollback. 
+=================================================================================================================================
+root@kube-master:~# cat rs-set.yml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  # modify replicas according to your case
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: docker.io/nginx
+
+root@kube-master:~# kubectl create -f rs-set.yml
+replicaset.apps/frontend created
+
+root@kube-master:~# kubectl get rs
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   3         3         3       14s
+root@kube-master:~# kubectl get rs -o wide
+NAME       DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES            SELECTOR
+frontend   3         3         3       20s   php-redis    docker.io/nginx   tier=frontend
+root@kube-master:~# kubectl get pod
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-7pqlz   1/1     Running   0          29s
+frontend-mr6xf   1/1     Running   0          29s
+frontend-nq67q   1/1     Running   0          29s
+
+root@kube-master:~# kubectl get pod  -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+frontend-7pqlz   1/1     Running   0          32s   172.16.233.219   kube-node2   <none>           <none>
+frontend-mr6xf   1/1     Running   0          32s   172.16.9.93      kube-node1   <none>           <none>
+frontend-nq67q   1/1     Running   0          32s   172.16.9.92      kube-node1   <none>           <none>
+root@kube-master:~#
+
+root@kube-master:~# kubectl describe pod frontend-7pqlz | grep -i controll
+Controlled By:  ReplicaSet/frontend                           <<<<<
+
+root@kube-master:~# kubectl delete pod frontend-clz98   <<< if you delete pod it will create automatically.
+pod "frontend-clz98" deleted
+root@kube-master:~# kubectl get pod
+NAME             READY   STATUS              RESTARTS   AGE
+frontend-76g7f   1/1     Running             0          119s
+frontend-dbmcq   1/1     Running             0          119s
+frontend-xmf6h   0/1     ContainerCreating   0          2s
+
+
+root@kube-master:~# kubectl scale --replicas=2 rs frontend
+replicaset.apps/frontend scaled
+root@kube-master:~# kubectl get pod  -o wide
+NAME             READY   STATUS    RESTARTS   AGE     IP               NODE         NOMINATED NODE   READINESS GATES
+frontend-7pqlz   1/1     Running   0          4m34s   172.16.233.219   kube-node2   <none>           <none>
+frontend-nq67q   1/1     Running   0          4m34s   172.16.9.92      kube-node1   <none>           <none>
+
+
+IQ) Why RS came on the picture? << will take later?
+
+Q) What we have covered in above session?
+1) Orphans pod
+2) command method
+3) file method
+4) pod controller
+5) state maintain 
+6) scalability
+
+Now Topic is => Deployment controller/Application rollout and rollback?
+========================================================================
+Rollout => update packages on lastet version.
+Rollback => rollback on previous version.
+
+RC: works on equalty based selector.
+RS: RC + set based selector.
+
+Note: rc and rs not provide live rollout and rollback that why deployment conteroller come in pitcure.
+
+Deployment controller: ( provide rc and rs all functionality )
+  1) pod state maintain
+  2) scalability
+  3) Rollout and rollback
+
+root@kube-master:~# kubectl api-resources | grep -i Deployment           <<< To check in kubernetes resource catagauries
+deployments                       deploy       apps/v1                                true         Deployment
+root@kube-master:~#
+
+root@kube-master:~# kubectl create deploy con1 --image=docker.io/nginx:1.16 --replicas=4    << not need to mention selector and label, deployment name become pod label and label become selector.
+deployment.apps/con1 created
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS    RESTARTS   AGE
+con1-58555587bb-69n24   1/1     Running   0          10s
+con1-58555587bb-ccrv2   1/1     Running   0          10s
+con1-58555587bb-nxh4k   1/1     Running   0          10s
+con1-58555587bb-z26w4   1/1     Running   0          10s
+
+root@kube-master:~# kubectl get deployments.apps
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+dep1   4/4     4            4           37s
+
+root@kube-master:~# kubectl get rs               <<< Still using rs in backend
+NAME              DESIRED   CURRENT   READY   AGE
+dep1-69f7d8989c   4         4         4       44s
+
+root@kube-master:~# kubectl describe pod dep1-69f7d8989c-j62fq | grep -i contro   <<  still using rc controller
+Controlled By:  ReplicaSet/dep1-69f7d8989c
+
+root@kube-master:~# kubectl delete deployments.apps dep1    << if you delete deploment rc will also delete
+deployment.apps "dep1" deleted
+
+root@kube-master:~# kubectl get rs
+No resources found in default namespace.
+
+
+root@kube-master:~#
+
+root@kube-master:~# kubectl create deploy con1 --image=docker.io/nginx:1.16 --replicas=4 --dry-run -o yaml
+W1227 11:45:54.342108   51489 helpers.go:636] --dry-run is deprecated and can be replaced with --dry-run=client.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: con1
+  name: con1
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: con1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: con1
+    spec:
+      containers:
+      - image: docker.io/nginx:1.16
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl delete pod con1-58555587bb-69n24
+pod "con1-58555587bb-69n24" deleted
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS    RESTARTS   AGE
+con1-58555587bb-ccrv2   1/1     Running   0          101s
+con1-58555587bb-nxh4k   1/1     Running   0          101s
+con1-58555587bb-p6hxv   1/1     Running   0          10s    <<<<<
+con1-58555587bb-z26w4   1/1     Running   0          101s
+
+root@kube-master:~# kubectl scale --replicas=2 deployment con1
+deployment.apps/con1 scaled
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS        RESTARTS   AGE
+con1-58555587bb-ccrv2   1/1     Running       0          2m51s
+con1-58555587bb-nxh4k   1/1     Running       0          2m51s
+con1-58555587bb-p6hxv   1/1     Terminating   0          80s
+con1-58555587bb-z26w4   1/1     Terminating   0          2m51s
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS    RESTARTS   AGE
+con1-58555587bb-ccrv2   1/1     Running   0          3m
+con1-58555587bb-nxh4k   1/1     Running   0          3m
+
+root@kube-master:~# kubectl scale --replicas=4 deploy con1
+deployment.apps/con1 scaled
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS              RESTARTS   AGE
+con1-58555587bb-ccrv2   1/1     Running             0          3m22s
+con1-58555587bb-h7wmw   0/1     ContainerCreating   0          1s
+con1-58555587bb-nxh4k   1/1     Running             0          3m22s
+con1-58555587bb-qlkn9   0/1     ContainerCreating   0          1s
+
+root@kube-master:~# kubectl delete deployments.apps con1
+deployment.apps "con1" deleted
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS        RESTARTS   AGE
+con1-58555587bb-ccrv2   1/1     Terminating   0          4m39s
+con1-58555587bb-h7wmw   1/1     Terminating   0          78s
+con1-58555587bb-nxh4k   1/1     Terminating   0          4m39s
+con1-58555587bb-qlkn9   1/1     Terminating   0          78s
+
+Note=> (21:00) Important dicussion regarding rc
+
+Rollout and Rollback
+=====================
+root@kube-master:~# kubectl create deployment dep1 --image=docker.io/nginx:1.16 --replicas=10
+deployment.apps/dep1 created
+
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS    RESTARTS   AGE
+dep1-69f7d8989c-26tnf   1/1     Running   0          67s
+dep1-69f7d8989c-9bc94   1/1     Running   0          67s
+dep1-69f7d8989c-glcll   1/1     Running   0          67s
+dep1-69f7d8989c-h4tkv   1/1     Running   0          67s
+dep1-69f7d8989c-hr7ch   1/1     Running   0          67s
+dep1-69f7d8989c-j6xzt   1/1     Running   0          67s
+dep1-69f7d8989c-mbbj2   1/1     Running   0          67s
+dep1-69f7d8989c-p5mzb   1/1     Running   0          67s
+dep1-69f7d8989c-rf2xs   1/1     Running   0          67s
+dep1-69f7d8989c-vpmrk   1/1     Running   0          67s
+
+root@kube-master:~# kubectl describe deployments.apps dep1| grep -i max
+RollingUpdateStrategy:  25% max unavailable, 25% max surge              <<== This is called partially updated
+
+
+root@kube-master:~# kubectl rollout history deployment dep1             <<== check the deployment history first
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+
+root@kube-master:~# kubectl describe deployments.apps dep1 | grep -i image    <<== To check the image version
+    Image:        docker.io/nginx:1.16
+  
+root@kube-master:~# kubectl rollout history deployment dep1 --revision=1      <<== Another way
+deployment.apps/dep1 with revision #1
+Pod Template:
+  Labels:       app=dep1
+        pod-template-hash=69f7d8989c
+  Containers:
+   nginx:
+    Image:      docker.io/nginx:1.16
+    Port:       <none>
+    Host Port:  <none>
+    Environment:        <none>
+    Mounts:     <none>
+  Volumes:      <none>
+
+root@kube-master:~# kubectl set image deploy dep1 nginx=nginx:1.17  <<< rollout
+deployment.apps/dep1 image updated
+
+
+root@kube-master:~# kubectl describe deployments.apps dep1 | grep -i image   << updated version
+    Image:        nginx:1.17
+
+
+root@kube-master:~# kubectl edit deployments.apps dep1                   <<< you can also update the etcd directly 
+deployment.apps/dep1 edited
+
+
+root@kube-master:~# kubectl rollout history deployment dep1
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+
+root@kube-master:~# kubectl set image deploy dep1 nginx=nginx:1.19 --record=true
+Flag --record has been deprecated, --record will be removed in the future
+deployment.apps/dep1 image updated
+root@kube-master:~# kubectl rollout history deployment dep1
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+4         kubectl set image deploy dep1 nginx=nginx:1.19 --record=true      <<<<< record the comment
+
+
+Rollback
+========
+root@kube-master:~# kubectl rollout history deployment dep1
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+4         kubectl set image deploy dep1 nginx=nginx:1.19 --record=true
+
+root@kube-master:~# kubectl rollout undo deployment dep1                         <<< rollback one step back by default
+deployment.apps/dep1 rolled back
+root@kube-master:~# kubectl rollout history deployment dep1
+deployment.apps/dep1
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+4         kubectl set image deploy dep1 nginx=nginx:1.19 --record=true
+5         <none>
+
+
+root@kube-master:~# kubectl rollout undo deployment dep1 --to-revision=1        << or you can directly move to version1
+
+
+Note: (49:19) about grace peoried of containers 
+
+Important Note: 
+Q) What is (Important)
+1) Blue-green : 
+2) Canery Deployment :
+
+Note: if your application is not compatible with new version in that case kubernetes will not terminate containers after 25%. it will only deploy new containers once
+25% is successfull
+
+root@kube-master:~# kubectl set image deploy dep1 nginx=nginx:1.50      << This version is not avalible in market right now
+deployment.apps/dep1 image updated
+
+Every 2.0s: kubectl get pod     kube-master: Mon Jan 30 20:17:42 2023
+
+NAME                    READY   STATUS             RESTARTS   AGE
+dep1-69f7d8989c-5thjs   1/1     Running            0          30m
+dep1-69f7d8989c-c5lj2   1/1     Running            0          30m
+dep1-69f7d8989c-c7t76   1/1     Running            0          31m
+dep1-69f7d8989c-dqxfz   1/1     Running            0          30m
+dep1-69f7d8989c-l966s   1/1     Running            0          31m
+dep1-69f7d8989c-mt7fv   1/1     Running            0          31m
+dep1-69f7d8989c-rnp5p   1/1     Running            0          31m
+dep1-69f7d8989c-sqn6r   1/1     Running            0          31m
+dep1-86b8cbb87b-8lnqg   0/1     ImagePullBackOff   0          34s         <<<< after 25% failed it pause the deployment
+dep1-86b8cbb87b-l6zn6   0/1     ImagePullBackOff   0          33s
+dep1-86b8cbb87b-nslzw   0/1     ImagePullBackOff   0          33s
+dep1-86b8cbb87b-nwdf9   0/1     ImagePullBackOff   0          34s
+dep1-86b8cbb87b-nwpnz   0/1     ImagePullBackOff   0          34s
+
+Now change the formula during creation
+======================================
+root@kube-master:~# kubectl create deployment dep1 --image=docker.io/nginx:1.16 --replicas=10 --dry-run -o yaml > dep1.yml
+W0130 20:38:37.289189  506222 helpers.go:636] --dry-run is deprecated and can be replaced with --dry-run=client.
+root@kube-master:~# cat dep1.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dep1
+  name: dep1
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: dep1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dep1
+    spec:
+      containers:
+      - image: docker.io/nginx:1.16
+        name: nginx
+        resources: {}
+status: {}
+
+Now update the formula
+======================
+root@kube-master:~# cat  dep1.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dep1
+  name: dep1
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: dep1
+  strategy:
+    rollingUpdate:             <<<<<
+      maxSurge: 2              <<<<<
+      maxUnavailable: 2        <<<<<
+    type: RollingUpdate        <<<<<
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dep1
+    spec:
+      containers:
+      - image: docker.io/nginx:1.16
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl create -f dep1.yml
+deployment.apps/dep1 created
+
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS    RESTARTS   AGE
+dep1-69f7d8989c-6nkmx   1/1     Running   0          27s
+dep1-69f7d8989c-7nxct   1/1     Running   0          27s
+dep1-69f7d8989c-dq6l8   1/1     Running   0          27s
+dep1-69f7d8989c-kmdj8   1/1     Running   0          28s
+dep1-69f7d8989c-lxn4z   1/1     Running   0          27s
+dep1-69f7d8989c-mp6pc   1/1     Running   0          27s
+dep1-69f7d8989c-mw9j7   1/1     Running   0          28s
+dep1-69f7d8989c-rx959   1/1     Running   0          28s
+dep1-69f7d8989c-whp6g   1/1     Running   0          27s
+dep1-69f7d8989c-zj7mt   1/1     Running   0          27s
+
+root@kube-master:~# kubectl get deployments.apps
+NAME   READY   UP-TO-DATE   AVAILABLE   AGE
+dep1   10/10   10           10          40s
+
+root@kube-master:~# kubectl describe deployments.apps dep1 | grep max
+RollingUpdateStrategy:  2 max unavailable, 2 max surge
+
+
+Now how to change formula after deployment
+===========================================
+root@kube-master:~# kubectl edit deployments.apps dep1
+deployment.apps/dep1 edited
+
+  strategy:
+    rollingUpdate:
+      maxSurge: 2                  <<< 25% to 2
+      maxUnavailable: 2            <<< 25% to 2
+    type: RollingUpdate
+
+root@kube-master:~# kubectl describe deployments.apps dep1 | grep max
+RollingUpdateStrategy:  2 max unavailable, 2 max surge
+
+Note: we have learn parshal upgradation. Now we are going to do fully upgradation
+=================================================================================
+Note: fully upgradation we mostly use in during testing
+
+root@kube-master:~# kubectl delete deployments.apps dep1
+deployment.apps "dep1" deleted
+
+root@kube-master:~# cat dep1.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dep1
+  name: dep1
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: dep1
+  strategy:
+    type: Recreate             <<<<<<
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dep1
+    spec:
+      containers:
+      - image: docker.io/nginx:1.16
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl create -f dep1.yml
+deployment.apps/dep1 created                <<< you can test this by creating the new containers
+
+
+
+Now how to pause deployment ( when you have do deployment multiple time for testing and you do not want to terminate containers)
+===========================
+
+root@kube-master:~# kubectl rollout pause deployment dep1
+deployment.apps/dep1 paused
+
+root@kube-master:~# kubectl describe deployments.apps dep1
+Name:               dep1
+Namespace:          default
+CreationTimestamp:  Mon, 30 Jan 2023 21:04:28 +0530
+Labels:             app=dep1
+Annotations:        deployment.kubernetes.io/revision: 2
+Selector:           app=dep1
+Replicas:           10 desired | 10 updated | 10 total | 10 available | 0 unavailable
+StrategyType:       Recreate
+MinReadySeconds:    0
+Pod Template:
+  Labels:  app=dep1
+  Containers:
+   nginx:
+    Image:        nginx:1.18
+    Port:         <none>
+    Host Port:    <none>
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status   Reason
+  ----           ------   ------
+  Available      True     MinimumReplicasAvailable
+  Progressing    Unknown  DeploymentPaused                             <<<<<<<<<<<<<<<<
+OldReplicaSets:  <none>
+NewReplicaSet:   dep1-66fcbd7c96 (10/10 replicas created)
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  20m    deployment-controller  Scaled up replica set dep1-69f7d8989c to 10
+  Normal  ScalingReplicaSet  8m46s  deployment-controller  Scaled down replica set dep1-69f7d8989c to 0
+  Normal  ScalingReplicaSet  8m38s  deployment-controller  Scaled up replica set dep1-66fcbd7c96 to 10
+
+
+root@kube-master:~# kubectl set image deploy dep1 nginx=nginx:1.18
+deployment.apps/dep1 image updated
+
+
+Note: containers will not update or terminate, because you have pause the deployment
+
+root@kube-master:~# kubectl rollout resume deployment dep1         << you can resume once your testing complete and you are ready for final code.
+deployment.apps/dep1 resumed
+
+Now after multiple deployment it will terminate the containers on the basis of last deployment.
+
+
+Chapter/Unit-3 Pod scheduling
+==============================
+Note: Pod scheduling are 4 types
+			1) Node name based pod scheduling
+			2) Name label and Pod selecter based
+			3) Taint and tolerations
+			4) Affinity and Anti-affinity rules.
+
+
+1) Node name based scheduling (manuall scheduling)
+==================================================
+		=> It does not matter the health of node. pod will run as per node which you have defined.
+		=> Not use in companies, because we can put only one name at a time and in case if node went down then scheduler will not run your pod on different node.(does not provide fail-over)
+		=> Only Node based scheduling work in case if scheduling went down. and rest scheduling techonology will not work.
+
+Demo1 for pod scheding
+======================
+
+root@kube-master:~# kubectl run demo --image=nginx --dry-run=client -o yaml > pod.yml
+
+root@kube-master:~# cat pod.yml 
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: demo
+  name: demo
+spec:
+  nodeName: kube-node1                  <<== Add Nodename
+  containers:
+  - image: nginx
+    name: demo
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+root@kube-master:~# kubectl create -f pod.yml 
+pod/demo created
+
+root@kube-master:~# kubectl get pod -o wide| grep demo
+demo                   1/1     Running   0          88s     172.24.11.9      kube-node1   <none>           <none>
+
+Demo2 for deployment scheduling
+===============================
+root@kube-master:~# kubectl create deployment red --image=nginx --dry-run=client -o yaml > red.yml
+
+root@kube-master:~# cat red.yml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: red
+  name: red
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: red
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: red
+    spec:
+      nodeName: kube-node1               <<= Add Nodename
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl create -f red.yml 
+deployment.apps/red created
+
+root@kube-master:~# kubectl get pod -o wide | grep red 
+red-6fc57879-4nzrc   1/1     Running   0          28s     172.24.11.10   kube-node1   <none>           <none>
+
+
+IQ) If pod are showing pending stage what is the resion?
+    ans => There are lots of reason, but may be the node are not present which you have define to run pod. (Pod scheduling failed)
+
+14:00 Interview Question
+
+IQ) Can we deploy your application if scheduler not work or present?
+   => Yes, we can. in that case only nodename based schduling works.
+   => reset scheduling methods are requrired (medantaty) for pod scheduling.
+
+
+
+2) Name label and Pod selecter based scheduling
+================================================
+
+=> Labels and Selectors are the standard method to group things together in Kubernetes. 
+=> Labels are any key-value pairs that are used to identify that pod. The pod gets its label through the deployment which is like a blueprint for the pod before the pod is created. 
+=> The Selector matches the label. Labels and selectors are required, to make connections between deployment, pods, and services.
+    (Selector helps us to filter the items/objects which have labels attached to them.)
+
+	This will provide two things.
+		a) Node choice
+		b) failover (Still have confusion)
+
+root@kube-master:~# kubectl label node kube-node1 role=app
+root@kube-master:~# kubectl label node kube-node2 role=db
+        
+        Note: we can define multiple label on one node
+
+root@kube-master:~# kubectl label nodes kube-node1 zone=mumbai
+root@kube-master:~# kubectl label nodes kube-node1 zone=delhi --overwrite (same label)
+
+
+IQ) What is Nodegroup?
+    ans: It just a grouping of nodes where you want to run application.
+
+
+Demo1 on pod
+=============
+root@kube-master:~# kubectl run demo --image=nginx --dry-run=client -o yaml > pod.yml
+
+root@kube-master:~# cat pod.yml 
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: demo
+  name: demo
+spec:
+  nodeSelector:
+           role: app                           <<== Add nodeSelector
+  containers:
+  - image: nginx
+    name: demo
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+root@kube-master:~# kubectl create -f pod.yml 
+pod/demo created
+root@kube-master:~# kubectl get pod -o wide
+NAME   READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+demo   1/1     Running   0          13s   172.24.11.5   kube-node1   <none>           <none>
+
+
+Demo2 on deployment controller
+===============================
+root@kube-master:~# kubectl create deployment demo --image=nginx --dry-run=client -o yaml > demo.yml
+
+root@kube-master:~# cat demo.yml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+      nodeSelector:
+              role: db                         <<== Add nodeSelector
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+
+
+root@kube-master:~# kubectl create -f demo.yml 
+deployment.apps/demo created
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS        AGE     IP               NODE         NOMINATED NODE   READINESS GATES
+demo-77ffbbc655-g2dwx   1/1     Running   1 (2m55s ago)   3m51s   172.24.186.115   kube-node2   <none>           <none>
+
+
+
+root@kube-master:~# cat Node-name-selecter.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dep1
+  name: dep1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dep1                          <<< pod selector, on the base of this value it determine the pod
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dep1                         
+    spec:
+      nodeSelector:
+              role: app                   <<<< Node selector
+      containers:
+      - image: docker.io/nginx:1.16
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl get nodes -l role=app
+
+root@kube-master:~# kubectl describe deployments.apps demo
+root@kube-master:~# kubectl get events -n default    <<== another way to check logs
+
+
+IQ) What is the purpose of Node label and NodeSelector?
+
+    Node Label => use for node side.
+    Nodeselector => use for depeloyment side.
+        Note: we can put nodeselector on two level.
+                a) deployment level
+                b) namespace/projet level. (in kubernetes, on namespace level, nodeSelector parametor is off by-default. You have to open it. after thar you can use it.)
+
+
+root@kube-master:~# ls -l /etc/kubernetes/manifests/
+total 16
+-rw------- 1 root root 2285 Dec 25 22:41 etcd.yaml
+-rw------- 1 root root 4019 Dec 25 22:41 kube-apiserver.yaml              <<<< this file control the api container 
+-rw------- 1 root root 3401 Dec 25 22:41 kube-controller-manager.yaml
+-rw------- 1 root root 1435 Dec 25 22:41 kube-scheduler.yaml
+
+To enable the patametor for namespace level
+
+root@kube-master:~# vim /etc/kubernetes/manifests/kube-apiserver.yaml
+add => PodNodeSelector
+
+--enable-admission-plugins=NodeRestriction,PodNodeSelector
+wq!
+ 				once you update it will automatically updated. no need to anything. (take 1 mins approx)
+
+root@kube-master:~# ps -ef | grep api| grep PodNodeSelector --color
+root       76224   76171  9 14:24 ?        00:00:30 kube-apiserver --advertise-address=192.168.122.241 --allow-privileged=true --authorization-mode=Node,RBAC --client-ca-file=/etc/kubernetes/pki/ca.crt --enable-admission-plugins=NodeRestriction,PodNodeSelector --enable-bootstrap-token-auth=true --etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt --etcd-certfile=/etc/kubernetes/pki/apiserver-etcd-client.crt --etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key --etcd-servers=https://127.0.0.1:2379 --kubelet-client-certificate=/etc/kubernetes/pki/apiserver-kubelet-client.crt --kubelet-client-key=/etc/kubernetes/pki/apiserver-kubelet-client.key --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname --proxy-client-cert-file=/etc/kubernetes/pki/front-proxy-client.crt --proxy-client-key-file=/etc/kubernetes/pki/front-proxy-client.key --requestheader-allowed-names=front-proxy-client --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt --requestheader-extra-headers-prefix=X-Remote-Extra- --requestheader-group-headers=X-Remote-Group --requestheader-username-headers=X-Remote-User --secure-port=6443 --service-account-issuer=https://kubernetes.default.svc.cluster.local --service-account-key-file=/etc/kubernetes/pki/sa.pub --service-account-signing-key-file=/etc/kubernetes/pki/sa.key --service-cluster-ip-range=10.96.0.0/12 --tls-cert-file=/etc/kubernetes/pki/apiserver.crt --tls-private-key-file=/etc/kubernetes/pki/apiserver.key
+
+https://stackoverflow.com/questions/52487333/how-to-assign-a-namespace-to-certain-nodes   <<== URL
+
+root@kube-master:~# kubectl label node kube-node1 disk=ssd          set label
+
+root@kube-master:~# kubectl get ns demo
+root@kube-master:~# kubectl edit ns demo
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:                                             <<<
+    scheduler.alpha.kubernetes.io/node-selector: disk=ssd  <<<      set label
+  creationTimestamp: "2023-12-29T09:06:25Z"
+  labels:
+    kubernetes.io/metadata.name: demo
+  name: demo
+  resourceVersion: "204484"
+  uid: f77e3d7e-0c17-41e7-8691-926a8f048bce
+spec:
+  finalizers:
+  - kubernetes
+status:
+  phase: Active
+
+root@kube-master:~# kubectl get nodes -l disk=ssd       <<== verity the node which have disk=ssd label
+NAME         STATUS   ROLES    AGE     VERSION
+kube-node1   Ready    <none>   2d22h   v1.28.2
+
+root@kube-master:~# kubectl get pod -o wide -n demo
+NAME   READY   STATUS    RESTARTS   AGE     IP            NODE         NOMINATED NODE   READINESS GATES
+test   1/1     Running   0          3m16s   172.17.9.68   kube-node1   <none>           <none>
+
+Note: after this any application which come on demo namespace will run on kube-node1
+
+IQ)
+  => what is annotation?
+  => if we have 3 api servers then we have to update PodNodeSelector all side.
+IQ) What is static pod in kubenetes?
+
+
+3) Taint and tolerations
+=========================
+   => Taints and Tolerations work together to ensure that pods are not scheduled onto inappropriate nodes.
+   => One or more taints are applied to a node. this makes that the node should not accept any pods that do not tolerate the taints.
+   => Taints are applied to the nodes and Tolerations are applied to pods.
+
+
+Taints effects are three types:
+===============================
+  Hard effects
+ 1. NoSchedule : No pod will be able to schedule onto taint applied node unless it has a matching toleration.
+                 => It does not delete existing/running pod from node even they don't have toleration.
+                 => But if you delete/migrate existing pod then it will not run again without matching toleration.
+ 2. NoExcure: It basically terminate all existing pod from node if they don't have tolerations repective this nodes.
+  
+  Soft effects
+ 3. NoPrefered: (rarelly use on servers)
+
+
+ For this we have two rules
+ 1) taint: node side
+ 2) tolerations: deployment side.
+
+ IQ) why any service is not scheduled on master node?
+
+ root@kube-master:~# kubectl taint node kube-node1 web:NoSchedule     <<== To set taint the node
+node/kube-node1 tainted
+
+and 
+root@kube-master:~# kubectl taint node kube-node1 web:NoSchedule-     <<== add - to untant the node
+node/kube-node1 untainted
+
+root@kube-master:~# kubectl describe nodes kube-node1  | grep -i taints
+Taints:             web:NoSchedule
+
+or
+root@kube-master:~# kubectl describe node | grep -i taints              <<== To check all taints node in one command
+Taints:             node-role.kubernetes.io/control-plane:NoSchedule
+Taints:             web:NoSchedule
+Taints:             <none>
+
+root@kube-master:~# kubectl create deployment test --image=nginx --replicas=2
+deployment.apps/test created
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+test-7955cf7657-p6jzk   1/1     Running   0          8s    172.17.233.197   kube-node2   <none>           <none>
+test-7955cf7657-w5m8s   1/1     Running   0          8s    172.17.233.199   kube-node2   <none>           <none>
+
+
+root@kube-master:~# kubectl get nodes --show-labels   <<< check label
+NAME          STATUS   ROLES           AGE    VERSION   LABELS
+kube-master   Ready    control-plane   3d2h   v1.28.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=kube-master,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
+kube-node1    Ready    <none>          3d     v1.28.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,color=redhat,disk=ssd,kubernetes.io/arch=amd64,kubernetes.io/hostname=kube-node1,kubernetes.io/os=linux
+kube-node2    Ready    <none>          3d     v1.28.2   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=kube-node2,kubernetes.io/os=linux,role=app
+
+
+oot@kube-master:~# cat deploy.yml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+      nodeSelector:                        <<< update nodeselector (This is optional, if you want to force pod to run this node)
+              disk: ssd
+      tolerations:                         <<< update tolerations
+             - key: web
+               effect: NoSchedule
+               operator: Exists            <<< pass exists allow to run pod on taint node.
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+demo-76cd4d99bf-dcblq   1/1     Running   0          97s   172.17.9.75   kube-node1   <none>           <none>
+demo-76cd4d99bf-fblkh   1/1     Running   0          94s   172.17.9.73   kube-node1   <none>           <none>
+
+Note: we can create multiple taint node with same label. so that pod can run on both side.(if one node went down then pod will migrate on another taint node.)
+      we will do this because if we have only one taint node and if that node went down. then application will also down. because it will not migrate.
+
+
+root@kube-master:~# kubectl run test --image=nginx
+pod/test created
+root@kube-master:~# kubectl get pod -o wide
+NAME   READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+test   1/1     Running   0          4s    172.17.233.205   kube-node2   <none>           <none>
+
+root@kube-master:~# kubectl taint node kube-node2 web:NoSchedule
+node/kube-node2 tainted
+root@kube-master:~# kubectl get pod -o wide                                                                <<== After taint this node, pod still running on this node.
+NAME   READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+test   1/1     Running   0          68s   172.17.233.205   kube-node2   <none>           <none>
+
+root@kube-master:~# kubectl taint node kube-node2 web:NoExecute-
+
+Toleration side:-
+operator:
+	(22:00) video still pending bacause its confused me.
+
+
+
+	4) Affinity and Anti-affinity rules.
+    video => pending.
+
+
+RC VS RS  I will do later:
+===========================
+IQ What is stateless and statefull deployment ? >> pending
+
+
+Manually pod scheduling 
+=======================
+

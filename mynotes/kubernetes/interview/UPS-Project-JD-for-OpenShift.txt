@@ -1,0 +1,47 @@
+	Educational Qualifications:
+	Must be a graduate (B.Tech/B.E./MCA or equivalent).
+	Post-graduate degree in Computer Science or related field is highly preferred.
+	 
+	 
+	Experience:
+	10 to 15 years of experience in Infrastructure Engineering, Unix/Linux Systems Architecture, and Cloud-Native platforms.
+	Mandatory: 5+ years of experience as a primary Architect leading enterprise-scale Red Hat OpenShift (OCP 4.x) environments.
+	 
+	 
+	Strategic Linux & Core Infrastructure Architecture:
+	Enterprise Linux Engineering: Serve as the global SME for RHEL/RHCOS; architecting kernel-level optimizations, advanced system tuning, and high-performance computing (HPC) configurations.
+	Infrastructure Modernization: Define the strategy for transitioning legacy UNIX (AIX/Solaris/HP-UX) and monolithic Linux workloads into containerized or virtualized environments on OpenShift.
+	Hardware & Virtualization Strategy: Lead architectural decisions for Bare Metal, VMware, and KVM integration, ensuring optimal hardware abstraction and resource efficiency.
+	 
+	 
+	Advanced OpenShift & Hybrid Cloud Design:
+	Multi-Cluster Blueprinting: Design global, highly available OpenShift architectures across hybrid and multi-cloud environments (IPI/UPI), including specialized configurations for Edge computing.
+	Managed Services Governance: Direct architectural oversight for ROSA (AWS) and ARO (Azure), focusing on STS, PrivateLink, and sophisticated cross-cloud networking.
+	Converged Infrastructure: Drive the roadmap for OpenShift Virtualization (KubeVirt) to unify VM and container management under a single control plane.
+	Advanced Data & Networking: Architect software-defined networking (SDN/OVN) and enterprise storage strategies using OpenShift Data Foundation (ODF) and high-end CSI integrations.
+	 
+	 
+	Automation, GitOps & Transformation:
+	Platform-as-Code: Architect global automation frameworks using Ansible Automation Platform and Terraform for full-stack infrastructure provisioning.
+	Enterprise GitOps: Establish organizational standards for OpenShift GitOps (ArgoCD) to ensure 100% environment consistency and automated disaster recovery.
+	Tooling Innovation: Proficiency in developing custom Kubernetes Operators or automation tooling in Go (Golang) or Python.
+	 
+	 
+	Governance, Security & Observability:
+	Fleet Management: Expert-level implementation of Red Hat Advanced Cluster Management (RHACM) for global governance and policy-based compliance across the entire cluster estate.
+	Security Architecture: Architect zero-trust frameworks using Advanced Cluster Security (ACS/StackRox) and Service Mesh (Istio), ensuring compliance with CIS, STIG, and industry-specific audits.
+	Predictive Observability: Define AI-Ops strategies using Prometheus, Grafana, Thanos, and ELK/Loki stack for proactive reliability and capacity forecasting.
+	 
+	 
+	Leadership & Executive Stakeholder Management:
+	Strategic Advisory: Act as the ultimate technical authority and Tier-4 escalation lead for complex global outages; mentor L3/L4/L5 engineering staff.
+	C-Suite Collaboration: Align platform roadmaps with business-critical goals, managing cloud spend and vendor relationships with Red Hat and Cloud Providers.
+	SRE Leadership: Define organizational SLIs/SLOs, manage global Error Budgets, and drive executive-level Root Cause Analysis (RCA).
+	 
+	Certifications :
+	Red Hat Certified Architect (RHCA) – Level II or higher (Cloud/Datacenter).
+	Red Hat Certified Specialist in MultiCluster Management (EX432) or Automation (EX380).
+	Solutions Architect Professional (AWS SAP-C02, Azure AZ-305, or GCP Professional Architect).
+
+	Years of Experience:
+	10 to 15 Years

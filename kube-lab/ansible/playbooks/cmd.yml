@@ -1,0 +1,41 @@
+- hosts: all
+  gather_facts: True
+  tasks:
+    - name: Check OS Version
+      fail:
+        msg: "This playbook only supports Ubuntu!"
+      when: ansible_distribution != "Ubuntu"
+
+    - name: service check with loop
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - vsftpd
+        - nginx
+
+    - name: Create dev user
+      user:
+        name: dev
+        state: absent
+      register: dev_out
+
+    - debug:
+        msg: "{{ dev_out }}"
+
+    - name: install package with package module
+      package:
+        name: curl
+        state: present
+    
+    - name: Ensure a line is present in a config file
+      lineinfile:
+        path: /tmp/xxx
+        line: "enable_feature=true"
+
+    - name: Set true to false
+      lineinfile:
+        path: /tmp/xxx
+        regexp: '^enable_feature='
+        line: 'enable_feature=false'

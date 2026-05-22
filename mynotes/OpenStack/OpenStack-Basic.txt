@@ -1,0 +1,735 @@
+OpenStack
+=========
+   OpenStack is an open-source cloud platform used to create and manage Infrastructure as a Service (IaaS).
+   It provides:
+	Virtual Machines
+	Networking
+	Storage
+	Identity management
+	Image management
+    Similar to how AWS provides EC2, EBS, VPC, etc.
+    
+    Using OpenStack, users can:
+	launch VMs
+	create networks
+	attach storage
+	manage users/projects
+	automate infrastructure
+
+TripleO in OpenStack
+	TripleO stands for: OpenStack On OpenStack
+
+Undercloud (director)
+	- Small OpenStack environment
+	- Used for provisioning and deployment
+
+Overcloud	
+	- Actual production OpenStack cloud
+	- Production OpenStack cluster
+	- Controller + Compute + Storage nodes
+
+Common TripleO Commands
+#openstack undercloud install
+#openstack overcloud deploy
+
+#openstack baremetal node list
+
+
+OpenStack core services:
+========================
+Service	 Purpose
+
+1. Keystone : Keystone is the Identity Service of OpenStack.
+	It handles:
+		- Authentication
+		- Authorization
+		- User management
+		- Token generation
+		- Service catalog
+	Simple Defination
+	Keystone controls who can access OpenStack services.
+
+common keystone commands
+	openstack user list
+	openstack project list
+	openstack role list
+	openstack token issue
+
+
+2. Nova	 Compute / VMs (IMP)
+	Nova is the Compute Service of OpenStack.
+	It manages:
+		- Virtual Machines (instances)
+		- VM lifecycle
+		- Scheduling
+		- Hypervisor communication
+	Simple Defination
+	Nova creates and manages virtual machines in OpenStack.
+
+Important Nova Components
+Component	Purpose
+nova-api	Receives API requests
+nova-scheduler	Selects compute node
+nova-conductor	Coordinates tasks
+nova-compute	Runs on compute node
+Placement	Resource tracking
+
+
+common Nova Commands
+	openstack server list
+	openstack server create
+	openstack server delete
+	openstack hypervisor list
+
+
+
+3. Neutron	 Networking (IMP)
+Neutron is the Networking Service of OpenStack.
+It manages:
+	Networks
+	Subnets
+	Routers
+	IP addresses
+	Security groups
+	Floating IPs
+
+Simple Definition
+Neutron provides networking for OpenStack VMs.
+
+Networking Flow
+VM → Virtual Switch → Neutron → Router → External Network
+
+Types of Networks
+Type	Purpose
+Tenant network	Internal/private network
+Provider network	External/public network
+
+Common Neutron Commands
+openstack network list
+openstack subnet list
+openstack router list
+openstack floating ip list
+openstack security group list
+
+4. Glance	 VM images
+Glance is the Image Service of OpenStack.
+It stores and manages:
+	VM images
+	Snapshots
+	Templates for instances
+
+Simple Definition
+Glance stores VM images used to create virtual machines.
+
+Main Responsibilities
+Function		Description
+Store images		VM operating system images
+Retrieve images		Used during VM boot
+Manage image metadata	OS type, size, format
+Snapshot support	Save VM state
+
+Common Image Formats
+Format	Description
+qcow2	Most common KVM format
+raw	Raw disk image
+vmdk	VMware image
+iso	Bootable installer image
+
+VM Boot Flow
+User → Nova
+      ↓
+Nova requests image from Glance
+      ↓
+Image sent to compute node
+      ↓
+VM boots
+
+5. Cinder	 Block storage
+Cinder is the Block Storage Service of OpenStack.
+It provides:
+	Persistent storage volumes
+	Attach/detach volumes to VMs
+	Snapshots and backups
+
+Simple Definition
+Cinder provides persistent block storage for virtual machines.
+
+Main Responsibilities
+Function	Description
+Create volumes	Persistent storage
+Attach volumes	Connect storage to VM
+Detach volumes	Remove storage
+Snapshots	Backup volume data
+Volume backups	Data protection
+
+Volume Flow
+User → Cinder
+      ↓
+Volume created
+      ↓
+Attached to VM through Nova
+
+Common Cinder Commands
+openstack volume list
+openstack volume create
+openstack volume delete
+openstack server add volume
+
+openstack volume create --size 10 my-volume
+
+Q) Difference between ephemeral and persistent storage?
+Answer:
+Ephemeral storage is temporary.
+Cinder volumes are persistent.
+
+Q) Which service attaches volumes to VM?
+Answer:
+	Nova integrates with Cinder to attach volumes.
+
+
+
+6. Horizon	 Web dashboard
+It provides a graphical interface to manage:
+	Virtual machines
+	Networks
+	Volumes
+	Images
+	Users/projects
+
+What You Can Do in Horizon
+Feature	Purpose
+Launch VMs	Create instances
+Create networks	Manage networking
+Attach volumes	Manage storage
+Upload images	Manage Glance images
+User/project management	Admin operations
+
+
+
+
+Compute Service — Nova
+	- Creates and manages Virtual Machines (VMs)
+	- Handles instance lifecycle:
+		- launch
+		- stop
+		- reboot
+		- resize
+		- migrate
+
+Additional Service
+Service		Purpose
+Ironic		Manages physical servers (bare metal provisioning)
+Octavia		Load Balancer as a Service (LBaaS)
+Magnum		Deploys Kubernetes clusters on OpenStack
+Barbican	Stores secrets, keys, certificates
+
+
+Ceilometer	Monitoring and telemetry metrics
+Aodh		Alarm service based on metrics/events
+Gnocchi		Time-series metrics storage
+Designate	DNS management service
+Trove		Database as a Service
+Manila		Shared file storage (NFS/CIFS)
+Zaqar		Messaging/queue service
+Senlin		Cluster management and autoscaling
+Masakari	High availability for VM instances
+Sahara		Hadoop/Spark cluster provisioning
+
+
+
+
+
+Controller Node Services
+=========================
+The controller node mainly handles APIs, scheduling, authentication, networking control, and databases.
+
+Common services:
+Service	Purpose
+
+OpenStack Keystone	Authentication
+OpenStack Nova	nova-api, scheduler, conductor
+OpenStack Neutron	neutron-server
+OpenStack Glance	Image service
+OpenStack Cinder	cinder-api, scheduler
+OpenStack Horizon	Web dashboard
+MariaDB/MySQL	Database
+RabbitMQ	Message queue
+Memcached	Token/session caching
+
+Common controller processes
+nova-api
+nova-scheduler
+nova-conductor
+neutron-server
+glance-api
+cinder-api
+httpd
+rabbitmq-server
+mariadb
+
+Compute Node Services
+=====================
+Compute node mainly runs VMs.
+Common services:
+Service	Purpose
+
+OpenStack Nova	nova-compute
+OpenStack Neutron	OVS/Linux bridge agents
+KVM/QEMU	Hypervisor
+Libvirt	VM management
+
+Common compute processes
+nova-compute
+libvirtd
+qemu-kvm
+neutron-openvswitch-agent
+ovs-vswitchd
+ovsdb-server
+
+Director Node (Mostly Red Hat OpenStack)
+========================================
+The director node is used for deployment and lifecycle management.
+Common in:
+Red Hat OpenStack Platform (RHOSP)
+
+Director node services/tools
+Service/Tool	Purpose
+TripleO	Deployment framework
+Heat	Orchestration
+Ironic	Bare metal provisioning
+Podman/Docker	Containers
+Undercloud services	Manage overcloud deployment
+
+Common director commands
+	openstack overcloud deploy
+	openstack baremetal node list
+
+
+Simple Architecture
+===================
+Controller Node
+ ├── APIs
+ ├── Scheduler
+ ├── Database
+ ├── RabbitMQ
+ └── Authentication
+
+Compute Node
+ ├── KVM
+ ├── nova-compute
+ └── VM instances
+
+Director Node
+ ├── Deployment
+ ├── Provisioning
+ └── Overcloud management
+
+
+Core OpenStack Components (Most Important)
+==========================================
+1. Nova — Compute Service
+	Nova manages:
+		- VM lifecycle
+		- scheduling
+		- compute nodes
+		- instance creation
+
+	Important Nova Components
+		Component		Purpose
+		nova-api		Receives API requests
+		nova-scheduler	Chooses compute node
+		nova-conductor	Coordinates DB/RPC
+		nova-compute	Runs VM on hypervisor
+
+2. Neutron — Networking
+	Neutron provides networking for VMs.
+	It manages:
+		tenant networks
+		routers
+		floating IPs
+		DHCP
+		security groups
+
+3. Glance — Image Service
+	Glance stores VM images.
+	Examples:
+		Ubuntu image
+		RHEL image
+		CentOS image
+		
+	VM boots from images stored in Glance.
+
+4. Cinder — Block Storage
+	Cinder provides persistent block storage.
+	Like AWS EBS.
+	Used for:
+		VM volumes
+		database disks
+		persistent storage
+
+5. Keystone — Identity Service
+	Keystone handles:
+		- authentication
+		- authorization
+		- users
+		- projects
+		- roles
+
+6. Horizon — Dashboard
+	Horizon is the web UI for OpenStack.
+	Users can:
+		create VMs
+		manage networks
+		attach volumes
+		monitor resources
+
+7. Heat Orchestration
+	Heat automates infrastructure deployment using templates.
+	
+	Like CloudFormation/Terraform concepts.
+	OpenStack Architecture (Very Important)
+	Basic architecture has:
+	Node Type			Purpose
+	Controller node		APIs, DB, scheduler
+	Compute node		Runs VMs
+	Storage node		Storage backend
+
+
+Simple VM Creation Flow (VERY IMPORTANT)
+========================================
+This is one of the most asked interview questions.
+Flow
+
+User/API Request
+        ↓
+Keystone Authentication
+        ↓
+Nova API receives request
+        ↓
+Nova Scheduler selects compute node
+        ↓
+Glance provides image
+        ↓
+Neutron allocates networking
+        ↓
+Nova Compute uses KVM/libvirt
+        ↓
+VM boots
+
+
+
+Hypervisor
+==========
+OpenStack commonly uses:
+	Hypervisor	Common?
+	- KVM		Most common
+	- VMware	Supported
+	- Hyper-V	Supported
+
+You already know KVM, which is good.
+
+
+OpenStack Networking Basics
+===========================
+Two important network types:
+	Network Type		Meaning
+	Provider Network	External/physical network
+	Tenant Network		Internal isolated network
+
+
+Floating IP
+===========
+	A floating IP is:
+		- Public IP mapped to private VM IP using NAT.
+		- Used to access VM externally.
+
+Security Groups
+	Like firewall rules for VMs.
+	Controls:
+		SSH access
+		ICMP
+		HTTP/HTTPS
+		custom ports
+
+OpenStack Storage Types
+	Storage Type	Service
+	Block Storage	Cinder
+	Object Storage	Swift
+	Ephemeral Storage	Local VM disk
+
+common commands
+openstack compute service list  # check services
+openstack server list           # list vms
+openstack network list          # list network
+openstack image list            # list image
+openstack volume list           # list volume
+
+
+VERY Important Interview Concepts
+You should clearly understand:
+	What is OpenStack?
+		OpenStack is an open-source cloud platform used to manage compute, networking, and storage resources for building private or public clouds.
+
+	What is Nova?
+		Nova is the compute service responsible for VM lifecycle management.
+	
+	What is Neutron?
+		Neutron provides networking services such as networks, routers, floating IPs, and security groups.
+	
+	what is Glance?
+		Glance stores and manages VM images used during instance creation.
+	
+	VM creation flow?
+	
+	What is floating IP?
+		A floating IP is a public IP address dynamically mapped to a private VM IP for external access.
+
+	Difference between Cinder and Swift
+			Cinder				Swift
+			Block storage		Object storage
+			Attached to VM		Accessed via API
+			Persistent disks	File/object storage
+
+	What is Keystone?
+		Keystone provides authentication, authorization, user management, projects, roles, and service catalog management in OpenStack.
+	What is Cinder?
+		Cinder provides persistent block storage volumes for virtual machines.
+	What is hypervisor?
+		A hypervisor is software that creates and manages virtual machines on physical hardware.
+
+		Common hypervisors:
+			KVM
+			VMware
+			Hyper-V
+
+	Provider vs Tenant network
+	
+	What is RabbitMQ?
+		RabbitMQ is used for internal communication between services.
+		RabbitMQ is used for asynchronous communication between OpenStack services.
+	
+	What is MariaDB:
+		MariaDB stores:
+			VM metadata
+			users
+			networks
+			quotas
+
+	What is Security Group?
+		Security groups are virtual firewall rules controlling inbound and outbound traffic for instances.
+
+	Difference Between Provider and Tenant Network?
+		Provider Network			Tenant Network
+		External/physical network	Internal isolated network
+		Usually VLAN				Usually VXLAN
+		Direct external access		Multi-tenant overlay
+
+	What is Falvor in OpenStack?
+		Flavor defines the compute configuration of a VM such as vCPU, RAM, and disk size.
+
+	Image : An image is a bootable OS template used to create virtual machines.
+
+	What is a Project/Tenent?
+		A project or tenant is a logical isolation unit used to group users and resources in OpenStack.
+	What is Horizon?
+		Horizon is the web-based dashboard interface for managing OpenStack resources.
+
+TroubleShooting Questions
+	What Happens if Nova Compute Service Goes Down?
+		Instances already running may continue working, but new VM operations on that compute node will fail until the service is restored.
+
+	What is Live Migration?
+		Live migration moves a running VM from one compute node to another with minimal downtime.
+	
+	What is Evacuation?
+		Evacuation recovers VMs from a failed compute node by restarting them on another available compute node.
+Diagram You Should Remember
+User
+ ↓
+Keystone
+ ↓
+Nova API
+ ↓
+Nova Scheduler
+ ↓
+Neutron + Glance
+ ↓
+Nova Compute
+ ↓
+libvirt/KVM
+ ↓
+VM Boot
+
+	What does Nova Scheduler do?
+		Nova Scheduler selects the most suitable compute node based on resource availability and scheduling policies.
+
+	Why is RabbitMQ used?
+		RabbitMQ enables asynchronous communication between OpenStack services.
+
+	What does Glance do?
+		Glance stores and provides VM images during instance creation.
+	
+	How is networking assigned?
+		Neutron creates virtual ports, assigns IP addresses, and configures security groups and routing.
+
+
+
+You should memorize:
+	Core services
+	VM creation flow
+	Networking basics
+	Storage basics
+	Important commands
+
+Next best topic after this is:
+	Neutron networking deep dive	
+	Nova architecture
+	Ceph + OpenStack integration
+	Troubleshooting scenarios
+	OpenStack interview questions
+	TripleO basics
+	KVM/libvirt in OpenStack
+
+
+
+OpenStack Troubleshooting Interview Questions
+=============================================
+Q) A VM is stuck in BUILD state. How would you troubleshoot?
+
+First, I would check the VM status and fault details using the OpenStack CLI.
+
+Then I would verify whether the Nova compute service is up and whether the scheduler successfully selected a compute node.
+
+After that, I would check Nova logs, resource availability on compute nodes, image accessibility from Glance, and networking allocation from Neutron.
+
+I would also verify RabbitMQ communication and confirm there are no storage-related issues if the VM is booting from volume.
+
+
+Important Checks
+Commands:
+	openstack server show <vm>
+	openstack compute service list
+	openstack hypervisor list
+
+Logs:
+	/var/log/nova/nova-compute.log
+	/var/log/nova/nova-scheduler.log
+
+
+Q) VM Not Reachable Through Network
+	or Instance is ACTIVE but not reachable. What will you check?
+
+I would first verify whether the instance has the correct IP address and whether security groups allow required traffic such as SSH or ICMP.
+
+Then I would check floating IP association, router connectivity, Neutron agent status, and DHCP functionality.
+
+I would also validate Open vSwitch or Linux bridge configuration and verify routing and namespace connectivity on the network node.
+
+Important Checks
+
+Commands:
+openstack server show <vm>
+openstack security group rule list
+openstack floating ip list
+openstack network agent list
+
+Linux:
+ip netns
+ovs-vsctl show
+ip a
+
+Q) Nova Compute Service Down
+	or Nova compute service is down. What would you do?
+
+I would first verify the service status using systemctl and OpenStack service listing commands.
+
+Then I would check logs for errors related to libvirt, RabbitMQ, resource exhaustion, or configuration problems.
+
+I would also verify hypervisor connectivity and ensure the compute node has sufficient CPU, memory, and storage resources.
+
+Commands
+systemctl status openstack-nova-compute
+openstack compute service list
+
+
+Q) Volume Attach Failure
+Question
+	“Cinder volume is not attaching to VM. How would you troubleshoot?”
+
+I would first check the volume state and verify whether the Cinder services are healthy.
+
+Then I would review backend storage connectivity, validate iSCSI or Ceph backend health, and inspect compute node logs for attachment-related errors.
+
+I would also verify multipath configuration and confirm there are no permission or network connectivity issues between compute and storage nodes.
+
+Commands
+	openstack volume list
+	openstack volume show <volume>
+	ceph -s
+
+
+Q) Ceph Cluster HEALTH_WARN
+Question
+
+“Ceph cluster shows HEALTH_WARN. What will you check?”
+
+Good Answer
+I would first run ceph health detail to identify the exact warning.
+
+Then I would check OSD status, degraded PGs, utilization imbalance, recovery operations, and monitor quorum status.
+
+Depending on the issue, I would verify whether any OSDs are down, nearfull, or experiencing slow operations.
+Commands
+ceph -s
+ceph health detail
+ceph osd tree
+ceph pg stat
+
+
+Q) RabbitMQ Failure in OpenStack
+Question
+
+“How does RabbitMQ impact OpenStack?”
+
+Answer
+RabbitMQ is used for communication between OpenStack services. If RabbitMQ fails, inter-service communication may stop, causing VM operations and API workflows to fail.
+
+Q) Compute Node Full
+Question
+	“Compute node storage is full. What will happen?”
+
+Good Answer
+New VM creation may fail, instance operations may become unstable, and services could experience performance degradation.
+
+I would identify disk utilization sources such as logs, unused images, ephemeral disks, or snapshots, and perform cleanup after validation.
+
+
+Q) Neutron Agent Down
+Question
+“Neutron L3 or DHCP agent is down. What impact can happen?”
+
+Answer
+Tenant routing, DHCP allocation, floating IP functionality, or external connectivity may fail depending on which Neutron agent is affected.
+
+Q) VM Performance Slow
+Question
+	“A VM is very slow. How would you troubleshoot?”
+
+I would check compute node resource utilization such as CPU, memory, and disk I/O.
+
+Then I would verify storage backend performance, Ceph health, noisy-neighbor workloads, and hypervisor-level resource contention.
+
+I would also review VM flavor allocation and inspect system logs for hardware or storage latency issues.
+
+
+
+
+Strong Phrases to Use
+======================
+These sound professional in interviews:
+
+“I would first validate…”
+“I would isolate whether the issue is compute, network, or storage related.”
+“I would verify service health and logs.”
+“I would check backend connectivity.”
+“I would confirm resource availability.”

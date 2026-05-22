@@ -1,0 +1,162 @@
+Hi, my name is Manish. I currently work as a Sr. System Advisor Administrator with experience in OpenShift, Kubernetes, OpenStack, and Ceph environments.
+
+I started my career as Linux Admin in 2012 wokred on various multiple open-source techonologis like Apache Tocmat, MySQL, Postgresql, Nagios, Prometheous, Elastic search, Redhat cluster suite.
+
+
+
+In my current role, I support enterprise OpenShift, OpenStack, and  and infrastructure platforms across production and non-production environments. My work includes cluster operations, troubleshooting, upgrades, monitoring, incident handling, and deployment support.
+
+
+In OpenStack I my daily work is monitoring, troubleshooting, maintenance, upgrade, incident handling
+
+also add | manage users, projects, flavors, roles, images, networking, and block storage,
+set quotas, and configure instances at instantiation.
+
+
+
+Daily check
+    compute nodes
+    controller nodes
+    RabbitMQ
+    database
+    API services
+    systemctl status openstack-*
+
+provide the support to customer on
+
+    VM provisioning suppor
+    migration support
+    quota management
+    troubleshooting failed instances
+
+
+Incident Handling / Production Support
+    VM unreachable
+    compute node down
+    storage latency
+    API failures
+    RabbitMQ issue
+    Nova scheduler failure
+    
+Usually involves:
+    checking logs
+    service restart
+    RCA
+    escalation coordination
+
+Maintenance Activities
+    compute node maintenance
+    hypervisor patching
+    restarting services
+    evacuation/migration
+    image updates
+
+Automation Tasks
+    Using:
+    Ansible
+    shell scripting
+    
+        Task example
+        automated health checks
+        service restart scripts
+        cleanup scripts
+        deployment automation
+
+
+Ceph Daily work
+    1.Cluster Health Monitoring
+        ceph -s
+        ceph health detail
+
+        Things checked:
+            HEALTH_OK / WARN / ERR
+            degraded PGs
+            down OSDs
+            recovery status
+            utilization imbalance
+
+
+    2.OSD Monitoring & Maintenance
+        checking OSD status
+        restarting failed OSDs
+        rebalancing monitoring
+        disk replacement coordination
+        rewrite the osds
+    
+    3. PG (Placement Group) Monitoring
+     
+Very commonly asked in interviews.
+
+Tasks:
+
+identifying degraded PGs
+monitoring stuck PGs
+checking recovery/rebalance
+
+Commands:
+
+ceph pg stat
+ceph health detail
+
+
+    4.Capacity Monitoring
+
+Daily infra work includes:
+
+storage growth monitoring
+utilization balancing
+forecasting capacity
+
+Commands:
+
+ceph df
+
+
+5. Ceph Service Validation
+
+Checking:
+
+MON services
+MGR services
+OSD services
+
+Commands:
+
+systemctl status ceph-osd@*
+systemctl status ceph-mon@*
+
+
+7. Integration Support with OpenStack
+
+Common activities:
+
+validating Ceph backend health
+checking Cinder backend connectivity
+monitoring image/volume operations
+troubleshooting storage-related VM issues
+
+
+9. Maintenance Activities
+
+Examples:
+
+adding/removing OSDs
+restarting services
+node maintenance
+observing rebalance/recovery
+
+
+
+
+
+
+
+
+I have hands-on experience with Kubernetes and OpenShift resources such as Pods, Deployments, StatefulSets, ConfigMaps, Secrets, RBAC, and GitOps-based deployments using ArgoCD.
+
+
+Along with container platforms, I have also worked on OpenStack and Ceph administration, including compute and storage operations, quota management, infrastructure monitoring, and basic Ceph cluster maintenance activities.
+
+I also work with Linux environments regularly and use Ansible for operational automation tasks.
+
+I’m particularly interested in cloud infrastructure, distributed systems, and platform operations, and I’m looking for opportunities where I can further strengthen my expertise in OpenStack and enterprise cloud technologies.

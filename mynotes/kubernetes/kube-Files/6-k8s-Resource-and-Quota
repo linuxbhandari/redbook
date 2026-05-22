@@ -1,0 +1,109 @@
+Unit-5: Resource and Compute Quota?
+
+IQ) How will you do resource planning in worker nodes?
+IQ) How many should be in one cluster and how much cpu and memory required?
+
+	First we need to ask deployment team how much you required for application.
+
+	Example:
+
+	 memory : 256 GB
+	 cpu    : 128 cpu
+
+	 256/8 = 32 GB ram required on each worker node.
+
+     Application by-default works on thin concept.
+     Thin means kubernetes do not allocate memory and cpu for containers. containers will automatelly allocate respecting to node hardware.
+
+     Types of Quota:
+     ===============
+
+     1) Resource/Objective Quota: Pod/deployment/rc/rs/ (rare in use)
+     		example:
+     			=> Team do not delete objects like deployment once work done.
+
+     2) Compute quota(Cpu/Memory)
+      	=> When you need to limit cpu and memory of container.
+
+      	Scope to create quota.
+      		A. Deployment scope:
+      				a) soft quota (request/reservation)
+      				b) hard quota
+
+      			Memory unit
+      				1Mi, 1Gi
+
+
+root@kube-master:~# cat demo.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        resources:
+                requests:
+                        memory: 128Mi
+                        cpu: 100m            # Guranteed memory(soft quota)
+                limits:
+                        memory: 200Mi
+                        cpu: 100m            # non-granteed memory (hard quota)
+
+root@kube-master:~# kubectl describe  node kube-node2                 <<<== To check node defails
+
+     IQ) What will do if container used 98% memroy?
+      	          => increase the replicas so that load will distribute on containers.
+
+    Scaling Types
+    1. Vertical : to extend resource like memory, cpu in existing container. (downtime required)
+    2. Horijental : To increase the containers count (do not required downtime)
+
+========================================================================================
+
+
+
+      		B. Namespace scope
+
+      		Note: you need admin access to set namespace quota
+
+root@kube-master:~# kubectl create ns myns
+namespace/myns created
+root@kube-master:~# kubectl create quota cka --hard=cpu=800m,memory=800Mi -n myns
+resourcequota/cka created
+
+root@kube-master:~# kubectl describe quota cka -n myns
+Name:       cka
+Namespace:  myns
+Resource    Used  Hard
+--------    ----  ----
+cpu         0     800m
+memory      0     800Mi
+
+root@kube-master:~# kubectl edit quota cka -n myns
+resourcequota/cka edited
+root@kube-master:~# kubectl describe quota cka -n myns
+Name:       cka
+Namespace:  myns
+Resource    Used  Hard
+--------    ----  ----
+cpu         0     400m
+memory      0     400Mi
+
+
+

@@ -1,0 +1,286 @@
+Ubuntu-20.04
+
+Master Ubuntu 
+=============
+apt-get update
+apt-get install -y apt-transport-https ca-certificates curl
+mkdir /etc/apt/keyrings/
+curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+latest
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-kubectl-binary-with-curl-on-linux 
+
+apt-get update
+apt-get install -y kubelet kubeadm kubectl containerd
+apt-mark hold kubelet kubeadm kubectl                                           <== (optional) to lock the version.
+or
+apt install kubeadm=1.24.0-00 kubectl=1.24.0-00 kubelet=1.24.0-00               <== Install specific version
+apt-mark hold kubeadm=1.24.0-00 kubectl=1.24.0-00 kubelet=1.24.0-00
+
+kubeadm init --ignore-preflight-errors=all
+kubeadm init --pod-network-cidr=192.168.122.0/24 --ignore-preflight-errors=all
+kubeadm reset -f
+kubeadm token create --print-join-command  (run this on client side to add new node)   <== to print join command
+=========================================
+
+
+
+Note: Enable tab (optional)
+==========================
+root@kube-master:~# apt install bash-completion
+root@kube-master:~# source /usr/share/bash-completion/bash_completion     			
+root@kube-master:~# kubectl completion bash| sudo tee /etc/bash_completion.d/kubectl > /dev/null  ==> next step ==> exit and login again.
+=========================================================================
+
+root@kube-master:~# curl https://raw.githubusercontent.com/projectcalico/calico/v3.24.0/manifests/calico.yaml -O
+root@kube-master:~# kubectl create -f calico.yaml
+
+Issue
+=======
+root@kube-node1:~# crictl ps
+WARN[0000] runtime connect using default endpoints: [unix:///var/run/dockershim.sock unix:///run/containerd/containerd.sock unix:///run/crio/crio.sock unix:///var/run/cri-dockerd.sock]. As the default settings are now deprecated, you should set the endpoint instead. 
+WARN[0000] image connect using default endpoints: [unix:///var/run/dockershim.sock unix:///run/containerd/containerd.sock unix:///run/crio/crio.sock unix:///var/run/cri-dockerd.sock]. As the default settings are now deprecated, you should set the endpoint instead. 
+E1226 16:14:10.285938   12322 remote_runtime.go:390] "ListContainers with filter from runtime service failed" err="rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing dial unix /var/run/dockershim.sock: connect: no such file or directory\"" filter="&ContainerFilter{Id:,State:&ContainerStateValue{State:CONTAINER_RUNNING,},PodSandboxId:,LabelSelector:map[string]string{},}"
+FATA[0000] listing containers: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial unix /var/run/dockershim.sock: connect: no such file or directory" 
+
+Solution
+===========
+root@kube-node1:~# cat > /etc/crictl.yaml 
+runtime-endpoint: unix:///run/containerd/containerd.sock
+image-endpoint: unix:///run/containerd/containerd.sock
+
+root@kube-node1:~# systemctl restart containerd.service
+or 
+root@kube-node1:~# systemctl status containerd.service 
+● containerd.service - containerd container runtime
+     Loaded: loaded (/lib/systemd/system/containerd.service; enabled; vendor preset: enabled)
+     Active: active (running) since Tue 2023-12-26 15:49:07 IST; 25min ago
+       Docs: https://containerd.io
+   Main PID: 4568 (containerd)
+      Tasks: 104
+     Memory: 291.1M
+     CGroup: /system.slice/containerd.service
+             ├─4568 /usr/bin/containerd
+             ├─4716 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id 3bc6b485a4f52333bef5d4e56414e03ee3ad1d2b3626c0e7574d563f3c95eebb -address /run/containerd/containerd.sock   <==
+             └─4717 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id 5da3563450b2dc54286b59ae7a9cef4adba392a0cf9bf9640f4a16ce54b91abb -address /run/containerd/containerd.sock   <==
+
+
+root@kube-node1:~# crictl config runtime-endpoint unix:///run/containerd/containerd.sock
+root@kube-node1:~# crictl ps
+CONTAINER           IMAGE               CREATED             STATE               NAME                ATTEMPT             POD ID              POD
+c6680e347dff2       c595bc026ccfe       23 minutes ago      Running             calico-node         0                   5da3563450b2d       calico-node-wf2bs
+9e60f4a97b857       01cf8d1d322dd       23 minutes ago      Running             kube-proxy          0                   3bc6b485a4f52       kube-proxy-b85ll
+==============
+root@kube-master:~# rm -rf .kube
+root@kube-master:~# kubectl get pod
+The connection to the server localhost:8080 was refused - did you specify the right host or port?
+
+root@kube-master:~# kubectl get pod --kubeconfig=/etc/kubernetes/admin.conf   <<< you can run like this
+No resources found in default namespace.
+
+root@kube-master:~# cp /etc/kubernetes/admin.conf .kube/config
+root@kube-master:~# kubectl get pod                                            <<<<<< after this it's work again
+No resources found in default namespace.
+========================================================
+# Multi-Master Setup
+=====================
+Note:  
+  => etcd db will be in sync.
+
+
+192.168.122.247  kube-master1
+192.168.122.222  kube-master2
+192.168.122.54   kube-lb
+192.168.122.179  kube-node1
+
+1. Configure haproxy in balancer node.
+
+root@kube-lb:~# apt install haproxy
+root@kube-lb:~# vim /etc/haproxy/haproxy.cfg
+
+frontend fe-apiserver
+  bind 0.0.0.0:6443
+  mode tcp
+  option tcplog
+  default_backend be-apiserver
+  
+  backend be-apiserver
+  mode tcp
+  option tcplog
+  option tcp-check
+  balance roundrobin
+  server kube-master1 192.168.122.247:6443 check
+  server kube-master2 192.168.122.222:6443 check
+
+
+root@kube-lb:~# systemctl restart haproxy.service
+root@kube-lb:~# netstat -tulnp | grep 6443
+tcp        0      0 0.0.0.0:6443            0.0.0.0:*               LISTEN      1935/haproxy     
+
+
+
+2. Configure kube-master1 node
+
+root@kube-master1:~# kubeadm init --control-plane-endpoint "kube-lb:6443" --upload-certs --ignore-preflight-errors=all
+
+
+root@kube-master1:~# kubeadm init --control-plane-endpoint "kube-lb:6443" --upload-certs
+I0104 20:10:38.504526    9653 version.go:256] remote version is much newer: v1.29.0; falling back to: stable-1.28
+[init] Using Kubernetes version: v1.28.5
+[preflight] Running pre-flight checks
+error execution phase preflight: [preflight] Some fatal errors occurred:
+	[ERROR FileContent--proc-sys-net-bridge-bridge-nf-call-iptables]: /proc/sys/net/bridge/bridge-nf-call-iptables does not exist
+	[ERROR FileContent--proc-sys-net-ipv4-ip_forward]: /proc/sys/net/ipv4/ip_forward contents are not set to 1
+[preflight] If you know what you are doing, you can make a check non-fatal with `--ignore-preflight-errors=...`
+To see the stack trace of this error execute with --v=5 or higher
+root@kube-master1:~# kubeadm init --control-plane-endpoint "kube-lb:6443" --upload-certs --ignore-preflight-errors=all
+I0104 20:10:47.619598    9681 version.go:256] remote version is much newer: v1.29.0; falling back to: stable-1.28
+[init] Using Kubernetes version: v1.28.5
+[preflight] Running pre-flight checks
+	[WARNING FileContent--proc-sys-net-bridge-bridge-nf-call-iptables]: /proc/sys/net/bridge/bridge-nf-call-iptables does not exist
+	[WARNING FileContent--proc-sys-net-ipv4-ip_forward]: /proc/sys/net/ipv4/ip_forward contents are not set to 1
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+W0104 20:11:28.759619    9681 checks.go:835] detected that the sandbox image "registry.k8s.io/pause:3.8" of the container runtime is inconsistent with that used by kubeadm. It is recommended that using "registry.k8s.io/pause:3.9" as the CRI sandbox image.
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [kube-lb kube-master1 kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local] and IPs [10.96.0.1 192.168.122.247]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/ca" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [kube-master1 localhost] and IPs [192.168.122.247 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [kube-master1 localhost] and IPs [192.168.122.247 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests". This can take up to 4m0s
+[apiclient] All control plane components are healthy after 8.044390 seconds
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config" in namespace kube-system with the configuration for the kubelets in the cluster
+[upload-certs] Storing the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+[upload-certs] Using certificate key:
+d1d93e8fa251b512c0109fc8453efe9d9cf594e244118ee3f95994017b325907
+[mark-control-plane] Marking the node kube-master1 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node kube-master1 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+[bootstrap-token] Using token: un22bk.zyxdda0slfb4y7ft
+[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of the control-plane node running the following command on each as root:
+
+  kubeadm join kube-lb:6443 --token un22bk.zyxdda0slfb4y7ft \
+	--discovery-token-ca-cert-hash sha256:0cee7225f07a34c381f0ddfe0cad63ee4b38516de983b1137d9c3cc94e381f20 \
+	--control-plane --certificate-key d1d93e8fa251b512c0109fc8453efe9d9cf594e244118ee3f95994017b325907
+
+Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
+"kubeadm init phase upload-certs --upload-certs" to reload certs afterward.
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join kube-lb:6443 --token un22bk.zyxdda0slfb4y7ft \
+	--discovery-token-ca-cert-hash sha256:0cee7225f07a34c381f0ddfe0cad63ee4b38516de983b1137d9c3cc94e381f20 
+root@kube-master1:~# kubeadm token create --print-join-command 
+kubeadm join kube-lb:6443 --token 491chu.4feakapydkv7svu4 --discovery-token-ca-cert-hash sha256:0cee7225f07a34c381f0ddfe0cad63ee4b38516de983b1137d9c3cc94e381f20 
+
+
+root@kube-master2:~#  kubeadm join kube-lb:6443 --token un22bk.zyxdda0slfb4y7ft \
+> --discovery-token-ca-cert-hash sha256:0cee7225f07a34c381f0ddfe0cad63ee4b38516de983b1137d9c3cc94e381f20 \
+> --control-plane --certificate-key d1d93e8fa251b512c0109fc8453efe9d9cf594e244118ee3f95994017b325907
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[preflight] Running pre-flight checks before initializing the new control plane instance
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+
+
+root@kube-node1:~# kubeadm join kube-lb:6443 --token gyrzpy.6u98l2vf0aallocd --discovery-token-ca-cert-hash sha256:0cee7225f07a34c381f0ddfe0cad63ee4b38516de983b1137d9c3cc94e381f20
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+
+
+root@kube-master1:~# kubectl get nodes
+NAME           STATUS   ROLES           AGE     VERSION
+kube-master1   Ready    control-plane   29m     v1.28.2
+kube-master2   Ready    control-plane   23m     v1.28.2
+kube-node1     Ready    <none>          7m40s   v1.28.2
+
+
+https://kubesphere.io/docs/v3.4/installing-on-linux/high-availability-configurations/set-up-ha-cluster-using-keepalived-haproxy/
+
+For Haproxy HA will use keepalived
+
+https://itnext.io/create-a-highly-available-kubernetes-cluster-using-keepalived-and-haproxy-37769d0a65ba
+
+
+
+Hardway Installation
+=====================
+
+Metrics
+========
+
+heapster and prometheous
+
+
+
+Networkplices
+==============

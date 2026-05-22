@@ -1,0 +1,18 @@
+volumes:
+  vol1:
+services:
+  web:
+    image: nginx
+    ports:
+      - 8080:80
+    volumes:
+        - vol1:/usr/share/nginx/html
+  mysql:
+    image: mysql:5.6
+    volumes: 
+        - /data:/var/lib/mysql
+    environment: 
+      MYSQL_ROOT_PASSWORD: redhat
+      MYSQL_USER: manish
+      MYSQL_PASSWORD: redhat
+      MYSQL_DATABASE: demo

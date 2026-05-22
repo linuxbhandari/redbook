@@ -1,0 +1,82 @@
+0:00  - Intro and Overview
+0:45  - What is ArgoCD
+1:29  - CD workflow without ArgoCD
+4:48  - CD workflow with ArgoCD
+9:34  - Benefits of using GitOps with ArgoCD
+9:41  - Git as Single Source of Truth
+13:20 - Easy Rollback
+14:08 - Cluster Disaster Recovery
+15:10 - K8s Access Control with Git & ArgoCD
+16:52 - ArgoCD as Kubernetes Extension
+18:49 - How to configure ArgoCD?
+20:08 - Multiple Clusters with ArgoCD
+        option
+            1) create multiple branches for each environment.
+            2) Using overlays with kustomize.
+
+23:24 - Replacement for other CI/CD tools?
+24:45 - Demo Setup & Overview
+27:42 - Beginning of Hands-On Demo
+
+====================================
+ArgoCD => Continous delivery tool
+       => Argo CD (often written as ArgoCD) is an open-source tool used for continuous delivery (CD) in Kubernetes environments.
+
+Jenkins = Continous integration tool
+
+🚀 What Argo CD does
+
+Argo CD automatically deploys applications to Kubernetes by syncing them with configurations stored in a Git repository.
+
+In simple terms:
+
+You store your app’s desired state (YAML configs, Helm charts, etc.) in Git
+Argo CD continuously watches that repo
+When changes are detected, it updates your Kubernetes cluster automatically
+
+
+
+
+CI workflow without Argocd
+Test => Build image => push to docker repo(CI) => Update K8s manifest File => kubectl apply .... (CD) => Deploy new version on k8s.
+
+Challenges with this approach
+-> Install and setup tools, like kubectl
+-> Configure access to k8s
+-> Configure access to cloud platforms
+-> Security challenge
+-> No visibility of deployment status
+
+
+CD part => can be improved. 
+ 
+
+==========================================
+In Kustomize, you don’t copy-paste YAML for each environment. Instead you:
+
+Create a base (common configuration)
+Create overlays (environment-specific changes)
+
+In short
+    Base = default template
+    Overlay = customization on top of it
+
+Typical Folder Structure
+k8s/
+├── base/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── kustomization.yaml
+│
+├── overlays/
+│   ├── dev/
+│   │   └── kustomization.yaml
+│   ├── staging/
+│   │   └── kustomization.yaml
+│   └── prod/
+│       └── kustomization.yaml
+
+
+
+
+

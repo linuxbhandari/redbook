@@ -1,0 +1,26 @@
+parameter_defaults:
+  ControlPlaneDefaultRoute: 192.168.150.1
+
+  # Set static IPs for controllers
+  ControllerIPs:
+    ctlplane:
+    - 192.168.150.111
+    - 192.168.150.112
+
+  Debug: true
+
+  NodePortMap:
+    overcloud-controller-0:
+      ip_address: 192.168.150.111
+    overcloud-controller-1:
+      ip_address: 192.168.150.112
+
+  ControlPlaneSubnetCidr: "192.168.150.0/24"
+  ControlPlaneNetwork:
+    cidr: "192.168.150.0/24"
+    gateway: "192.168.150.1"
+
+  # Optional DNS, if required
+  DnsServers:
+    - 8.8.8.8
+    - 1.1.1.1

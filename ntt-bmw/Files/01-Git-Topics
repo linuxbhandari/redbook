@@ -1,0 +1,69 @@
+📘 Basics
+	What is Git?
+	Git vs GitHub vs GitLab
+	Git repository (local vs remote)
+	Initialize a repo: git init
+	Clone a repo: git clone <url>
+
+
+🧩 Working with Git
+	git status
+	git add <file> / git add .
+	git commit -m "message"
+	git push, git pull
+	git fetch vs git pull
+	git log, git show
+
+
+🌳 Branching and Merging
+	Create a branch: git branch <name>
+	Switch branch: git checkout <name> or git switch
+	Create & switch: git checkout -b <name>
+	Merge: git merge <branch>
+	Rebase: git rebase <branch>
+	git stash, git stash pop
+
+🗂️ Remote Repositories
+	Add remote: git remote add origin <url>
+	View remotes: git remote -v
+	Push branch: git push origin <branch>
+	Set upstream: git push -u origin <branch>
+
+🛠️ Undoing Changes
+	git reset vs git revert
+	Unstage file: git reset <file>
+	Discard changes: git checkout -- <file>
+	Revert commit: git revert <commit_hash>
+	Hard reset: git reset --hard <commit_hash>
+
+🔍 Viewing & Searching
+	git log with options (--oneline, --graph, etc.)
+	git diff
+	git blame
+	git tag, git show <tag>
+
+📁 Advanced Topics
+	.gitignore and .gitkeep
+	Git submodules
+	Git hooks
+	Cherry-pick: git cherry-pick <commit>
+	Squash commits (git rebase -i HEAD~n)
+	Worktrees (git worktree)
+
+📦 Collaboration
+	Forking workflow
+	Pull Requests (PRs)
+	Conflict resolution during merge/rebase
+	Code reviews and best practices
+
+🔐 Security and Best Practices
+	Removing secrets from history
+	Using GPG signing for commits
+	Good commit message practices
+
+🔁 Git Internals (Advanced)
+	What are objects in Git (blobs, trees, commits, tags)?
+	How Git stores data (SHA-1 hashes)
+	Git reflog
+	Git object database
+

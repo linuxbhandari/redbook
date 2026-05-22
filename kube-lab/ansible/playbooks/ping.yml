@@ -1,0 +1,12 @@
+---
+- name: Checking ping
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Pinging Host
+      ping: 
+      register: foo
+
+    - debug:
+        msg: "ping : {{ foo.ping }}"

@@ -1,0 +1,51 @@
+# Generate Default Config Template
+
+ansible-config init --all > ansible.cfg
+ansible-config init --disabled > ansible.cfg
+ansible-config init --disabled -t all > ansible.cfg#Include available plugins to create a more complete Ansible configuration
+
+Basic
+Q) What is register in Ansible?
+Q) What is the difference between command and shell modules?
+Q) What are facts in Ansible?
+Q) What is Ansible Galaxy?
+Q) What are variables in Ansible?
+Q) What are handlers?
+Q) What are roles in Ansible?
+Q) Difference between ad-hoc commands and playbooks?
+Q) What is idempotency in Ansible?
+Q) What are Ansible modules?
+Q) What is a playbook?
+Q) What is an inventory file?
+Q) What is YAML in Ansible?
+Q) What is Ansible?
+Q) What are the advantages of Ansible?
+
+Advanced
+Q) Write a playbook to install Apache?
+Q) How do you run a playbook?
+Q) How do you deploy applications using Ansible?
+Q) Difference between include_tasks and import_tasks?
+Q) Explain CI/CD integration with Ansible.
+Q) How do you secure secrets in Ansible?
+Q) How do you manage different environments in Ansible?
+Q) How do you troubleshoot failed playbooks?
+Q) What are collections in Ansible?
+Q) Explain Ansible architecture.
+Q) What is a dynamic inventory?
+Q) What are tags in Ansible?
+Q) What is Ansible Vault?
+
+
+Scenario-Based Ansible DevOps Interview Questions
+
+Q) Your Ansible deployment failed on 2 out of 20 servers. How would you troubleshoot it?
+Q) How do you optimize Ansible performance for 1000+ servers?
+Q) How do you manage Dev, QA, and Prod environments?
+Q) How do you restart a service only if configuration changes?
+Q) How is Ansible integrated into CI/CD pipelines?
+Q) How do you use Ansible with Kubernetes?
+Q) How do you handle long-running tasks in Ansible?
+Q) Ansible cannot connect to servers. What do you check?
+
+

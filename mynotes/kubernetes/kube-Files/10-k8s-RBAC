@@ -1,0 +1,494 @@
+RBAC : Role Based Access Control
+=================================
+1) Authentication: identity verification
+	Types of authentication
+	1) Cetificate Based
+	2) Authentication Server(centrilzed authentication)
+		A) LDAP
+		B) AD
+		
+	Step1: Generate certificate for any user (authentication)
+	Note: Certificate create by CA
+
+IQ) k8s ca authority location
+	
+root@kube-master:~# ll /etc/kubernetes/pki/
+total 68
+drwxr-xr-x 3 root root 4096 Jan 23 18:01 ./
+drwxr-xr-x 4 root root 4096 Jan 23 18:01 ../
+-rw-r--r-- 1 root root 1289 Jan 23 18:01 apiserver.crt
+-rw-r--r-- 1 root root 1155 Jan 23 18:01 apiserver-etcd-client.crt
+-rw------- 1 root root 1675 Jan 23 18:01 apiserver-etcd-client.key
+-rw------- 1 root root 1679 Jan 23 18:01 apiserver.key
+-rw-r--r-- 1 root root 1164 Jan 23 18:01 apiserver-kubelet-client.crt
+-rw------- 1 root root 1679 Jan 23 18:01 apiserver-kubelet-client.key
+-rw-r--r-- 1 root root 1107 Jan 23 18:01 ca.crt
+-rw------- 1 root root 1675 Jan 23 18:01 ca.key
+drwxr-xr-x 2 root root 4096 Jan 23 18:01 etcd/
+-rw-r--r-- 1 root root 1123 Jan 23 18:01 front-proxy-ca.crt
+-rw------- 1 root root 1675 Jan 23 18:01 front-proxy-ca.key
+-rw-r--r-- 1 root root 1119 Jan 23 18:01 front-proxy-client.crt
+-rw------- 1 root root 1679 Jan 23 18:01 front-proxy-client.key
+-rw------- 1 root root 1675 Jan 23 18:01 sa.key
+-rw------- 1 root root  451 Jan 23 18:01 sa.pub
+
+
+root@kube-master:~# mkdir cert
+root@kube-master:~# cd cert/
+root@kube-master:~/cert# cp /etc/kubernetes/pki/ca.crt .
+root@kube-master:~/cert# cp /etc/kubernetes/pki/ca.key .
+root@kube-master:~/cert# ls -l
+total 8
+-rw-r--r-- 1 root root 1107 Jan 26 14:25 ca.crt
+-rw------- 1 root root 1675 Jan 26 14:25 ca.key
+
+
+How to generate certificate for user.
+
+1. Generate private key for manish user. 
+root@kube-master:~/cert# openssl genrsa -out manish.key 2048
+
+2. Generate CSR for manish user. 
+root@kube-master:~/cert# openssl req -new -key manish.key -subj "/CN=manish/O=qaengineer" -out manish.csr
+
+3. 
+root@kube-master:~/cert# openssl x509 -req -in manish.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out manish.crt -days 365
+Signature ok
+subject=CN = manish, O = qaengineer
+Getting CA Private Key
+
+root@kube-master:~/cert# rm -f ca.key ca.srl manish.csr   ( not required files)
+root@kube-master:~/cert# ls -l
+total 12
+-rw-r--r-- 1 root root 1107 Jan 26 14:25 ca.crt
+-rw-r--r-- 1 root root 1017 Jan 26 14:37 manish.crt
+-rw------- 1 root root 1675 Jan 26 14:28 manish.key
+
+IQ) Which authentication use by kubernetes super user(kubernetes admin)?
+    Ans => certificate based.
+	
+root@kube-master:~/cert# ls -l /etc/kubernetes/admin.conf 
+-rw------- 1 root root 5651 Jan 23 18:01 /etc/kubernetes/admin.conf
+
+
+Example:
+========
+root@kube-master:~# rm -f .kube/config 
+root@kube-master:~# kubectl get pod
+E0126 14:43:45.455268  243094 memcache.go:265] couldn't get current server API group list: Get "http://localhost:8080/api?timeout=32s": dial tcp 127.0.0.1:8080: connect: connection refused
+E0126 14:43:45.455786  243094 memcache.go:265] couldn't get current server API group list: Get "http://localhost:8080/api?timeout=32s": dial tcp 127.0.0.1:8080: connect: connection refused
+E0126 14:43:45.457451  243094 memcache.go:265] couldn't get current server API group list: Get "http://localhost:8080/api?timeout=32s": dial tcp 127.0.0.1:8080: connect: connection refused
+E0126 14:43:45.458963  243094 memcache.go:265] couldn't get current server API group list: Get "http://localhost:8080/api?timeout=32s": dial tcp 127.0.0.1:8080: connect: connection refused
+E0126 14:43:45.460360  243094 memcache.go:265] couldn't get current server API group list: Get "http://localhost:8080/api?timeout=32s": dial tcp 127.0.0.1:8080: connect: connection refused
+The connection to the server localhost:8080 was refused - did you specify the right host or port?
+
+
+root@kube-master:~# cp /etc/kubernetes/admin.conf .kube/config
+root@kube-master:~# kubectl get nodes
+NAME          STATUS   ROLES           AGE     VERSION
+kube-master   Ready    control-plane   2d20h   v1.28.2
+kube-node1    Ready    <none>          2d20h   v1.28.2
+kube-node2    Ready    <none>          2d20h   v1.28.2
+
+root@kube-master:~# kubectl get nodes --kubeconfig=/etc/kubernetes/admin.conf  (another way to work with define file)
+NAME          STATUS   ROLES           AGE     VERSION
+kube-master   Ready    control-plane   2d20h   v1.28.2
+kube-node1    Ready    <none>          2d20h   v1.28.2
+kube-node2    Ready    <none>          2d20h   v1.28.2
+
+
+root@kube-master:~# cat .kube/config 
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJYmRlSHpHazVhVmN3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1qTXhNakkyTkRaYUZ3MHpOREF4TWpBeE1qTXhORFphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUUMvTkd3dEI2Q21ranphemVFNmt1N0tFMVdOc3BjRDJOUEpGUytVQlhBOGVMeDFKWEYrSHBXTDh4cjMKVlphbjFmaEVDUmRjZjVuaWs3MEtydmpUTE1DeDVWZENDN2hJM0htVEdROHJDSHZYY3FKMUgzR3ZBNHQvMVFGTwp6VytGenk3WVd2NnljOGE2aDNQcjVmMG4vc3RPWXRhTDVvemRzSjcwdTd0RWFOSlFSZnhzTUZnTFgwZEJzbkpRCmxhamhSVmdoYVdBVnlBN3c5MGc2L1hGVTY3ZzVvUVFITGJJaUpCbFVOclZLUWpiZElrR3ZOTVJHNUV6YmxCVkgKMVlsVHBNTU9tRGpaKytGWTVQN3gxVzFJWCtaTHdQRk16MDY0bjFSSnNmdXlqN2hPaGQ0Vmg0cmIxaVpQT1F3SApkdDE4dDdIRDFyYVh1Rmhha2xaTktkU09mMkJCQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJTU1I3Q0w0emdybXRjZkJ1bXZQV3RvWWFEL0hUQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQXJNbkdXNmVmSQphT08yWWVRZUtWL3pEM1NVZVg1WmxnTXhWaG1rWUZaM29HdGIzZG4rbFUycVErZmp0aC9GbzM3WlkrYzFpV1RVCmFoNms1VW45NHYwd2hsT2Uzb3pmQ0ZDQU1IODZic1ZnTjB6aWtXdER1K0t4RXEwcGpweSsrK01udVlxWFpyenoKRnp6dE0raXRGMDVsV0U0TXh4Q1MwVUdLOE0yeTczczA3U2tvNVgxVzI3eHFxS0ZVdDRDY09oekNzU253WENoWgplMFBIMlpCWUJUOS9EZG5KRVl1czFaS3JWMUNJbjRwbEdwMHRKdWh1WURmV3NDbW9HdVZmbVdKaUZzWE1DNWhJCkJzWmNJZGg4QzNKTjFnVTc5anVleU4ydk5HZ2k4WFpIeE0wNGtJZHFzZ005akdKUEVOK1hvMzlCcHY4Yk9SZXgKMnBxd1hucUgvWDNNCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://192.168.122.175:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURJVENDQWdtZ0F3SUJBZ0lJZHJpQmx2QkN1Qzh3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1qTXhNakkyTkRaYUZ3MHlOVEF4TWpJeE1qTXhORGRhTURReApGekFWQmdOVkJBb1REbk41YzNSbGJUcHRZWE4wWlhKek1Sa3dGd1lEVlFRREV4QnJkV0psY201bGRHVnpMV0ZrCmJXbHVNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQTlNcTdhdmdQa3M5ekNKeUwKUnVsRFRDTU4xV0U4Umo1M0F3NXBXdFVOL0hJajZaMkt3MGNkYXZyNDdGTDAxb2drYjh4Z0pVcUZKczhyTVJSZgpRS3ZwZXd3Zm01c3YvN2VUeER1aG5YQmlVUTBLcTA2RmsrU01GMGxxZnRnSXJxd1lLRWZabVk4M2RneEhBVG5WCnpuVkZnMVVrTUgySmZnd3F4eDB3bGRmSnNjdnBCMVo5ZmFlTEg0ZE01SkI5eHZ0WjBHRFEwM0FucnJPQkNPOGkKTUdGSTNPYmZ5TmcvL1lZUGZZakt0VnZoNkdkUlBrSHFxMXdaQ1pLREZFOWRxcm9yV1lzKzkxa3ZkK0hiSFQzQwpRTWhaR0lxL05qTEJmYXdyWXBEV0NJY25RbmdsWmdlTDdEZzRxVnkzQnRiREl6VUp0UDlWYU1QM2Vmc2RVTFBoCmV6aDVpd0lEQVFBQm8xWXdWREFPQmdOVkhROEJBZjhFQkFNQ0JhQXdFd1lEVlIwbEJBd3dDZ1lJS3dZQkJRVUgKQXdJd0RBWURWUjBUQVFIL0JBSXdBREFmQmdOVkhTTUVHREFXZ0JTU1I3Q0w0emdybXRjZkJ1bXZQV3RvWWFELwpIVEFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBTXB3SmwySU9FaWtpaUYwUzBNZllNcVpxZ2ttdjdNemVMQThpClZjcEl4d0xDUUpvL3lhQnplcFpxbEFOL1ZhVG1aVVd2S2tNSC9yazA5RmRvTDV1WGFWb2ppdE03bUNwNDlXN0IKQ0RVZnFiZUF5d2NubExydWYvWDQvbUZBaVUrVlYvTDRETVVQcmRFdm9RV05NNitjVGQwMTN2ZW9RMVprRzdCSQpTdHZxWVFYYkJEUmdDMGN4VTJjcEVHdnB2Zk9PMmFaSnlnY0U1aTdlMmRFcFRVMmJrRmpySnI5N1JSR2MxVXM2Ckc0amFEcDRlRTRVZUtHYlhJNytuMDNVU2Y1MWh1ejl4RXFrd2hGeCsrdmxOOGVGbzFkN1VZTzVQcGRRKzNDZUYKZVVmTlZqV3AyUlZPU1IwcS95ZDhPVit6K3ZEQ1NZZjlxWmcxV1FmcGpUUHhjU3cxaXc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    client-key-data: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBOU1xN2F2Z1Brczl6Q0p5TFJ1bERUQ01OMVdFOFJqNTNBdzVwV3RVTi9ISWo2WjJLCncwY2RhdnI0N0ZMMDFvZ2tiOHhnSlVxRkpzOHJNUlJmUUt2cGV3d2ZtNXN2LzdlVHhEdWhuWEJpVVEwS3EwNkYKaytTTUYwbHFmdGdJcnF3WUtFZlptWTgzZGd4SEFUblZ6blZGZzFVa01IMkpmZ3dxeHgwd2xkZkpzY3ZwQjFaOQpmYWVMSDRkTTVKQjl4dnRaMEdEUTAzQW5yck9CQ084aU1HRkkzT2JmeU5nLy9ZWVBmWWpLdFZ2aDZHZFJQa0hxCnExd1pDWktERkU5ZHFyb3JXWXMrOTFrdmQrSGJIVDNDUU1oWkdJcS9OakxCZmF3cllwRFdDSWNuUW5nbFpnZUwKN0RnNHFWeTNCdGJESXpVSnRQOVZhTVAzZWZzZFVMUGhlemg1aXdJREFRQUJBb0lCQVFEalpiRFVuYnRaMWZ3MgpjN1d1R2VLNlI1WUNNbUdibjB0UE80UURMUWZoQ3VieGpiZnB6NVkwV3hBQitNNFl2RCtjMjI0MU5oU2JDTGhHCnozWHN6Y1lHMkN4RWtOVDE1OE1NOTVnYWVOdmNEeEZxTVhkRSszcG41M3RXZWJrWENpY214QmdQM2tyWERuQ24KWXVLSzk4V3JTdHhqYnpyYUxOTlFSSDF0dFJkWVlSTGNGUnBpZlM0anZheW5JQVpxSnh2YXhYT2J4d0RoOGdqcgpiRUJhQUQycnRCMy9DNU5rSzAzWWlLT3orUHgvcTZFUTZWQldmcmtuWDRlaTI2N3AveWdKSUE2V0dITWR2UFUzCmZ2UXV6TG10TWVWc2VROFlaS3ZHbHFwek1Bb3FpK0JrazRzMXNNTVRvL2c5MDZMRDBQT3Q1c254YnVEN0tpYjcKMXErQVRzNEJBb0dCQVBYZi9GY1FsNFlyY2FYcG8wNnJyNnJiY3VHZ2pPdFdscCt4ajAxOXpMa0RGQnhvYzVOUwpXeVNieEVoK1BETFpMOHRONkhJaURsdXBGVzMyNWJrZm5VRzdjSW1pbDlHLy9ueG9HLzFrV1Z2YzVPNlNpanY5CnUvRUZJOFg3UCt3cDl0MHFaZElCY2Y1ODROV2VISjE5T3hncmpPQ0F3MFkzNncwRmhHTU5WemJ4QW9HQkFQN2YKVkVVQnB1enVQN05XNlg1MFFBVE1TWEVjY0ZYd3NQd2hILy8vNGViTEpoVUtnUDAwSjYzNk91L2xVMGtZRUV2QgpuUlQyZ0wxSXM4a0M0L004ckRYUGxwci9yeGd4TVlscFczSXUrMjhZblE2KzJJSzhOSkViMFY5bWxQTkRlTEVOCm1JS0J4SERyekYxVXd5ajdJeFpZQlFiTlFXZlFQdUdrdnE5aEs5QTdBb0dCQU1jbnNtRmpVeGllUCtPL3AwT2wKMVJoendFMzVtYXRWNjVOV1kxakZPUG56QUdzeVA4dG92ZUtkT1JQdkRCdXp4LzdKRUNyQ1l4YmpralFMOUc5SwpxRG9COVZuR2xXcVVOVEhYc2pSQkFCQmtrQnFlSDlJUDZCZUZya0JERHJmZ0ZkRjI4aHAwaVQwMU1YaFdKWjk3ClBFNkxtQVNReDVzczEvc29LTitDZ3M1QkFvR0FDanRlLzdJMFNGaThOKy9xU2NoUzlaNVo2RytTMXZCbHVvbDkKNW1JWWFKS0pRZGo5R3Ewb1ZxU3dEd2R1MDRWaXloZkl2Wm16eTJXS3lpd1NpS1pMNTVFZzQ3SVdEbXVUS0lnUgpRc0UrR05TdElYVnA3YjJ1Z3BEU1Uva2pTNnpPd0pUaUpZTWVKc1pnbXZLWEx5TDk0cHkvL3Vqb2trbGE3T1lYClBhVXlCQmNDZ1lCZnhPZ0EvRmJVZ2tZd0diblZFVE9nVWlVV2loSVI3cWs2NFZKdXFFbUVtUEYwRnkvYUtzS0UKMkNZYkxkM3lKZUc4ZThRNUZ3Y0lmRE5xRW1TdWIvZmxlR0RHaFB2QVlZUzhOaUlHcHBscDI3SWNWQmNkMWNtLwppYlo3S29SK3d4TXphbGdpeXZPcUxlU1I1V3VLZmV3UFd5OTRBNkpVVkVOdFVjOGhBU3hMTWc9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
+
+
+
+root@kube-master:~# cat /etc/kubernetes/pki/ca.crt | base64 -w0
+LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJYmRlSHpHazVhVmN3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBeE1qTXhNakkyTkRaYUZ3MHpOREF4TWpBeE1qTXhORFphTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUUMvTkd3dEI2Q21ranphemVFNmt1N0tFMVdOc3BjRDJOUEpGUytVQlhBOGVMeDFKWEYrSHBXTDh4cjMKVlphbjFmaEVDUmRjZjVuaWs3MEtydmpUTE1DeDVWZENDN2hJM0htVEdROHJDSHZYY3FKMUgzR3ZBNHQvMVFGTwp6VytGenk3WVd2NnljOGE2aDNQcjVmMG4vc3RPWXRhTDVvemRzSjcwdTd0RWFOSlFSZnhzTUZnTFgwZEJzbkpRCmxhamhSVmdoYVdBVnlBN3c5MGc2L1hGVTY3ZzVvUVFITGJJaUpCbFVOclZLUWpiZElrR3ZOTVJHNUV6YmxCVkgKMVlsVHBNTU9tRGpaKytGWTVQN3gxVzFJWCtaTHdQRk16MDY0bjFSSnNmdXlqN2hPaGQ0Vmg0cmIxaVpQT1F3SApkdDE4dDdIRDFyYVh1Rmhha2xaTktkU09mMkJCQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJTU1I3Q0w0emdybXRjZkJ1bXZQV3RvWWFEL0hUQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQXJNbkdXNmVmSQphT08yWWVRZUtWL3pEM1NVZVg1WmxnTXhWaG1rWUZaM29HdGIzZG4rbFUycVErZmp0aC9GbzM3WlkrYzFpV1RVCmFoNms1VW45NHYwd2hsT2Uzb3pmQ0ZDQU1IODZic1ZnTjB6aWtXdER1K0t4RXEwcGpweSsrK01udVlxWFpyenoKRnp6dE0raXRGMDVsV0U0TXh4Q1MwVUdLOE0yeTczczA3U2tvNVgxVzI3eHFxS0ZVdDRDY09oekNzU253WENoWgplMFBIMlpCWUJUOS9EZG5KRVl1czFaS3JWMUNJbjRwbEdwMHRKdWh1WURmV3NDbW9HdVZmbVdKaUZzWE1DNWhJCkJzWmNJZGg4QzNKTjFnVTc5anVleU4ydk5HZ2k4WFpIeE0wNGtJZHFzZ005akdKUEVOK1hvMzlCcHY4Yk9SZXgKMnBxd1hucUgvWDNNCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0Kroot@kube-master:~# 
+
+	Note: both are same, just security purpose k8s store plain text to base64 format.
+
+
+root@kube-master:~/cert# cp /etc/kubernetes/admin.conf manish.conf  (then update the ceriticates)
+
+	Note: Bation node(it like a server, from where you can run commands remotly) zunk server.
+
+
+root@kube-master:~/cert# kubectl get nodes --kubeconfig=manish.conf 
+Error from server (Forbidden): nodes is forbidden: User "manish" cannot list resource "nodes" in API group "" at the cluster scope
+
+
+root@kube-master:~/cert# kubectl get pod --kubeconfig=manish.conf 
+Error from server (Forbidden): pods is forbidden: User "manish" cannot list resource "pods" in API group "" in the namespace "default"
+
+
+root@kube-master:~/cert# kubeadm certs check-expiration    <<== to check certificate expiration date
+
+
+root@kube-master:~/cert# kubeadm certs  renew         <<= to update all cetificates
+
+	
+2) Autherization : Roles
+=========================
+
+   1) Role:  its set of instructions which allow commands for any user.
+   	Types of roles:
+   		1. default role : 
+   		2. custom role :
+   	
+   	Scope:
+   	1. cluster scope:
+   	2. namespace scope:
+   	
+   	pv : cluster
+   	pvc : namespace
+   	pod : namespace
+   	
+   	kubectl api-resource <== to check scope.
+   	
+   	
+   	Types of role scope in k8s.
+   	1) Cluster scope.
+   	2) Namespace scope.
+   	
+   2. Rolebinding : when we delegate role to user/group it call rolebinding.
+   
+	Types.
+	1. Cluster level.
+		Note: Cluster level rolebinding must have cluster scope level.
+		
+	2. Namespace level.
+		Note: role might have cluster/namespace scope for Namespace level rolebinding.	
+		
+		
+	Clusterrole = PM
+	Namespacerole = CM
+	
+	Cluster = country = Clusterrole/Clusterrole binding
+	Namespace = state = Namespace/Clusterrole
+	
+	
+Example:-1 
+==========
+Full access over the kubernetes cluster?
+
+root@kube-master:~/cert# kubectl get clusterrole    					 <<== To list exisiting clusterrole.
+NAME                                                                   CREATED AT
+admin                                                                  2024-01-23T12:31:55Z
+calico-kube-controllers                                                2024-01-23T12:33:55Z
+calico-node                                                            2024-01-23T12:33:55Z
+cluster-admin                                                          2024-01-23T12:31:55Z
+system:aggregate-to-view                                               2024-01-23T12:31:55Z
+system:auth-delegator                                                  2024-01-23T12:31:55Z
+system:basic-user                                                      2024-01-23T12:31:55Z
+system:certificates.k8s.io:certificatesigningrequests:nodeclient       2024-01-23T12:31:55Z
+system:certificates.k8s.io:certificatesigningrequests:selfnodeclient   2024-01-23T12:31:55Z
+system:certificates.k8s.io:kube-apiserver-client-approver              2024-01-23T12:31:55Z   Note: system:* => that role used by internal k8s.
+system:certificates.k8s.io:kube-apiserver-client-kubelet-approver      2024-01-23T12:31:55Z
+system:certificates.k8s.io:kubelet-serving-approver                    2024-01-23T12:31:55Z
+
+
+root@kube-master:~/cert# #kubectl create rolebinding          <<== namespace binding
+root@kube-master:~/cert# #kubectl create clusterrolebinding   <<== cluster base binding
+
+
+root@kube-master:~/cert# kubectl create clusterrolebinding manish-admin --clusterrole=cluster-admin --user=manish     (for user role)
+clusterrolebinding.rbac.authorization.k8s.io/manish-admin created
+
+or 
+
+root@kube-master:~/cert# kubectl create clusterrolebinding manish-admin --clusterrole=cluster-admin --group=qaengineer  (for group role)
+
+root@kube-master:~/cert# kubectl get clusterrolebindings | grep manish
+manish-admin                                           ClusterRole/cluster-admin                                                          111s
+
+
+root@kube-master:~/cert# kubectl describe clusterrolebindings.rbac.authorization.k8s.io manish-admin 
+Name:         manish-admin
+Labels:       <none>
+Annotations:  <none>
+Role:
+  Kind:  ClusterRole
+  Name:  cluster-admin
+Subjects:
+  Kind  Name    Namespace
+  ----  ----    ---------
+  User  manish  
+
+
+root@kube-master:~/cert# kubectl get nodes  --kubeconfig=manish.conf             <<== Now manish able to get output
+NAME          STATUS   ROLES           AGE     VERSION
+kube-master   Ready    control-plane   2d23h   v1.28.2
+kube-node1    Ready    <none>          2d23h   v1.28.2
+kube-node2    Ready    <none>          2d23h   v1.28.2
+
+
+root@kube-master:~/cert# kubectl delete clusterrolebindings.rbac.authorization.k8s.io manish-admin              <<== when you delete role, then manish unable to get output
+clusterrolebinding.rbac.authorization.k8s.io "manish-admin" deleted
+
+root@kube-master:~/cert# kubectl get nodes  --kubeconfig=manish.conf 
+Error from server (Forbidden): nodes is forbidden: User "manish" cannot list resource "nodes" in API group "" at the cluster scope
+
+Now namespace level binding.
+============================
+root@kube-master:~/cert# kubectl create rolebinding manish-admin --clusterrole=admin --user=manish -n monitoring
+rolebinding.rbac.authorization.k8s.io/manish-admin created
+
+root@kube-master:~/cert# kubectl get rolebindings.rbac.authorization.k8s.io -n monitoring
+NAME           ROLE                AGE
+grafana        Role/grafana        7h
+manish-admin   ClusterRole/admin   3m33s
+
+root@kube-master:~/cert# kubectl get pod  --kubeconfig=manish.conf -n kube-system
+Error from server (Forbidden): pods is forbidden: User "manish" cannot list resource "pods" in API group "" in the namespace "kube-system"
+
+root@kube-master:~/cert# kubectl get pod  --kubeconfig=manish.conf -n monitoring
+NAME                                                  READY   STATUS    RESTARTS   AGE
+grafana-5b4bcd64bf-z6v49                              1/1     Running   0          4h7m
+prometheous-kube-state-metrics-6bcf748dfb-mtqp5       1/1     Running   0          4h7m
+prometheous-prometheus-node-exporter-6x2wd            1/1     Running   0          4h7m
+prometheous-prometheus-node-exporter-bvxgp            1/1     Running   0          4h7m
+prometheous-prometheus-node-exporter-xp2wx            1/1     Running   0          4h7m
+prometheous-prometheus-pushgateway-59486d9554-4lkk2   1/1     Running   0          4h7m
+prometheous-prometheus-server-6cf457786f-bpsqg        2/2     Running   0          4h7m
+
+
+root@kube-master:~/cert# kubectl describe rolebindings.rbac.authorization.k8s.io manish-admin -n monitoring
+Name:         manish-admin
+Labels:       <none>
+Annotations:  <none>
+Role:
+  Kind:  ClusterRole
+  Name:  admin
+Subjects:
+  Kind  Name    Namespace
+  ----  ----    ---------
+  User  manish  
+
+	Note: Now can you only run on own namespace.
+
+Custom Role
+===========
+Role :
+	1. resources : pod/serviceip/deployment/pv/pvc/quota
+	2. verbs : list/create/delete/update/scale/describe
+	
+Example-1 : (only can view the pods on all namespace)
+
+rosource => pod
+verb => list
+scope => cluster
+
+root@kube-master:~/cert# kubectl create clusterrole pod-reader --resource=pod --verb=list
+clusterrole.rbac.authorization.k8s.io/pod-reader created
+
+root@kube-master:~/cert# kubectl get clusterrole | grep pod-read
+pod-reader                                                             2024-01-26T12:48:36Z
+or
+
+root@kube-master:~/cert# kubectl create clusterrole pod-reader --resource=pod,service,deployment --verb=list
+
+root@kube-master:~/cert# kubectl describe clusterrole pod-reader 
+Name:         pod-reader
+Labels:       <none>
+Annotations:  <none>
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+  pods       []                 []              [list]
+
+
+root@kube-master:~/cert# kubectl create clusterrolebinding xyz --clusterrole=pod-reader --user=manish
+clusterrolebinding.rbac.authorization.k8s.io/xyz created
+
+root@kube-master:~/cert# kubectl get pod  --kubeconfig=manish.conf -n kube-system
+NAME                                       READY   STATUS    RESTARTS     AGE
+calico-kube-controllers-6fbbfb4b76-rpqcw   1/1     Running   1 (9h ago)   3d
+calico-node-86nf6                          1/1     Running   1 (9h ago)   3d
+calico-node-c729g                          1/1     Running   1 (9h ago)   3d
+calico-node-fqth6                          1/1     Running   1 (9h ago)   3d
+coredns-5dd5756b68-82vhx                   1/1     Running   1 (9h ago)   3d
+coredns-5dd5756b68-qbrb2                   1/1     Running   1 (9h ago)   3d
+etcd-kube-master                           1/1     Running   1 (9h ago)   3d
+kube-apiserver-kube-master                 1/1     Running   1 (9h ago)   3d
+kube-controller-manager-kube-master        1/1     Running   2 (9h ago)   3d
+kube-proxy-5mtbv                           1/1     Running   1 (9h ago)   3d
+kube-proxy-x2thx                           1/1     Running   1 (9h ago)   3d
+kube-proxy-xl9rd                           1/1     Running   1 (9h ago)   3d
+kube-scheduler-kube-master                 1/1     Running   2 (9h ago)   3d
+
+root@kube-master:~/cert# kubectl get nodes  --kubeconfig=manish.conf 
+Error from server (Forbidden): nodes is forbidden: User "manish" cannot list resource "nodes" in API group "" at the cluster scope
+
+root@kube-master:~/cert# kubectl get pv  --kubeconfig=manish.conf 
+Error from server (Forbidden): persistentvolumes is forbidden: User "manish" cannot list resource "persistentvolumes" in API group "" at the cluster scope
+
+root@kube-master:~/cert# kubectl get pvc  --kubeconfig=manish.conf 
+Error from server (Forbidden): persistentvolumeclaims is forbidden: User "manish" cannot list resource "persistentvolumeclaims" in API group "" in the namespace "default"
+
+
+root@kube-master:~/cert# kubectl delete clusterrolebindings.rbac.authorization.k8s.io xyz
+clusterrolebinding.rbac.authorization.k8s.io "xyz" deleted
+
+
+root@kube-master:~/cert# kubectl create rolebinding xyz --clusterrole=pod-reader --user=manish -n kube-system
+rolebinding.rbac.authorization.k8s.io/xyz created
+
+root@kube-master:~/cert# kubectl get pod   --kubeconfig=manish.conf  -n kube-system         (only can run command on kube-system namespace)
+NAME                                       READY   STATUS    RESTARTS     AGE
+calico-kube-controllers-6fbbfb4b76-rpqcw   1/1     Running   1 (9h ago)   3d
+calico-node-86nf6                          1/1     Running   1 (9h ago)   3d
+calico-node-c729g                          1/1     Running   1 (9h ago)   3d
+calico-node-fqth6                          1/1     Running   1 (9h ago)   3d
+coredns-5dd5756b68-82vhx                   1/1     Running   1 (9h ago)   3d
+coredns-5dd5756b68-qbrb2                   1/1     Running   1 (9h ago)   3d
+etcd-kube-master                           1/1     Running   1 (9h ago)   3d
+kube-apiserver-kube-master                 1/1     Running   1 (9h ago)   3d
+kube-controller-manager-kube-master        1/1     Running   2 (9h ago)   3d
+kube-proxy-5mtbv                           1/1     Running   1 (9h ago)   3d
+kube-proxy-x2thx                           1/1     Running   1 (9h ago)   3d
+kube-proxy-xl9rd                           1/1     Running   1 (9h ago)   3d
+kube-scheduler-kube-master                 1/1     Running   2 (9h ago)   3d
+
+root@kube-master:~/cert# kubectl get pod   --kubeconfig=manish.conf  -n default
+Error from server (Forbidden): pods is forbidden: User "manish" cannot list resource "pods" in API group "" in the namespace "default"
+
+	
+root@kube-master:~/cert#  kubectl create role pod-reader --resource=pod --verb=list -n kube-system  (only for specific namespace)
+role.rbac.authorization.k8s.io/pod-reader created
+
+root@kube-master:~/cert# kubectl create rolebinding xyz --role=pod-reader --user=manish -n kube-system 
+rolebinding.rbac.authorization.k8s.io/xyz created
+
+root@kube-master:~/cert# kubectl get pod   --kubeconfig=manish.conf  -n default
+Error from server (Forbidden): pods is forbidden: User "manish" cannot list resource "pods" in API group "" in the namespace "default"
+
+root@kube-master:~/cert# kubectl get pod   --kubeconfig=manish.conf  -n kube-system
+NAME                                       READY   STATUS    RESTARTS     AGE
+calico-kube-controllers-6fbbfb4b76-rpqcw   1/1     Running   1 (9h ago)   3d
+calico-node-86nf6                          1/1     Running   1 (9h ago)   3d
+calico-node-c729g                          1/1     Running   1 (9h ago)   3d
+calico-node-fqth6                          1/1     Running   1 (9h ago)   3d
+coredns-5dd5756b68-82vhx                   1/1     Running   1 (9h ago)   3d
+coredns-5dd5756b68-qbrb2                   1/1     Running   1 (9h ago)   3d
+etcd-kube-master                           1/1     Running   1 (9h ago)   3d
+kube-apiserver-kube-master                 1/1     Running   1 (9h ago)   3d
+kube-controller-manager-kube-master        1/1     Running   2 (9h ago)   3d
+kube-proxy-5mtbv                           1/1     Running   1 (9h ago)   3d
+kube-proxy-x2thx                           1/1     Running   1 (9h ago)   3d
+kube-proxy-xl9rd                           1/1     Running   1 (9h ago)   3d
+kube-scheduler-kube-master                 1/1     Running   2 (9h ago)   3d
+
+
+
+root@kube-master:~/cert# kubectl get clusterrole cluster-admin  -o yaml        <<== to check cluster-admin roles
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  creationTimestamp: "2024-01-23T12:31:55Z"
+  labels:
+    kubernetes.io/bootstrapping: rbac-defaults
+  name: cluster-admin
+  resourceVersion: "72"
+  uid: 9261f347-956a-48de-9196-a06b9977cd08
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- nonResourceURLs:
+  - '*'
+  verbs:
+  - '*'
+
+To list existing roles or edit
+==============================
+root@kube-master:~/cert# kubectl get clusterrole cluster-admin  -o yaml > cluster-admin.yml
+root@kube-master:~/cert# kubectl get clusterrole view  -o yaml  
+
+root@kube-master:~/cert# kubectl edit clusterrole view
+ 
+
+
+Service Account
+===============
+In k8s we have two types of users
+	1. Normal user
+	2. service account
+	 when any application wants to connect with cluster for resource creation or data retrieve.
+	 
+Note: serviceaccount is a namespace level object.
+
+services talk on the base of serviceaccount.
+
+
+
+root@kube-master:~/cert# kubectl create sa promo
+serviceaccount/promo created
+
+root@kube-master:~/cert# kubectl create clusterrolebinding promo --clusterrole=admin --serviceaccount=default:promo
+clusterrolebinding.rbac.authorization.k8s.io/promo created
+
+root@kube-master:~/cert# kubectl get clusterrolebindings.rbac.authorization.k8s.io | grep promo
+promo                                                  ClusterRole/admin                                                                  22s
+
+
+IQ) when ever you create any namespace, then default serviceaccount will create automatically.
+
+root@kube-master:~/cert# kubectl create ns demo
+namespace/demo created
+root@kube-master:~/cert# kubectl get sa -n demo
+NAME      SECRETS   AGE
+default   0         3s
+
+root@kube-master:~/cert# kubectl create deployment dep1 --image=nginx --dry-run=client -o yaml > dep.yml
+
+root@kube-master:~/cert# cat dep.yml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dep1
+  name: dep1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dep1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dep1
+    spec:
+      serviceAccountName: promo      <<< added
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+
+

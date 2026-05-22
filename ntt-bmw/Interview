@@ -1,0 +1,64 @@
+Docker Compose
+===============
+Q) What is Docker Compose?
+Q) What is the default file name used by Docker Compose?
+Q) How do you start all services defined in a Docker Compose file?
+
+    docker-compose up 
+    docker-compose up -d --build
+ 
+         -d :  Stands for detached mode — it runs containers in the background.
+    --build : is used to force a rebuild of the images
+
+Q) How do you stop and remove containers created by Docker Compose?
+    docker-compose down
+
+    down : stop and remove containers.
+    stop : only stop containers.
+
+
+Q) What is the difference between docker-compose up and docker-compose up --build?
+    - up uses existing images if present
+    - --build forces image rebuild.
+
+Q) How do you scale a service using Docker Compose?
+    docker-compose up --scale web=3
+
+Q) What’s the difference between volumes and bind mounts in Docker Compose?
+    - volumes:
+        - Managed by Docker engine.
+        - data stored under /var/lib/docker/volumes.
+        - Isolated from the host filesystem.
+        - More secure, as data is isolated
+        
+    - Bind
+        - Managed by the host OS.
+        - Directly map a file or directory on the host machine into a container.
+        - Directly linked to the host filesystem
+        - Less secure, as it directly exposes host files
+
+
+Q) How do you override settings in Docker Compose?
+    docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+
+Q) Can you use environment variables in Docker Compose? How?
+    Yes, via:
+    - .env file
+    - environment: section
+    - ${VAR_NAME} syntax
+
+Q) How do networks work in Docker Compose?
+    Docker Compose automatically creates a default network for your application where all services can communicate with each other by their service names.
+
+Q) How do you perform health checks in Docker Compose? (pending)
+Q) How do you handle secrets or sensitive data? (pending)
+Q) How does Docker Compose differ from Kubernetes?
+    - Compose is simpler, for local/dev use.
+    - Kubernetes is production-grade, scalable, and has a full orchestration engine.
+
+Q) Can you run multiple Compose projects on the same host?
+    Yes, by setting a custom project name:
+
+        docker-compose -p myproject up
+
+

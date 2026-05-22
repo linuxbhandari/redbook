@@ -1,0 +1,111 @@
+🔧 1. Introduction to Nagios
+What is Nagios?
+
+Nagios Core vs Nagios XI
+
+Architecture:
+
+Nagios server
+
+Plugins
+
+NRPE/NCPA agents
+
+Remote hosts
+
+📁 2. Nagios Configuration
+Main config file: nagios.cfg
+
+Defining:
+
+hosts
+
+services
+
+contacts and contact_groups
+
+hostgroups and servicegroups
+
+commands
+
+timeperiods
+
+Configuration directory structure (/usr/local/nagios/etc)
+
+🧩 3. Plugins
+What are plugins?
+
+Official vs custom plugins
+
+Writing your own plugin (Bash, Python, etc.)
+
+Exit codes (0 = OK, 1 = WARNING, 2 = CRITICAL, 3 = UNKNOWN)
+
+🔗 4. Remote Monitoring
+NRPE (Nagios Remote Plugin Executor)
+
+Installation and configuration
+
+Allowing remote commands
+
+NCPA (Nagios Cross-Platform Agent)
+
+SNMP-based monitoring
+
+SSH-based checks
+
+📬 5. Notifications & Alerts
+Contact and contact groups
+
+Notification types (host vs service)
+
+Alert escalation
+
+notify-service-by-email, notify-host-by-email command
+
+📊 6. Web Interface
+Nagios Core web GUI
+
+Authentication with htpasswd
+
+Access control (authorized_for_all_services, etc.)
+
+Viewing service/host status, logs, trends
+
+📦 7. Nagios Objects & Templates
+Object inheritance
+
+Using use directive for templates
+
+Simplifying repetitive configs
+
+🛠️ 8. Troubleshooting
+Check nagios.log, event.log
+
+Debugging plugins
+
+Common issues: permission, firewall, wrong paths
+
+nagios -v /path/to/nagios.cfg (verify config)
+
+📚 9. Best Practices
+Use templates for reusability
+
+Use hostgroups and servicegroups
+
+Avoid plugin overload
+
+Scheduled downtime for maintenance
+
+Performance tuning (check intervals, caching)
+
+☁️ 10. Advanced Topics
+Distributed monitoring (using Mod-Gearman, NSCA)
+
+Performance graphs (NagiosGraph, PNP4Nagios)
+
+Integrating with tools like Grafana or ELK
+
+Automating config with Ansible
+
+Integration with email, SMS, or Slack for alerts

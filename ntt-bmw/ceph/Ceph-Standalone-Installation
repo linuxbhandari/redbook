@@ -1,0 +1,248 @@
+https://www.redhat.com/en/blog/ceph-cluster-single-machine
+
+======= Remove cluster ==========
+# CentOS
+# cephadm rm-cluster --fsid fec2332e-1b0b-11ec-abbe-ac1f6bc8d268 --force
+# cephadm rm-cluster --force --zap-osds  --fsid 5b8ce714-c1c4-11ee-b12b-525400d0aca2
+
+
+# rm -rf /etc/ceph
+# rm -rf /var/lib/ceph*
+# podman rm --all --force
+
+======= Worked on redhat =========
+[root@ceph-node ~]# cephadm rm-cluster --fsid 70f4ccfe-0717-11f0-9cc3-5254007bd3d3 --force --zap-osds
+Using ceph image with id '77e55ec0d2bb' and tag 'latest' created on 2024-09-19 20:57:46 +0000 UTC
+registry.redhat.io/rhceph/rhceph-6-rhel9@sha256:15311d0ca7d6fcc9ca18760e751e359c6daf9745dfa4b7402c17e36e58e9765d
+Zapping /dev/vdb...
+Zapping /dev/vdc...
+Zapping /dev/vdd...
+
+================================================================
+1. 
+[root@localhost ~]# hostnamectl set-hostname ceph-standalone
+[root@ceph-standalone ~]# echo "192.168.122.36 ceph-standalone" >> /etc/hosts
+
+
+2. 
+
+cat <<EOF> /etc/yum.repos.d/ceph.repo
+[rhel9-BaseOS]
+name=rhel9-BaseOS
+baseurl=ftp://192.168.122.1/rhel9.0/BaseOS
+gpgcheck=0
+
+[rhel9-App]
+name=rhel9-AppStream
+baseurl=ftp://192.168.122.1/rhel9.0/AppStream/
+gpgcheck=0
+
+[ceph-quincy]
+name=ceph-quincy
+baseurl=ftp://192.168.122.1/repos/ceph/ceph-quincy-rhel9.0/rpms/
+gpgcheck=0
+
+[ceph-base]
+name=ceph-base
+baseurl=ftp://192.168.122.1/repos/ceph/ceph-quincy-rhel9.0/rpms/ceph-base
+gpgcheck=0
+EOF
+
+or
+
+[root@ceph-standalone ~]# yum repolist
+Updating Subscription Management repositories.
+repo id                                                                                         repo name
+rhceph-6-tools-for-rhel-9-x86_64-rpms                                                           Red Hat Ceph Storage Tools 6 for RHEL 9 x86_64 (RPMs)
+rhel-9-for-x86_64-appstream-rpms                                                                Red Hat Enterprise Linux 9 for x86_64 - AppStream (RPMs)
+rhel-9-for-x86_64-baseos-rpms                                                                   Red Hat Enterprise Linux 9 for x86_64 - BaseOS (RPMs)
+
+
+subscription-manager register --username amit.chopra@partner.bmw.de  --password Comnet#123456
+subscription-manager release --set=9.0
+subscription-manager repos --disable=*
+
+
+subscription-manager repos --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms
+
+subscription-manager repos --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms
+
+
+3.
+
+[root@ceph-standalone ~]# dnf install podman lvm2 httpd-tools cephadm ceph-common ceph-base vim net-tools -y     # (ceph-base having issue)
+
+
+sudo podman login registry.redhat.io --username chopraamit_bmw --password Comnet#123456
+
+
+cephadm bootstrap --mon-ip 192.168.122.156 --initial-dashboard-user admin --initial-dashboard-password admin123
+
+cephadm bootstrap --mon-ip 192.168.122.33 --skip-monitoring-stack --skip-dashboard --skip-pull  
+
+cephadm bootstrap --mon-ip 192.168.122.241 --cluster-network 192.168.126.0/24 --skip-monitoring-stack --skip-dashboard --skip-pull
+)
+
+cephadm bootstrap --mon-ip $(ip -4 -o addr show enp1s0 | awk '{print $4}' | cut -d/ -f1 --cluster-network 192.168.126.0/24 --skip-monitoring-stack --skip-dashboard --skip-pull
+
+
+[root@ceph-node0 images]# ceph config get mon public_network
+192.168.122.0/24
+[root@ceph-node0 images]# ceph config get osd cluster_network
+192.168.126.0/24
+
+
+# If needed, update network settings manually:
+
+ceph config set mon public_network "192.168.1.0/24"
+ceph config set osd cluster_network "10.0.0.0/24"
+
+# offline upload #
+
+/srv/ftp/repos/ceph/ceph-quincy-rhel9.0/images
+
+[root@ceph-standalone ~]# cd images/
+[root@ceph-standalone images]# 
+[root@ceph-standalone images]# ll
+total 2715600
+-rw-r--r--. 1 root root  474655744 Mar 23 19:06 ose-prometheus-alertmanager.tar
+-rw-r--r--. 1 root root  575321600 Mar 23 19:06 ose-prometheus.tar
+-rw-r--r--. 1 root root  630329344 Mar 23 19:06 rhceph-6-dashboard-rhel9.tar
+-rw-r--r--. 1 root root 1100462592 Mar 23 19:06 rhceph-6-rhel9.tar
+
+[root@ceph-standalone images]# for i in ose-prometheus-alertmanager.tar ose-prometheus.tar rhceph-6-dashboard-rhel9.tar rhceph-6-rhel9.tar;do podman load -i $i;done
+
+=================================
+
+4. 
+[root@ceph-standalone ~]# cephadm bootstrap --mon-ip 192.168.122.33 --skip-pull      #(offline installation)
+
+Ceph Dashboard is now available at:
+
+	     URL: https://ceph-standalone:8443/
+	    User: admin
+	Password: b4lyfut9x7
+
+Enabling client.admin keyring and conf on hosts with "admin" label
+Saving cluster configuration to /var/lib/ceph/fdd696d6-07ec-11f0-9f20-525400320c1d/config directory
+Enabling autotune for osd_memory_target
+You can access the Ceph CLI as following in case of multi-cluster or non-default config:
+
+	sudo /usr/sbin/cephadm shell --fsid fdd696d6-07ec-11f0-9f20-525400320c1d -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+
+Or, if you are only running a single cluster on this host:
+
+	sudo /usr/sbin/cephadm shell 
+
+Please consider enabling telemetry to help improve Ceph:
+
+	ceph telemetry on
+
+For more information see:
+
+	https://docs.ceph.com/docs/master/mgr/telemetry/
+
+Bootstrap complete.
+=================================================================
+
+5. 
+[root@ceph-standalone ~]# lsblk 
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+vda    253:0    0   60G  0 disk 
+├─vda1 253:1    0    2M  0 part 
+├─vda2 253:2    0  512M  0 part /boot
+├─vda3 253:3    0    4G  0 part [SWAP]
+├─vda4 253:4    0    1K  0 part 
+└─vda5 253:5    0 55.5G  0 part /var/lib/containers/storage/overlay
+                                /
+vdb    253:16   0   10G  0 disk 
+vdc    253:32   0   10G  0 disk 
+vdd    253:48   0   10G  0 disk 
+vde    253:64   0   10G  0 disk 
+vdf    253:80   0   10G  0 disk 
+vdg    253:96   0   10G  0 disk 
+
+
+[root@ceph-standalone ~]# ceph orch host ls
+HOST             ADDR            LABELS  STATUS  
+ceph-standalone  192.168.122.33  _admin    
+
+ceph cephadm get-pub-key > ~/ceph.pub
+ssh-copy-id -f -i ~/ceph.pub root@ceph-node1
+ceph orch host add ceph-node1 192.168.122.249
+
+==========================================================================================
+[root@ceph-standalone ~]# ceph orch device ls --wide --refresh      # if device not visiable
+[root@ceph-standalone ~]# 
+[root@ceph-standalone ~]# cephadm ceph-volume inventory             # run this command
+
+
+[root@ceph-standalone ~]# cephadm ceph-volume inventory
+Inferring fsid 45f14ea8-07f6-11f0-9228-52540052f12b
+Using ceph image with id '77e55ec0d2bb' and tag 'latest' created on 2024-09-19 20:57:46 +0000 UTC
+registry.redhat.io/rhceph/rhceph-6-rhel9@sha256:299627f4e023c72dfaeead033f9dc08dde3b1dd74ff4d5a359d24b87a4108bea
+
+Device Path               Size         Device nodes    rotates available Model name
+/dev/vdb                  10.00 GB     vdb             True    True      
+/dev/vdc                  10.00 GB     vdc             True    True      
+/dev/vdd                  10.00 GB     vdd             True    True      
+/dev/vda                  60.00 GB     vda             True    False     
+
+[root@ceph-standalone ~]# ceph orch device ls --wide --refresh
+HOST             PATH      TYPE  TRANSPORT  RPM  DEVICE ID   SIZE  HEALTH  IDENT  FAULT  AVAILABLE  REFRESHED  REJECT REASONS  
+ceph-standalone  /dev/vdb  hdd                              10.7G          N/A    N/A    Yes        27s ago                    
+ceph-standalone  /dev/vdc  hdd                              10.7G          N/A    N/A    Yes        27s ago                    
+ceph-standalone  /dev/vdd  hdd                              10.7G          N/A    N/A    Yes        27s ago                    
+[root@ceph-standalone ~]# 
+
+==========================================================================================
+
+[root@ceph-standalone ~]# ceph orch daemon add osd ceph-standalone:/dev/vdb
+[root@ceph-standalone ~]# ceph orch daemon add osd ceph-standalone:/dev/vdc
+[root@ceph-standalone ~]# ceph orch daemon add osd ceph-standalone:/dev/vdd
+
+[root@ceph-node ~]# ceph -s
+  cluster:
+    id:     70f4ccfe-0717-11f0-9cc3-5254007bd3d3
+    health: HEALTH_WARN
+            1 failed cephadm daemon(s)
+            Reduced data availability: 1 pg inactive
+            Degraded data redundancy: 1 pg undersized
+ 
+  services:
+    mon: 1 daemons, quorum ceph-node (age 6m)
+    mgr: ceph-node.ughewc(active, since 2m)
+    osd: 3 osds: 3 up (since 78s), 3 in (since 91s)
+ 
+  data:
+    pools:   1 pools, 1 pgs
+    objects: 0 objects, 0 B
+    usage:   458 MiB used, 30 GiB / 30 GiB avail
+    pgs:     100.000% pgs not active
+             1 undersized+peered
+
+ceph osd getcrushmap -o crushmap.cm
+crushtool --decompile crushmap.cm -o crushmap.txt
+
+
+
+
+[root@ceph-node ~]# ceph -s
+  cluster:
+    id:     70f4ccfe-0717-11f0-9cc3-5254007bd3d3
+    health: HEALTH_WARN
+            1 failed cephadm daemon(s)
+ 
+  services:
+    mon: 1 daemons, quorum ceph-node (age 10m)
+    mgr: ceph-node.ughewc(active, since 7m)
+    osd: 3 osds: 3 up (since 5m), 3 in (since 5m)
+ 
+  data:
+    pools:   1 pools, 1 pgs
+    objects: 2 objects, 449 KiB
+    usage:   62 MiB used, 30 GiB / 30 GiB avail
+    pgs:     1 active+clean
+
+
+

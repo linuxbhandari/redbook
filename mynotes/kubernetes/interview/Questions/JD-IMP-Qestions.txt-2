@@ -1,0 +1,410 @@
+OpenShift Architect Interview Questions (Based on Your JD)
+
+This list is tailored for a senior Red Hat OpenShift Architect role focused on:
+	* Enterprise architecture
+	* Hybrid cloud
+	* Multi-cluster governance
+	* GitOps
+	* Security
+	* HA/DR
+	* Observability
+	* Leadership
+
+1. OpenShift Core Architecture
+==============================
+	* Explain OpenShift architecture in detail.
+		* Explain the request flow inside OpenShift.
+		* What are the main control plane components?
+		* What is the role of the API Server?
+		* How does the Scheduler work?
+		* How does pod scheduling work internally?
+		* What is ETCD and why is it critical?
+		* How does ETCD quorum work?
+		* What happens if ETCD loses quorum?
+			=> ETCD quorum means more than 50% of ETCD members must be healthy. If quorum is lost, the OpenShift control plane cannot function correctly because API Server cannot reliably read or write cluster state. Existing workloads may continue running, but new scheduling, deployments, scaling, and cluster updates fail until quorum is restored.
+		* What happens if a master node fails?
+			=> In a 3-node highly available OpenShift cluster, if one control plane node fails, the cluster continues working because ETCD quorum and other API Servers are still available. If multiple control plane nodes fail and ETCD quorum is lost, the control plane becomes unavailable and new cluster operations stop working.
+		* How does OpenShift achieve High Availability?
+		* Explain OpenShift HA architecture flow.
+		* Why are load balancers required in OpenShift?
+		* Difference between API LB and Application LB?
+	
+	* How does networking work in OpenShift?
+		=> OpenShift networking enables communication between pods, services, and external users. Each pod gets its own unique IP address. Internal communication happens through Services, while external traffic comes through Routes and Router pods. OpenShift commonly uses OVN-Kubernetes as the networking plugin for pod-to-pod communication, network policies, and traffic management.
+
+	* Difference between OpenShift SDN and OVN-Kubernetes?
+
+	* Explain Route vs Ingress.
+		Both Route and Ingress expose applications externally
+
+		Features of Ingress
+			- Host-based routing : Directs traffic based on the requested hostname, such as api.example.com
+			- Path-based routing : Ingress can route traffic based on URL paths like /app or /admin.
+			- TLS termination :
+			- Load balancing :
+			- Centralized external access :
+
+	* What is the role of Router pods?
+		Receiving external traffic and routing it to the correct application Service inside the cluster.
+
+	* What are Infrastructure Nodes?
+		* Why are infra nodes used?
+		* What is CRI-O?
+		* Why does OpenShift use CRI-O instead of Docker?
+
+
+	* Difference between IPI and UPI installation?
+	* Explain OpenShift Virtualization/KubeVirt.
+	* How do you design enterprise multi-zone architecture?
+
+
+2. Operators, Upgrades & Platform Internals
+===========================================
+	* What are Operators?
+		- Operators are Kubernetes extensions that automate application lifecycle management using CRDs (Custom Resource Definition) and controllers. 
+
+		- They continuously monitor cluster state through a reconciliation loop and automatically handle tasks like installation, upgrades, scaling, backup, and recovery. OpenShift heavily relies on Operators to manage platform components.”
+
+		* What is the reconciliation loop?
+
+		* Explain Operator architecture internally.
+			 Operator Pod => watch with reconciliation loop => inform to API server => check etcd => controller manager => scheduler.
+
+
+
+	* What are CRDs?
+	* Explain Operator Lifecycle Manager (OLM).
+		- Operator Lifecycle Manager (OLM) is a Kubernetes/OpenShift component that automates Operator installation, upgrades, dependency resolution, and lifecycle management. It uses components like CatalogSource, Subscription, InstallPlan, and ClusterServiceVersion (CSV) to deploy and maintain Operators in a controlled and automated way.”
+
+		* What is Machine Config Operator (MCO)?
+			- (MCO) is an OpenShift component that manages and updates the operating system configuration of cluster nodes automatically.
+			- MCO keeps all OpenShift nodes configured correctly and consistently.
+			- What MCO Manages: OS configuration | Kernel parameters |SSH keys|kubelet configuration|System files| Node update.
+	
+		* How does MCO work internally?
+	
+		* What is Cluster Version Operator (CVO)?
+			- (CVO) is the OpenShift component responsible for: Installing, upgrading, and managing the entire OpenShift cluster version.
+			- What CVO Does: Installs cluster components|Monitors cluster versions|Applies updates|Ensures compatible versions| Tracks cluster health.
+	
+	* How do upgrades happen without downtime?
+		- OpenShift upgrades happen without downtime because workloads are spread across multiple nodes and are moved gradually while nodes and operators are upgraded one at a time with health checks and failover.
+
+		* How are worker nodes upgraded?
+		* How does OpenShift maintain ETCD quorum during upgrades?
+		* How do you rollback a failed upgrade?
+
+	* How do Operators help in self-healing?
+		- Operators provide self-healing by continuously comparing desired and actual state and automatically fixing any drift through a reconciliation loop.
+
+	* Have you developed custom Operators?
+
+
+
+3. Hybrid Cloud & Multi-Cluster Architecture
+============================================
+	* How would you design a hybrid OpenShift platform?
+	* How do you design multi-cluster OpenShift architecture?
+	* What is RHACM?
+		- Red Hat Advanced Cluster Management that provides centralized management, governance, observability, and automation for multiple OpenShift/Kubernetes clusters.
+
+	* How does RHACM help in governance?
+		- RHACM helps in governance by centrally enforcing security, compliance, and configuration policies across multiple OpenShift/Kubernetes clusters and continuously checking for violations.
+
+	* Explain policy-based governance in RHACM.
+	* How do you manage cluster lifecycle at scale?
+		- Cluster lifecycle at scale is managed using centralized automation tools like RHACM and GitOps to provision, configure, monitor, upgrade, govern, and retire clusters consistently and automatically.
+
+	* Explain ROSA architecture.	
+	* Explain ARO architecture.
+	* What is AWS STS in ROSA?
+	* Explain PrivateLink architecture in ROSA.
+	
+	* How do you design edge OpenShift deployments?
+	* How do you manage cross-cloud networking?
+
+
+
+
+
+
+
+4. Security & Compliance
+========================
+	* How does OpenShift maintain security?
+		- OpenShift maintains security through layered controls including RBAC, SCC, SELinux, network policies, secure container runtimes, TLS encryption, automated operator-driven updates, and centralized governance.
+
+	* What is SCC? SCC (Security Context Constraints)
+		- SCC is a security feature that controls what a pod/container is allowed to do.
+		- SCC is a set of security rules that restrict container permissions in OpenShift.
+		- SCC (Security Context Constraints) is an OpenShift security mechanism that controls what permissions and privileges containers are allowed to use.
+
+	* Difference between SCC and Pod Security Policies?
+	* How does RBAC work?
+		- RBAC works by assigning permissions through Roles and Bindings so Kubernetes/OpenShift can control which users or services are allowed to perform specific actions on cluster resources.
+
+	* Difference between Role and ClusterRole?
+			- Role → works inside ONE namespace
+			- ClusterRole → works across ENTIRE cluster
+
+	* Difference between RoleBinding and ClusterRoleBinding?
+			- RoleBinding → grants permissions inside a namespace
+			- ClusterRoleBinding → grants permissions across the entire cluster
+
+	* What are Service Accounts?
+			- a Service Account is an identity used by applications or pods to interact with the Kubernetes API.
+			- A Service Account is a Kubernetes identity used by pods or applications to securely authenticate and interact with the Kubernetes/OpenShift API.
+
+	* How do pods authenticate with API Server?
+			- Pods authenticate with the Kubernetes/OpenShift API server using Service Account tokens that are automatically mounted into the pod and validated by the API server before RBAC authorization is applied.
+
+	* How do you implement least privilege access?
+			- Least privilege access is implemented by giving users and applications only the minimum required permissions using RBAC, namespaces, service accounts, SCCs, and network policies.
+
+	* How do Network Policies work?
+
+	* Explain OpenShift OAuth authentication flow.
+			- OpenShift OAuth works by verifying user login through an identity provider, generating a token, and then using RBAC to control what the user can access.
+
+	* How do you secure secrets in OpenShift?
+	* Explain zero-trust architecture in OpenShift.
+	* What is ACS/StackRox?
+	* How does Service Mesh improve security?
+			- A service mesh like Red Hat OpenShift Service Mesh improves security by controlling and securing communication between microservices.
+			- Service Mesh secures service-to-service traffic automatically.
+			- Service Mesh improves security by providing automatic mTLS encryption, service identity verification, access control policies, certificate management, and zero-trust secure communication between microservices.
+
+	* How do you handle compliance requirements like CIS/STIG?
+
+
+
+
+
+5. GitOps, CI/CD & Automation
+	* Explain GitOps architecture.
+		-GitOps architecture uses Git as the single source of truth while tools like Argo CD continuously synchronize Kubernetes/OpenShift clusters to match the desired configuration stored in Git.
+		- Developer -> Git repo -> ArgoCD -> OpenShift cluster
+
+	* How does Argo CD work internally?
+		- Argo CD works internally by continuously pulling configurations from Git, comparing them with the actual cluster state, detecting drift, and automatically synchronizing the cluster to match the desired state.
+
+		* Explain Argo CD sync flow.
+
+
+	* What causes OutOfSync in Argo CD?
+		- The actual cluster state is different from the desired state stored in Git.
+		- OutOfSync in Argo CD happens when the actual Kubernetes/OpenShift cluster state differs from the desired configuration stored in Git.
+
+		- most common reason : Avoid manual changes directly in cluster.
+
+		* How do you troubleshoot continuous OutOfSync?
+
+	* Explain App-of-Apps pattern.
+	* How do you implement enterprise GitOps?
+	* How do you manage GitOps across multiple clusters?
+		- Multi-cluster GitOps is managed by using Argo CD and Git repositories to centrally deploy, synchronize, and govern applications consistently across multiple Kubernetes/OpenShift clusters.
+
+	* How does GitOps help in disaster recovery?
+
+	* What is OpenShift Pipelines/Tekton?
+		- It automates building, testing, and deploying applications inside Kubernetes/OpenShift.
+		- Code → Build → Test → Deploy
+		- OpenShift Pipelines is a Kubernetes-native CI/CD solution based on Tekton that automates application build, test, and deployment workflows using containerized pipeline tasks.
+
+	* Difference between Jenkins and Tekton?
+		- Jenkins is a traditional CI/CD automation server using master-agent architecture and plugins, while Tekton is a Kubernetes-native CI/CD framework where pipelines run as containerized tasks directly inside Kubernetes/OpenShift.
+
+	* What is BuildConfig?
+		- Automate building container images from source code or binaries.
+
+	* What are ImageStreams?
+		- An ImageStream is an OpenShift resource that tracks container images and their versions.
+
+	* How do you automate cluster provisioning?
+		- Automatically creating, configuring, scaling, and managing OpenShift/Kubernetes clusters using Infrastructure as Code (IaC) and automation tools like Terraform.
+
+	* How do you use Terraform with OpenShift?
+
+	* How do you use Ansible with OpenShift?
+		- Ansible automates OpenShift administration tasks.
+			- cluster installation,application deployment,configuration management, backups.
+
+	* Have you built automation using Go/Python?
+
+
+
+
+
+
+6. Storage & Data Architecture
+	* Explain Persistent Volumes and PVCs.
+		- Persistent Volume (PV): A PV is actual storage in the cluster.
+			- It can come from: AWS EBS,Azure Disk,NFS, Ceph, local storage.
+
+		- Persistent Volume Claim (PVC) : PVC is a request for storage made by a pod/application.
+			- 
+	* What is StorageClass?
+		- StorageClass defines: How storage should be automatically created.
+		- A StorageClass defines how Kubernetes/OpenShift dynamically provisions storage volumes for applications using specific storage types and configurations.
+
+		* How does dynamic provisioning work?
+
+	* What is CSI?
+		-CSI (Container Storage Interface) is a standard interface that allows Kubernetes/OpenShift to communicate with different storage providers through CSI drivers.
+
+	* Explain OpenShift Data Foundation (ODF).
+
+	* How does Ceph work with OpenShift?
+		- Ceph works with OpenShift by providing distributed persistent storage through CSI drivers, StorageClasses, and OpenShift Data Foundation, enabling scalable and highly available storage for applications.
+
+	* How do you design enterprise storage architecture?
+		- Enterprise storage architecture in OpenShift is designed using distributed, scalable, highly available storage platforms integrated through CSI drivers, StorageClasses, and automated provisioning with strong security, monitoring, and disaster recovery capabilities.
+
+	* How do you troubleshoot PVC Pending issues?
+		- PVC Pending issues occur when Kubernetes/OpenShift cannot provision or bind storage, commonly due to StorageClass issues, missing PVs, CSI driver problems, capacity mismatches, or backend storage failures.
+
+		* What happens if storage quota is exceeded?
+
+	* How do you design highly available storage?
+		- Highly available storage is designed using distributed replicated storage systems, multi-zone deployment, CSI-based provisioning, automatic failover, monitoring, and backup strategies to ensure continuous data availability.
+
+
+
+7. Resource Governance & Multi-Tenancy
+	* What is ResourceQuota? 
+		- ResourceQuota prevents one team or application from consuming all cluster resources.
+		- 
+	* Difference between ResourceQuota and LimitRange?
+		- ResourceQuota controls total resource usage in a namespace
+		- LimitRange controls resource limits for individual pods/containers
+
+	* How do requests and limits work?
+	* Difference between CPU request and limit?
+		- CPU Request = minimum CPU guaranteed to a container
+		- CPU Limit = maximum CPU a container can use
+
+		* Difference between memory request(soft) and limit (hard)?
+			soft => Minimum guaranteed memory
+			hard => Maximum allowed memory
+
+		* What happens when CPU limits are exceeded?
+			- Container cannot use more CPU than limit
+
+		* What happens when memory limits are exceeded?
+	
+	* Why do pods get OOMKilled?
+		- Out Of Memory
+		- Container exceeded memory limit → Kubernetes killed it
+		
+		* How do you troubleshoot OOMKilled pods?
+		* How do you prevent oversized pods?
+	
+		* How do you restrict pod count per namespace?
+			- ResourceQuota limits how many pods a namespace can create.
+
+	* How do you manage resources in multi-team clusters?
+		- Resources in multi-team OpenShift clusters are managed using namespaces, ResourceQuotas, LimitRanges, RBAC, network policies, monitoring, and autoscaling to ensure fair usage, isolation, and cluster stability.
+
+	* How do you identify resource-heavy namespaces?
+		- Resource-heavy namespaces are identified using commands like oc adm top namespaces, ResourceQuota usage checks, and monitoring tools such as Prometheus and Grafana to analyze CPU, memory, storage, and pod consumption.
+
+	* What is ClusterResourceQuota?
+		- ClusterResourceQuota is an OpenShift feature used to apply resource quotas across multiple namespaces/projects.
+
+	* How do you prevent noisy-neighbor problems?
+
+
+
+
+
+
+8. Monitoring, Logging & Observability
+	* What monitoring tools are integrated with OpenShift?
+		- OpenShift integrates monitoring tools like Prometheus, Grafana, Alertmanager, Thanos, Jaeger, Kiali, and Loki to provide metrics, visualization, alerting, tracing, service mesh observability, and centralized logging.
+
+	* How does Prometheus work?
+	* What is Alertmanager?
+	* How does Grafana help in observability?
+	* What is Thanos?
+		- Thanos is a Prometheus extension that provides long-term storage, high availability, and centralized multi-cluster monitoring using scalable object storag
+
+	* Difference between Loki and ELK?
+		- Loki is a lightweight Kubernetes-focused log aggregation system that indexes only metadata, while ELK is a full-featured log analytics platform that indexes entire logs for advanced searching and analysis.
+
+	* How do you design centralized logging?
+		- Centralized logging is designed by collecting logs from all applications and nodes using collectors like Fluentd or Vector, storing them centrally in Loki or Elasticsearch, and providing visualization through Grafana or Kibana.
+
+	* How do you troubleshoot cluster performance issues?
+		- Cluster performance issues in OpenShift are diagnosed by analyzing node health, CPU/memory usage, pod behavior, storage/network latency, logs, and cluster operators to identify and resolve resource bottlenecks.
+
+	* How do you monitor ETCD performance?
+		- etcd performance is monitored using Prometheus metrics, disk I/O latency, leader stability, request latency, and OpenShift monitoring dashboards to ensure the cluster’s core state database remains healthy and responsive.
+
+
+	* What metrics are critical in OpenShift?
+	* Explain SLI, SLO, and Error Budget.
+	* How do you implement predictive monitoring?
+
+
+
+9. Troubleshooting & Incident Management
+	* How do you troubleshoot failed pods?
+		oc logs,describe
+		* A pod is stuck in Pending state. What do you check?
+
+	* How do you troubleshoot CrashLoopBackOff?
+		- CrashLoopBackOff means: A container keeps starting, crashing, and restarting repeatedly.
+		- Pod starts → fails → restarts → fails again → loop continues
+		- use oc logs,describe
+
+	* How do you troubleshoot networking issues?
+		- Networking issues in OpenShift are troubleshooted by checking pod connectivity, services, DNS resolution, routes/ingress, network policies, CNI health, and logs to identify where traffic flow is breaking.
+
+	* How do you troubleshoot DNS issues?
+		- DNS issues in OpenShift are troubleshooted by checking CoreDNS pods, logs, service endpoints, pod DNS configuration, network policies, and cluster DNS operator health to ensure proper name resolution inside the cluster.
+
+	* How do you troubleshoot node NotReady state?
+
+	* How do you troubleshoot API server slowness?
+		- API server slowness in OpenShift is diagnosed by checking API pod health, logs, etcd performance, resource usage, request load, network latency, and cluster operators to identify bottlenecks in the control plan
+
+	* How do you troubleshoot ETCD latency?
+		- etcd latency is troubleshooted by checking pod health, Prometheus metrics, disk I/O performance, leader stability, network latency, DB size, and control plane load to identify bottlenecks in the cluster’s core datastore.
+
+	* How do you troubleshoot ingress/router issues?
+		- In Red Hat OpenShift, external traffic is handled by the OpenShift Router (Ingress Controller), which exposes applications to users outside the cluster.
+
+		- Ingress/Router issue = external traffic not reaching the application
+		- Ingress/router issues are troubleshooted by checking routes, router pods, logs, services/endpoints, backend pods, DNS resolution, TLS configuration, and ingress controller health to identify where external traffic flow is breaking.
+
+
+	* What steps would you take during a production outage?
+		- During a production outage, you quickly assess scope, check cluster and control plane health, analyze logs and metrics, identify the failing component, mitigate or rollback changes, restore service, and then perform root cause analysis to prevent recurrence.
+
+	* Explain a major incident you handled.
+		- We had a production outage where the OpenShift cluster became slow due to etcd overload from high traffic. We identified the issue, reduced the load, stabilized the cluster, and then improved monitoring and safeguards to prevent it from happening again.”
+
+	* How do you perform RCA?
+
+	* How do you manage Sev1 incidents?
+
+
+10. Leadership & Architecture Scenarios
+	* How would you migrate legacy UNIX workloads to OpenShift?
+	* How would you modernize monolithic applications?
+	* How do you design a global OpenShift platform?
+	* How do you manage cloud cost optimization?
+	* How do you define platform standards?
+	* How do you mentor L3/L4 engineers?
+	* How do you handle executive escalations?
+	* How do you align platform architecture with business goals?
+	* How do you design disaster recovery strategy?
+	* How do you define enterprise governance models?
+	* How would you architect zero-downtime deployments?
+	* How would you design secure multi-tenant platforms?
+
+	* How would you scale OpenShift for thousands of workloads?
+
+	* What are the biggest challenges in enterprise OpenShift?
+
+	* Why should we hire you for this Architect role?

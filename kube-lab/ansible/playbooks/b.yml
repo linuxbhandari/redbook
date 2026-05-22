@@ -1,0 +1,12 @@
+- hosts: all
+  tasks:
+    - name: Service check with loop
+      service:
+        name: "{{ item }}"
+        state: started
+      loop:
+        - vsftpd
+
+    - user:
+        name: dev
+        state: absent

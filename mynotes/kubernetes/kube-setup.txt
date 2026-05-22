@@ -1,0 +1,13 @@
+apt-get update
+apt-get install -y apt-transport-https ca-certificates curl
+sysctl -w net.ipv4.ip_forward=1
+mkdir /etc/apt/keyrings/
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+apt-get update
+apt-get install -y kubelet kubeadm kubectl containerd
+
+kubeadm init --ignore-preflight-errors=all
+kubeadm init --pod-network-cidr=192.168.122.0/24 --ignore-preflight-errors=all
+kubeadm reset -f
+kubeadm token create --print-join-command   

@@ -1,0 +1,5 @@
+- hosts: all
+  tasks:
+    - name: Try something risky
+      command: /bin/false
+      ignore_errors: yes

@@ -1,0 +1,313 @@
+Additional Topics
+
+1. Multicontainer pod
+2. Init Container
+3. Static container pod
+4. Secrets
+5. config map
+6. Statefulsets
+7. DaemonSets
+
+=====================
+1. MultiContainer Pod (Side car)
+
+  => Pods is a smallest unit that can be deployed and managed by k8s. Its contain containers with network, resource like cpu. In other words, if you need to run a single container in Kubernetes, then you need to create a Pod for that container
+
+  => No High avalibility
+  => No Scalibility
+  => No Load spin accross the containers inside the pod.
+  => ip not assign to every container inside the pod. they have only single ip-address.
+  => Use case of more than containers inside the single pod. => Side car: when application  required helper to get data.
+
+ IQ) Use Cases for Kubernetes Multi-Container Pods
+    The primary purpose of a multi-container Pod is to support primary container application.
+
+     a) Sidecar container : "help" the main container.
+        Examples:
+           1. Some examples include log or data change watchers, monitoring adapters, and so on.
+           2. Sidecar container is a file or data loader that generates data for the main container.
+
+     b) Proxies, bridges, and adapters connect the main container with the external world.
+
+
+URL => https://www.mirantis.com/blog/multi-container-pods-and-container-communication-in-kubernetes/
+    => https://www.geeksforgeeks.org/kubernetes-creating-multiple-container-in-a-pod/
+
+example-1
+=========
+cat > pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: demo
+  name: demo
+spec:
+  containers:
+  - image: nginx
+    name: app
+  - image: redis
+    name: db
+
+root@kube-master:~# kubectl get pod -o wide
+NAME   READY   STATUS    RESTARTS   AGE     IP               NODE         NOMINATED NODE   READINESS GATES
+demo   2/2     Running   0          3m24s   172.24.186.114   kube-node2   <none>           <none>
+
+root@kube-master:~# kubectl -it exec demo -c app bash
+root@kube-master:~# kubectl -it exec demo -c db bash
+
+
+   		Note: => Both containers will talk through loopback(127.0.0.1) ip-address with different port.
+              => Both containers always run on same node with same ip address.
+              => On this type of pods. Network and volume are shared by default for each other.
+              => when container required helper, then we need to create multiContainer like sidecar in single pod.
+
+
+
+2. Init Container : It verify the conditions (like application check, port check), before start application and once it complete his work. it will delete. (work like precheck before application)e
+Example:1
+
+root@kube-master:~# cat init-container.yml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: workdir
+      mountPath: /usr/share/nginx/html
+  # These containers are run during pod initialization
+  initContainers:
+  - name: install
+    image: busybox:1.28
+    command:
+    - wget
+    - "-O"
+    - "/work-dir/index.html"
+    - http://info.cern.ch
+    volumeMounts:
+    - name: workdir
+      mountPath: "/work-dir"
+  dnsPolicy: Default
+  volumes:
+  - name: workdir
+    emptyDir: {}
+
+Example:2
+
+root@kube-master:~# cat init-container.yml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: workdir
+      mountPath: /usr/share/nginx/html
+  # These containers are run during pod initialization
+  initContainers:
+  - name: install
+    image: busybox
+    command: ["uname"]
+    volumeMounts:
+    - name: workdir
+      mountPath: "/work-dir"
+  dnsPolicy: Default
+  volumes:
+  - name: workdir
+    emptyDir: {}
+
+root@kube-master:~# kubectl get pod -o wide
+NAME        READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+init-demo   1/1     Running   0          33s   172.24.186.115   kube-node2   <none>           <none>
+
+
+3. Static Pod : Create the pod from worker node directly.
+               => You cannot create deployment,rc or rs deployment directly except simple pods directly
+
+IQ) How to create staticpod?
+
+1. Go the worker node kube-node1
+cd /etc/kubernetes/manifests
+
+root@kube-master:~# cat pod.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: static-pod
+  name: static-pod
+spec:
+  containers:
+  - image: nginx
+    name: static-pod
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+root@kube-master:~# kubectl get pod static-pod-kube-node1 
+NAME                    READY   STATUS    RESTARTS   AGE
+static-pod-kube-node1   1/1     Running   0          24s
+
+     Note: Drop is pod will not run anymore if worker node down.(Not use in compines)
+	 
+IQ) Where is the config path in worker node?
+
+root@kube-node1:~# grep -i manifest /var/lib/kubelet/config.yaml  ==> You can find static pod default location on worker node.
+staticPodPath: /etc/kubernetes/manifests
+
+root@kube-master:~# ls -l /etc/kubernetes/manifests/                <<== default static pods on master nodes and if you edit any configuration it will update automatically. 
+total 16
+-rw------- 1 root root 2421 Dec 26 14:33 etcd.yaml
+-rw------- 1 root root 4063 Dec 29 14:24 kube-apiserver.yaml
+-rw------- 1 root root 3429 Dec 26 14:33 kube-controller-manager.yaml
+-rw------- 1 root root 1463 Dec 26 14:33 kube-scheduler.yaml
+
+
+IQ) Why we need kubelet in master node?
+
+4. Secrets : use to hide something like password.
+   scecret are two types:
+   a) generic
+   b) tls
+
+root@kube-master:~# kubectl create secret generic super-secret --from-literal=mypass=redhat
+secret/super-secret created
+
+root@kube-master:~# kubectl get secrets 
+NAME             TYPE     DATA   AGE
+mysql-password   opaque   1      39h
+super-secret     Opaque   1      7s
+
+Opaque => means generic
+
+
+root@kube-master:~# kubectl get secrets super-secret -o yaml
+apiVersion: v1
+data:
+  mypass: cmVkaGF0                      <<<=== algorotham name is base64
+kind: Secret
+metadata:
+  creationTimestamp: "2024-01-04T08:43:36Z"
+  name: super-secret
+  namespace: default
+  resourceVersion: "559730"
+  uid: 4a503e9e-10b8-4e8a-a2fe-d177a5c7f1a7
+type: Opaque
+
+root@kube-master:~# echo cmVkaGF0 | base64 -d     <<== decode the value
+redhatroot@kube-master:~# 
+
+IQ) How we can use secret value?
+   we have two way to do this
+   1) as envirnoment variable
+   2) as a volume
+
+root@kube-master:~# kubectl create deployment mysql-dep --image=mysql:5.6 --dry-run=client -o yaml > db.yml
+
+root@kube-master:~# cat db.yml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: mysql-dep
+  name: mysql-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-dep
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: mysql-dep
+    spec:
+      containers:
+      - image: mysql:5.6
+        name: mysql
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+               secretKeyRef:
+                       name: super-secret
+                       key: mypass
+
+root@kube-master:~# kubectl get pod
+NAME                        READY   STATUS    RESTARTS   AGE
+mysql-dep-88cf5d975-gx4pq   1/1     Running   0          95s
+
+
+How to do Certificate upload through secret
+===========================================
+Example :
+
+root@kube-master:~# mkdir certs
+root@kube-master:~# cd certs/
+root@kube-master:~/certs# echo Helloworld > example.crt
+root@kube-master:~/certs# echo Helloworld > example.key
+
+5. ConfigMap:  <<= will do later
+
+(Pod controller)
+6. DaemonSets:  It ensure, container should be create on every worker node.
+
+example
+
+root@kube-master:~/certs# kubectl get pod -A -o wide| grep kube-proxy 
+kube-system   kube-proxy-dczcs                           1/1     Running   9 (3h38m ago)    5d19h   192.168.122.110   kube-node2    <none>           <none>
+kube-system   kube-proxy-jj2tt                           1/1     Running   7 (3h38m ago)    5d19h   192.168.122.241   kube-master   <none>           <none>
+kube-system   kube-proxy-t96lz                           1/1     Running   7 (3h38m ago)    5d19h   192.168.122.219   kube-node1    <none>           <none>
+
+    Note: single container running on every container through daemonset.
+          => daemonset created by file method only.
+    uses are:
+    1. running a cluster storage daemon on every node.
+    2. running a logs collection daemon on every node.
+    3. running a node monitoring daemon on every node.
+  
+    Pratical I will do later.
+
+
+
+7. StatefulSets : 
+   
+   Cluster:
+   1. Active-Active: webserver/Application: stateless
+   2. Active-passive: Database(mysql/psql): stateFull
+
+   1. Stateless: Deployment/Replicaset/Replication controller
+   2. Statefull: StateFulSet
+
+
+   Headless service ip: 
+        clusterIP: none : traffic will forward in round-robin way
+
+      Pratical I will do later
+
+
+HA Master 
+=========
+IQ) Why we not choosing even number of cluster?
+ => Number should always be odd to avoide split-brain and to maintain quorom of the cluster.
+
+Setup:
+======
+Master: 2
+Balancer: 1
+worker node: 1

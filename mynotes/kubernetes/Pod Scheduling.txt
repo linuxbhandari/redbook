@@ -1,0 +1,504 @@
+Types of Pod Scheduling in Kubernetes
+=====================================
+Main scheduling types/concepts:
+
+1. Default Scheduling
+  	Flow : Pod created => scheduler selects best node.
+
+	   Scheduler checks:
+		  * CPU
+		  * memory
+		  * node avalibility
+
+	   #kubectl create deployment test1 --image=nginx  --dry-run=client -o yaml
+
+	   - Kubernetes automatically chooses node.
+
+
+2. Manual Scheduling
+	- You directly assign Pod to a node.
+	   
+     Using: 
+		    spec:
+  		    nodeName: worker-1
+-----------------------------
+root@kube-master:~# cat test1 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: test1
+  name: test1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: test1
+    spec:
+      nodeName: kube-node2     <<<<
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+------------
+    Important
+	   - Scheduler is bypassed.
+	   - Used rarely.
+
+3. NodeSelector Scheduling
+	   - Simplest node selection method.
+	   - You assign labels to nodes.
+
+	     #kubectl label node kube-node1 disktype=ssd
+
+-----------
+root@kube-master:~# cat test1 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: test1
+  name: test1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: test1
+    spec:
+      nodeSelector:
+        disktype: ssd     <<<<<
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+-----------
+
+	     - Pod runs only on matching node.
+
+4. Node Affinity
+	   - Advanced version of nodeSelector.
+	   - Node Affinity is used to control on which nodes a Pod can run using node labels.
+
+	     Allows:
+		    - flexible rules
+		    - expressions
+		    - preferences
+
+	 Types
+	   Required Affinity
+	   Mandatory.
+		  - Pod MUST run on matching node
+
+	   Preferred Affinity
+	   Soft rule.
+		  - Scheduler tries preferred node first
+
+   Important Keywords
+	   Keyword											Meaning
+	   requiredDuringSchedulingIgnoredDuringExecution	
+                - Mandatory rule
+								- hard rule, check during pod creation.
+								- Running Pod not moved later
+
+	   preferredDuringSchedulingIgnoredDuringExecution	
+                - Soft/preferred rule
+								- BUT if no SSD node exists, Pod can still run on another node.
+								- Running Pod not moved later
+								- If a Pod is running on node1 and node1 reboots, Kubernetes waits for some time (default ~5 minutes) to see whether the node comes back.
+
+									If the node does not recover, the Pod is marked failed/unreachable,and the Deployment/ReplicaSet creates a NEW Pod which may get scheduled on node2.
+----
+root@kube-master:~# cat test1 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: test1
+  name: test1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: test1
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                - ssd
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+------------------------------
+
+root@kube-master:~# cat test1 
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: test1
+  labels:
+    app: test1
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: test1
+
+  template:
+    metadata:
+      labels:
+        app: test1
+
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                - ssd
+
+      containers:
+      - name: nginx
+        image: nginx
+
+--------------------------
+    - matchExpressions are used inside Node Affinity rules to define flexible node selection logic.
+    - They are much more powerful than simple nodeSelector.
+
+Basic structure
+-------------------
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: <label-key>
+          operator: <operator>
+          values:
+          - <value>
+--------------------
+
+Most Important Operators
+Operator
+In:           Label value must match
+NotIn:        Label value must NOT match
+Exists:       Label key must exist
+DoesNotExist: Label key must NOT exist
+Gt:           Greater than
+Lt:           Less than
+
+
+5. Pod Affinity
+	- Run a Pod close to another Pod
+
+	Node Affinity:
+		Pod → attracted to Nodes.
+	
+	Pod Affinity:
+		Pod → attracted to other Pods.
+
+	Suppose you have:
+		- Frontend Pod
+		- Backend Pod
+
+	You want:
+		- Frontend Pod should run on same node as Backend Pod
+
+	Reason:
+		- low latency
+		- faster communication
+
+	How Pod Affinity Works ? (pending)
+
+----
+root@kube-master:~# cat test1 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend
+
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - backend
+
+        topologyKey: kubernetes.io/hostname
+
+  containers:
+  - name: nginx
+    image: nginx
+----
+root@kube-master:~# kubectl get pod --show-labels -o wide
+NAME                          READY   STATUS    RESTARTS   AGE     IP               NODE         NOMINATED NODE   READINESS GATES   LABELS
+app1-7f7658c6bc-4d7wx         1/1     Running   0          3m25s   172.18.9.68      kube-node1   <none>           <none>            app=backend,pod-template-hash=7f7658c6bc
+frontend                      1/1     Running   0          20m     172.18.9.90      kube-node1   <none>           <none>            <none>
+
+Meaning of This YAML
+Run this Pod only on nodes where Pod label: app=backend already exists
+
+Types of Pod Affinity
+	1. requiredDuringSchedulingIgnoredDuringExecution
+	Hard rule.
+		- Pod MUST run near matching Pod
+	If no matching Pod:
+		Scheduling fails
+
+	2. preferredDuringSchedulingIgnoredDuringExecution
+	Soft rule.
+		- Try to run near matching Pod
+	But scheduler may ignore preference.
+
+
+
+6. Pod Anti-Affinity
+	- Do NOT place Pods together
+
+	Why Pod Anti-Affinity Is Used
+	Main purpose:
+	- High Availability
+
+	Real-World Example
+	Suppose Deployment has: 3 replicas
+	
+	Without Anti-Affinity: All 3 Pods may run on same node
+
+	Problem: If node crashes → all Pods lost
+
+	With Pod Anti-Affinity
+	Kubernetes spreads Pods:
+	Node-1 → Pod-A
+	Node-2 → Pod-B
+	Node-3 → Pod-C
+
+	Now:One node failure does not kill all replicas
+
+----
+root@kube-master:~# cat a
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: nginx-deploy
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: nginx-deploy
+
+  template:
+    metadata:
+      labels:
+        app: nginx-deploy
+
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - nginx-deploy
+
+            topologyKey: kubernetes.io/hostname
+
+      containers:
+      - name: nginx
+        image: nginx
+
+----
+7. Taints and Tolerations
+    - Taints and Tolerations are used to control which Pods can run on which Nodes.
+    
+    Think of it like this:
+    - Taint = Node says: “Don’t schedule pods here unless they can tolerate me.”
+    - Toleration = Pod says: “I can handle that taint.”
+
+    They work together to keep workloads separated.
+
+    Why Taints and Tolerations Exist
+      They help you:
+      - Reserve nodes for specific workloads
+      - Keep GPU nodes for ML jobs only
+      - Separate production and dev workloads
+      - Prevent regular apps from using special nodes
+      - Handle problematic/unhealthy nodes
+
+
+    Step 1: Add a Taint to a Node
+            # kubectl taint nodes worker-1 env=prod:NoSchedule
+            This means:
+              key = env 
+              value = prod
+              effect = NoSchedule
+            
+            The node is now saying:
+              "No pod can be scheduled here unless it tolerates env=prod.
+
+
+            root@kube-master:~# kubectl describe nodes kube-master | grep Taints    >> bydfault master node is taint.
+            Taints:             node-role.kubernetes.io/control-plane:NoSchedule
+
+
+root@kube-master:~# kubectl taint nodes kube-node3 env=prod:NoSchedule
+node/kube-node3 tainted
+
+root@kube-master:~# kubectl describe nodes kube-node3 | grep -i taint
+Taints:             env=prod:NoSchedule
+
+----
+root@kube-master:~# cat pod.yml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  tolerations:
+  - key: "env"
+    operator: "Equal"
+    value: "prod"
+    effect: "NoSchedule"
+
+  containers:
+  - name: nginx
+    image: nginx
+-----------------
+  Important Thing Most Beginners Miss
+    Toleration does NOT force scheduling
+      A toleration only means:
+      - This pod is allowed to run there.
+
+      It does NOT mean:
+      - Scheduler must place it there.
+
+      For forcing placement, combine with:
+        * nodeSelector
+        * nodeAffinity
+
+
+  Taint Effects
+    There are 3 taint effects.
+
+    1. NoSchedule
+        Most common.
+          Meaning
+          - Pods without matching toleration will NOT be scheduled.
+            
+            Pod without toleration can not run on Tainted Node
+
+            # kubectl taint nodes worker-1 gpu=true:NoSchedule
+
+              Only GPU-tolerant pods can run there.
+
+    2. PreferNoSchedule
+        Soft rule.
+          Scheduler tries to avoid placing pods there, but may still do it.
+          Useful when:
+            * You prefer isolation
+            * But allow fallback scheduling
+
+            Example:
+              # kubectl taint nodes worker-1 spot=true:PreferNoSchedule
+
+    3. NoExecute
+        Strongest effect.
+          Two things happen:
+          1. New pods without toleration are NOT scheduled
+          2. Existing pods without toleration are EVICTED
+          
+          Example:
+              # kubectl taint nodes worker-1 unhealthy=true:NoExecute
+
+          Pods already running get removed.
+
+
+
+            Pending to understand with pratical
+
+
+
+8. DaemonSet Scheduling : a DaemonSet ensures that one copy of a Pod runs on every eligible node.
+    Typical use cases:
+      - Log collectors
+      - Monitoring agents
+      - Security agents
+      - Node exporters
+      - CNI networking plugins
+    
+    Examples:
+      - Fluentd
+      - Prometheus Node Exporter
+      - Calico
+
+    What Makes DaemonSet Scheduling Special
+      Normal Pods:
+        - Scheduler decides where to run them.
+      
+      DaemonSet Pods:
+        - Controller decides which nodes must run a Pod.
+      
+      So instead of:
+        - "I need 3 replicas"
+      
+      DaemonSet says:
+        - I need 1 pod on every matching node"
+
+
+  
+9. Static Pods
+    Static Pods are Pods managed directly by the kubelet on a specific node, without the API server creating them first.
+      They are mainly used for:
+      - Control plane components
+      - Bootstrapping clusters
+      - Node-level critical services
+
+      (pratical pending)
+
+10 Custom Scheduler
+
+

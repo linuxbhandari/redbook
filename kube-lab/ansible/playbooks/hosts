@@ -1,0 +1,9 @@
+[ubuntu]
+ubuntu-vm1 ansible_user=root ansible_port=22
+
+[rhel]
+rhel-vm1 ansible_user=root ansible_port=22
+
+[prod:children]
+ubuntu
+rhel

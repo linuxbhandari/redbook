@@ -1,0 +1,13 @@
+heat_template_version: 2016-10-14
+
+resources:
+  NodeUserData:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        users:
+          - name: heat-admin
+            lock_passwd: false
+            passwd: "$6$K.GgKELOyNPRnhOv$ORMbfkICKj45jarNxJ8okV5IkRD/eGxXQBZ47TzBw4sF58wd/daxTNqPhNKTZD5o4gJcvYLzRKnetXtlWeu6G0" #heat123
+            sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+            shell: /bin/bash

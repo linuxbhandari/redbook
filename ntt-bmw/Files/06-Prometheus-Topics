@@ -1,0 +1,131 @@
+🧱 1. Prometheus Basics
+What is Prometheus?
+
+Prometheus architecture:
+
+Prometheus Server
+
+Exporters
+
+Pushgateway
+
+Alertmanager
+
+Time-series database (TSDB)
+
+Pull-based metrics collection
+
+Prometheus vs other monitoring tools (e.g., Nagios, Zabbix)
+
+📄 2. Configuration
+prometheus.yml structure
+
+Job configuration
+
+scrape_interval, scrape_timeout
+
+relabel_configs basics
+
+Service discovery (static, Kubernetes, Consul, etc.)
+
+🔢 3. Metrics
+Metric types: Counter, Gauge, Histogram, Summary
+
+Metric naming conventions
+
+Labels & label best practices
+
+Metric exposition formats (/metrics endpoint)
+
+📋 4. PromQL (Prometheus Query Language)
+Basic queries: http_requests_total, up
+
+Filtering with labels: {job="nginx"}
+
+Aggregation operators: sum(), avg(), rate(), irate(), increase()
+
+Range vectors: [5m], [1h]
+
+Functions: rate(), count(), histogram_quantile()
+
+Recording rules
+
+⏰ 5. Alerts & Alertmanager
+Alerting rules in Prometheus
+
+Expression-based alerts
+
+for, labels, annotations fields
+
+Alertmanager architecture
+
+Routing alerts
+
+Silencing and inhibiting alerts
+
+Integrating with Slack, Email, PagerDuty, etc.
+
+📦 6. Exporters
+Node Exporter (Linux system metrics)
+
+Blackbox Exporter (HTTP/TCP/ICMP checks)
+
+cAdvisor (container metrics)
+
+Custom exporters
+
+Writing your own exporter
+
+🧪 7. Instrumentation
+Client libraries: Go, Python, Java, etc.
+
+Exposing metrics in applications
+
+Instrumenting custom business logic
+
+Best practices for metrics collection
+
+📈 8. Prometheus + Grafana
+Adding Prometheus as a Grafana data source
+
+Creating dashboards
+
+Using PromQL in Grafana panels
+
+Alerting via Grafana vs Alertmanager
+
+☸️ 9. Prometheus with Kubernetes
+Prometheus Operator
+
+kube-prometheus-stack (Helm)
+
+Kubernetes service discovery
+
+Monitoring Kubernetes objects (Pods, Nodes, Deployments)
+
+Metrics server vs Prometheus
+
+📚 10. Advanced Concepts
+Remote write/remote read
+
+Federation
+
+High availability (HA) setup
+
+WAL (Write-Ahead Log)
+
+Retention policies
+
+TSDB internals
+
+🛠️ 11. Tools & Ecosystem
+Thanos (scalable, long-term storage)
+
+VictoriaMetrics
+
+Cortex
+
+Pushgateway (for short-lived jobs)
+
+PromLens, promtool
+

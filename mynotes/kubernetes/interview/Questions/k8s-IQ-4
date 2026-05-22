@@ -1,0 +1,143 @@
+
+Q)What is Kubernetes, and what problems does it solve?
+Kubernetes is an open-source container orchestration platform used to automate the deployment, scaling, management, and monitoring of containerized applications.
+
+    It was originally developed by Google and is now maintained by the Cloud Native Computing Foundation.
+    
+    Kubernetes helps manage containers across multiple servers (nodes) in a cluster environment.
+
+Kubernetes solves several challenges in managing containerized applications:
+    Automates container deployment and management
+    Provides auto scaling based on traffic/load
+    Restarts failed containers automatically (self-healing)
+    Ensures high availability of applications
+    Handles load balancing and service discovery
+    Supports rolling updates and easy rollbacks
+    Efficiently manages CPU, memory, and storage resources
+    Simplifies management of large-scale microservices applications
+    Provides portability across cloud and on-premises environments
+ 
+    
+Q) What are the main components of Kubernetes architecture, and how do they work together?
+
+1. Control Plane (Master Node)
+    Manages and controls the cluster.
+        Main components:
+            API Server → Entry point for all Kubernetes operations
+            etcd → Stores cluster data and configuration
+            Scheduler → Assigns Pods to nodes
+            Controller Manager → Maintains desired cluster state
+
+2. Worker Node
+    Runs the application workloads (Pods).
+        Main components:
+            kubelet → Communicates with Control Plane and manages Pods
+            kube-proxy → Handles networking and traffic routing
+            Container Runtime → Runs containers (e.g., containerd)
+
+Simple Flow
+User → API Server → Scheduler selects node → kubelet creates Pod → container runtime runs container.
+
+
+Q) What is the difference between the Control Plane and Worker Nodes? (optional)
+
+In Simple Words
+Control Plane = Brain of Kubernetes
+Worker Node = Machine that runs applications (Pods)
+
+
+Q) What is the role of the API Server, Scheduler, Controller Manager, and etcd in Kubernetes?
+
+API Server → Entry point of the cluster. It receives all requests from users, kubectl, and other components and communicates with the cluster.
+Scheduler → Decides on which Worker Node a Pod should run based on resources, policies, and constraints.
+Controller Manager → Continuously monitors the cluster and ensures the desired state is maintained (e.g., recreates failed Pods).
+etcd → Distributed key-value store that stores all cluster data and configuration information. It acts as the cluster database.
+
+
+Q) What is kubelet, kube-proxy, and Container Runtime?
+
+kubelet → Agent running on each Worker Node. It communicates with the Control Plane and ensures Pods are running as expected.
+kube-proxy → Handles networking on Worker Nodes. It manages traffic routing and load balancing between Pods and Services.
+Container Runtime → Software responsible for running containers on a node. Examples include containerd and CRI-O.
+
+What happens internally when you run kubectl apply?
+
+kubectl sends the YAML/manifest request to the API Server.
+The API Server validates the configuration.
+The desired state is stored in etcd.
+The Scheduler selects a suitable Worker Node for the Pod.
+The kubelet on that node receives instructions from the API Server.
+The Container Runtime pulls the container image and starts the containers.
+kube-proxy configures networking and service communication.
+The Pod becomes running, and Kubernetes continuously monitors it to maintain the desired state.
+
+
+
+What is a Pod, and why is it the smallest deployable unit in Kubernetes?
+What is the difference between a Pod and a Container?
+Can a Pod contain multiple containers, and what are the use cases?
+What are init containers and sidecar containers?
+What is the Pod lifecycle, and what happens when a Pod crashes?
+What is the difference between static Pods and normal Pods?
+What is a ReplicaSet, and why are Deployments preferred over ReplicaSets directly?
+What is scaling in Kubernetes, and how do you scale a Deployment?
+What are rolling updates and rollbacks in Deployments?
+What is the difference between RollingUpdate and Recreate strategies?
+How does Kubernetes achieve zero-downtime deployments?
+What is the difference between Deployment and StatefulSet?
+What is a Kubernetes Service, and why is it needed?
+Explain the different Service types: ClusterIP, NodePort, LoadBalancer, and ExternalName.
+What is the difference between NodePort and LoadBalancer Services?
+How do Pods communicate with each other inside a cluster?
+What are CoreDNS and kube-proxy, and how do they help networking?
+What is Ingress, and how is it different from LoadBalancer?
+What is a CNI plugin and Network Policy in Kubernetes?
+What are ConfigMaps and Secrets, and how are they different?
+How do you mount ConfigMaps and Secrets into Pods?
+Are Kubernetes Secrets encrypted by default, and how can they be secured?
+What are Volumes, and why are they needed in Kubernetes?
+What is the difference between ephemeral and persistent storage?
+What are Persistent Volumes (PV), Persistent Volume Claims (PVC), and StorageClasses?
+What is the difference between PV and PVC?
+What happens to storage when a Pod is deleted?
+What are Namespaces, and why are they used?
+What are ResourceQuota, LimitRange, requests, and limits in Kubernetes?
+What happens if a Pod exceeds its memory limit?
+What are QoS classes in Kubernetes?
+What is RBAC, and how does it work in Kubernetes?
+What is the difference between Role and ClusterRole, RoleBinding and ClusterRoleBinding?
+What is a ServiceAccount in Kubernetes?
+What are taints, tolerations, node selectors, and affinity rules?
+What is the difference between nodeSelector and node affinity?
+What are Pod Security and Admission Controllers?
+How does the Kubernetes Scheduler decide where to place Pods?
+What are pod affinity and anti-affinity rules?
+How do you schedule Pods on specific nodes?
+What is a StatefulSet, and why is it needed for stateful applications?
+What is a Headless Service, and how does it work with StatefulSets?
+How does Kubernetes maintain persistent identity for Stateful applications?
+What are Jobs and CronJobs, and when should they be used?
+What is the difference between a Deployment and a Job?
+What are readiness, liveness, and startup probes?
+What is the difference between readiness and liveness probes?
+How do you troubleshoot a failing Pod in Kubernetes?
+What is the difference between kubectl logs and kubectl describe?
+What are common reasons for CrashLoopBackOff and ImagePullBackOff errors?
+How do you check cluster events and logs for troubleshooting?
+What is the difference between imperative and declarative approaches in Kubernetes?
+What are the common sections in a Kubernetes YAML manifest?
+What is the difference between kubectl apply, create, and replace?
+How do you expose a Deployment and perform a rolling restart?
+What are Helm, Operators, and Custom Resource Definitions (CRDs)?
+What are HPA, VPA, and Cluster Autoscaler?
+What is a DaemonSet, and how is it different from a Deployment?
+What is the difference between Docker and Kubernetes?
+A Pod is stuck in Pending state — how would you troubleshoot it?
+Users cannot access an application exposed through a Service — what would you check?
+One Pod is receiving all traffic instead of load balancing — what could be wrong?
+A Deployment update failed — how would you rollback?
+A node becomes NotReady — what happens to the Pods running on it?
+How would you deploy an application with zero downtime?
+How would you securely store database passwords in Kubernetes?
+How would you troubleshoot DNS issues inside a Kubernetes cluster?
+

@@ -1,0 +1,31 @@
+- name: Restart Apache with error handling
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Attempt to restart Apache service
+      block:
+        - name: Restart Apache
+          service:
+            name: apache2
+            state: restarted
+
+        - name: Confirm Apache is running
+          shell: systemctl is-active apache2
+          register: apache_status
+          failed_when: apache_status.stdout != "active"
+
+      rescue:
+        - name: Show error message
+          debug:
+            msg: "Apache failed to restart. Attempting to fix..."
+
+        - name: Try to start Apache manually
+          service:
+            name: apache2
+            state: started
+
+      always:
+        - name: Log restart attempt
+          debug:
+            msg: "Apache restart attempted on host {{ inventory_hostname }}"

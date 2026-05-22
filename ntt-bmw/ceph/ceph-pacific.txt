@@ -1,0 +1,144 @@
+https://achchusnulchikam.medium.com/deploy-ceph-cluster-with-cephadm-on-centos-8-257b300e7b42 <== ceph pacific
+==============================================================================================================
+
+1. 
+
+[root@centos-ceph0 ~]# ssh-keygen 
+[root@centos-ceph0 ~]# ssh-copy-id centos-ceph0
+[root@centos-ceph0 ~]# ssh-copy-id centos-ceph1
+[root@centos-ceph0 ~]# ssh-copy-id centos-ceph2
+
+2.
+[root@centos-ceph0 ~]# dnf install -y python3 lvm2 podman
+[root@centos-ceph1 ~]# dnf install -y python3 lvm2 podman
+[root@centos-ceph2 ~]# dnf install -y python3 lvm2 podman
+
+3.
+[root@centos-ceph0 ~]# curl --silent --remote-name --location https://github.com/ceph/ceph/raw/pacific/src/cephadm/cephadm
+[root@centos-ceph1 ~]# chmod +x cephadm
+
+4.
+[root@centos-ceph0 ~]# ./cephadm add-repo --release pacific
+[root@centos-ceph0 ~]# dnf install -y ceph-common
+[root@centos-ceph0 ~]# ./cephadm bootstrap --mon-ip 192.168.122.156
+
+
+5.
+[root@centos-ceph0 ~]# podman ps
+[root@centos-ceph0 ~]# systemctl --type=service| grep -i ceph
+
+
+[root@centos-ceph0 ~]# ceph -s
+  cluster:
+    id:     024ca830-a002-11ee-a286-525400dd4d2a
+    health: HEALTH_WARN
+            OSD count 0 < osd_pool_default_size 3
+ 
+  services:
+    mon: 1 daemons, quorum centos-ceph0 (age 2m)
+    mgr: centos-ceph0.zsxlyp(active, since 11s)
+    osd: 0 osds: 0 up, 0 in
+ 
+  data:
+    pools:   0 pools, 0 pgs
+    objects: 0 objects, 0 B
+    usage:   0 B used, 0 B / 0 B avail
+    pgs:     
+ 
+  progress:
+    Updating prometheus deployment (+1 -> 1) (0s)
+      [............................] 
+ 
+
+
+6. Add new host
+================
+[ceph: root@centos-ceph0 /]# ceph orch host add centos-ceph1 192.168.122.58
+Added host 'centos-ceph1' with addr '192.168.122.58'
+
+[ceph: root@centos-ceph0 /]# ceph orch host add centos-ceph2 192.168.122.185
+Added host 'centos-ceph2' with addr '192.168.122.185'
+
+[ceph: root@centos-ceph0 /]# ceph orch host ls
+HOST          ADDR             LABELS  STATUS  
+centos-ceph0  192.168.122.156  _admin          
+centos-ceph1  192.168.122.58                   
+centos-ceph2  192.168.122.185                  
+3 hosts in cluster
+
+[ceph: root@centos-ceph0 /]# ceph orch device ls
+[ceph: root@centos-ceph0 /]# ceph orch device ls --hostname=centos-ceph0
+
+
+7. Add manual osd
+==================
+[ceph: root@centos-ceph0 /]# ceph -s
+[ceph: root@centos-ceph0 /]# ceph orch daemon add osd centos-ceph2:/dev/vdb
+
+
+8. Remove osd from cluster
+==========================
+https://www.ibm.com/docs/en/storage-ceph/6?topic=osds-removing-osd-daemons
+
+
+[ceph: root@centos-ceph0 /]# ceph orch osd rm 0 --zap
+Scheduled OSD(s) for removal
+
+[ceph: root@centos-ceph0 /]# ceph orch osd rm status
+
+9. How to stop osd
+==================
+[ceph: root@centos-ceph0 /]# ceph osd purge 0 --yes-i-really-mean-it
+Error EBUSY: osd.0 is not `down`.
+[ceph: root@centos-ceph0 /]# ceph orch daemon stop osd.0
+Scheduled to stop osd.0 on host 'centos-ceph2'
+[ceph: root@centos-ceph0 /]# ceph osd purge 0 --yes-i-really-mean-it
+purged osd.0
+[ceph: root@centos-ceph0 /]# ceph orch osd rm status
+No OSD remove/replace operations reported
+[ceph: root@centos-ceph0 /]# 
+
+
+
+[root@centos-ceph0 ~]# cephadm shell
+Inferring fsid 767bd03e-9fd8-11ee-a7a0-525400dd4d2a
+Using recent ceph image quay.io/ceph/ceph@sha256:7278e7da3b60c0ed54a1960371c854632caab27f0d6c90d6812f2a36b22b8f9a
+
+[ceph: root@centos-ceph0 /]# ceph orch daemon stop osd.0
+Scheduled to stop osd.0 on host 'centos-ceph2'
+[ceph: root@centos-ceph0 /]# ceph health
+HEALTH_WARN 1 osds down; 1 slow ops, oldest one blocked for 5235 sec, mon.centos-ceph1 has slow ops
+
+[ceph: root@centos-ceph0 /]# ceph orch daemon start osd.0
+
+
+ceph: root@centos-ceph0 /]# ceph orch osd rm 0 --replace             <== Remove osd 
+Scheduled OSD(s) for removal
+ 
+[ceph: root@centos-ceph0 /]# ceph osd tree
+ID  CLASS  WEIGHT   TYPE NAME              STATUS     REWEIGHT  PRI-AFF
+-1         0.08817  root default                                       
+-7         0.02939      host centos-ceph0                              
+ 2    hdd  0.00980          osd.2                 up   1.00000  1.00000
+ 5    hdd  0.00980          osd.5                 up   1.00000  1.00000
+ 8    hdd  0.00980          osd.8                 up   1.00000  1.00000
+-5         0.02939      host centos-ceph1                              
+ 1    hdd  0.00980          osd.1                 up   1.00000  1.00000
+ 3    hdd  0.00980          osd.3                 up   1.00000  1.00000
+ 7    hdd  0.00980          osd.7                 up   1.00000  1.00000
+-3         0.02939      host centos-ceph2                              
+ 0    hdd  0.00980          osd.0          destroyed         0  1.00000   <==
+ 4    hdd  0.00980          osd.4                 up   1.00000  1.00000
+ 6    hdd  0.00980          osd.6                 up   1.00000  1.00000
+
+
+[ceph: root@centos-ceph0 /]# ceph orch device ls --hostname=centos-ceph1
+HOST          PATH      TYPE  DEVICE ID   SIZE  AVAILABLE  REFRESHED  REJECT REASONS                                                 
+centos-ceph1  /dev/vdb  hdd              10.0G             6m ago     Insufficient space (<10 extents) on vgs, LVM detected, locked  
+centos-ceph1  /dev/vdc  hdd              10.0G             6m ago     Insufficient space (<10 extents) on vgs, LVM detected, locked  
+centos-ceph1  /dev/vdd  hdd              10.0G             6m ago     Insufficient space (<10 extents) on vgs, LVM detected, locked  
+
+
+
+
+

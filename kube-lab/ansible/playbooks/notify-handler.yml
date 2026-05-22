@@ -1,0 +1,38 @@
+---
+- name: Notify and Handler
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: upgrade the ftp package
+      copy: 
+         content: "ftp config file"
+         dest: /tmp/motd
+
+    - name: Install the latest version of vsftpd on Ubuntu
+      apt:
+        name: vsftpd
+        state: present
+      notify: ftp_update
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Install the latest version of vsftpd on Centos
+      apt:
+        name: vsftpd
+        state: present
+      notify: ftp_update
+      when: ansible_distribution == 'Centos'
+
+    - name: Create a directory if it does not exist
+      file:
+        path: /etc/vsftpd.conf
+        state: file
+        mode: '0755'
+      notify: ftp_update
+
+  handlers:
+    - name: Restart vsftpd service
+      service:
+           name: vsftpd
+           state: restarted
+      listen: ftp_update
