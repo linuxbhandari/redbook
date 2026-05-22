@@ -1,0 +1,53 @@
+This is the JD 
+
+Job Description: The ideal candidate for this position is a senior-level Linux engineer with deep Red Hat expertise, automation skills, and a strong ability to lead both technically and strategically. The candidate should be comfortable interacting with leadership and mentoring junior staff, while still being hands-on with evaluate new technologies, troubleshooting, scripting, and infrastructure design.   
+
+•    Design, implement, and maintain scalable and secure Linux infrastructure across on-premises and hybrid environments, ensuring high availability, performance, and compliance   
+•    Function as the Linux platform owner, escalation point, and tech lead in cross-functional environment   
+•    Mentor and lead technical staff, drive documentation and knowledge sharing, and serve as the primary subject matter expert for Linux systems within the organization   
+•    Own Linux system lifecycle management, including patching, upgrades, monitoring, incident response, and remediation aligned with InfoSec and audit requirements   Key Activities: 
+•    Document Infrastructure and Operations 
+        o Maintain up-to-date documentation for system configurations, operational procedures, deployment processes and architecture diagrams for internal teams 
+•    Plan and Execute Upgrades 
+        o Evaluate and implement OS, and software upgrades as per lifecycle requirements 
+•    Security Monitoring and Response 
+        o Apply patches, mitigate risks, and generate security compliance reports for InfoSec or audit teams 
+        o    Monitor and react to security issues and ‘zero-day’ events; prepare reports accordingly 
+•    Troubleshooting and Incident Management 
+        o    Proactively identify and resolve system issues; respond to alerts and incidents 
+        o    Perform root cause analysis (RCA); document problems and implemented remediations 
+        o    Periodically report to senior leadership recommended upgrades and/or changes to environment including new concepts and designs   The Linux Design team is responsible for: 
+
+•    Day-to-day function, operation, and availability of the entire Linux enterprise 
+•    Regular recurring Linux OS and security patching and updates via established and automatically updated repositories 
+•    Provision of all necessary components for the automated build and creation of Linux systems 
+•    Implementation and enforcement of Infosec security rules, restrictions, and configurations 
+•    Accountable for Linux infrastructure issues, risks, and remediation efforts as well as the designated Linux support and contact   Technical Skill Requirement: 
+•    Expert knowledge on RedHat Linux OS, Kernel, infrastructure and security 
+        o    LVM 
+        o    RPM 
+        o    NetworkManager 
+        o    Systemd 
+        o    Syslog, rsyslog 
+•    Expert knowledge in Linux Base Build, Kickstart, and BM / BMR Functions 
+•       o    ISO creation 
+        o    Remote and automated OS installation processes 
+•    SME RedHat / equivalent applications 
+•       o    AWX (Open Source) / Ansible Tower 
+•    Foreman (Open Source) / Satellite 
+•    RH Insights 
+•    Pacemaker 
+•    OpenShift Concepts 
+•    Proficiency in RedHat patching and security 
+•    Patch management strategies 
+•    Red Hat repository management 
+•    Can demonstrate proficiency in several SHELL scripting languages (ex., bash) 
+•    Can demonstrate proficiency in hands-on unassisted troubleshooting 
+•    Can demonstrate knowledge with RHEL OS history, development, and roadmap 
+•    Can demonstrate a working technical knowledge of several mid-range server models 
+•    Can demonstrate implement, support and maintain Open-Source software   Soft/Mgmt Skill Requirement: 
+•    Excellent communication skills, both verbal and written, with a variety of audiences (senior leadership, project teams, peers, and technical understudies 
+•    Demonstrate and provide examples of self-written documentation: processes, detailed environment descriptions, infrastructure diagrams, etc. 
+•    Seamlessly work with various internal groups:  application and project teams, infrastructure support teams (GNS, OSG, DCIG, CM.io, etc.), InfoSec 
+•    Create, provide, and communicate status reports for all Linux infrastructure to senior leadership
+ 
