@@ -1,23 +1,24 @@
 OpenStack
 =========
-   OpenStack is an open-source cloud platform used to create and manage Infrastructure as a Service (IaaS).
-   It provides:
-	Virtual Machines
-	Networking
-	Storage
-	Identity management
-	Image management
+OpenStack is an open-source cloud platform used to create and manage Infrastructure as a Service (IaaS).
+  It provides:
+	- Virtual Machines
+	- Networking
+	- Storage
+	- Identity management
+	- Image management
     Similar to how AWS provides EC2, EBS, VPC, etc.
     
     Using OpenStack, users can:
-	launch VMs
-	create networks
-	attach storage
-	manage users/projects
-	automate infrastructure
+	- launch VMs
+	- create networks
+	- attach storage
+	- manage users/projects
+	- automate infrastructure
 
 TripleO in OpenStack
-	TripleO stands for: OpenStack On OpenStack
+	TripleO stands for: OpenStack-On-OpenStack
+	
 
 Undercloud (director)
 	- Small OpenStack environment
@@ -39,8 +40,9 @@ OpenStack core services:
 ========================
 Service	 Purpose
 
-1. Keystone : Keystone is the Identity Service of OpenStack.
-	It handles:
+1. Keystone 
+	- Keystone is the Identity Service of OpenStack.It is a Centralized service for authentication and authorization of OpenStack services and for managing users, projects, and roles.
+		It handles:
 		- Authentication
 		- Authorization
 		- User management
@@ -49,174 +51,157 @@ Service	 Purpose
 	Simple Defination
 	Keystone controls who can access OpenStack services.
 
-common keystone commands
-	openstack user list
-	openstack project list
-	openstack role list
-	openstack token issue
+	common keystone commands
+		#openstack user list
+		#openstack project list
+		#openstack role list
+		#openstack token issue
 
 
-2. Nova	 Compute / VMs (IMP)
-	Nova is the Compute Service of OpenStack.
+2. Nova	Compute : Nova is the Compute Service of OpenStack. Its manages and provisions virtual machines running on hypervisor nodes.
 	It manages:
 		- Virtual Machines (instances)
 		- VM lifecycle
 		- Scheduling
 		- Hypervisor communication
 	Simple Defination
-	Nova creates and manages virtual machines in OpenStack.
+	Nova creates and manages virtual machines in OpenStack hypervisor.
 
-Important Nova Components
-Component	Purpose
-nova-api	Receives API requests
-nova-scheduler	Selects compute node
-nova-conductor	Coordinates tasks
-nova-compute	Runs on compute node
-Placement	Resource tracking
+	Important Nova Components
+	Component		Purpose
+	nova-api		Receives API requests
+	nova-scheduler	Selects compute node
+	nova-conductor	Coordinates tasks
+	nova-compute	Runs on compute node
+	Placement		Resource tracking
 
-
-common Nova Commands
-	openstack server list
-	openstack server create
-	openstack server delete
-	openstack hypervisor list
-
+	common Nova Commands
+		#openstack server list
+		#openstack server create
+		#openstack server delete
+		#openstack hypervisor list
 
 
 3. Neutron	 Networking (IMP)
-Neutron is the Networking Service of OpenStack.
-It manages:
-	Networks
-	Subnets
-	Routers
-	IP addresses
-	Security groups
-	Floating IPs
+	Neutron is the Networking Service of OpenStack.
+	It manages:
+		Networks
+		Subnets
+		Routers
+		IP addresses
+		Security groups
+		Floating IPs
+	Simple Definition
+	Neutron provides networking for OpenStack VMs.
+	
+	Networking Flow
+	VM → Virtual Switch → Neutron → Router → External Network
 
-Simple Definition
-Neutron provides networking for OpenStack VMs.
+	Types of Networks
+	Type				Purpose
+	Tenant network		Internal/private network
+	Provider network	External/public network
 
-Networking Flow
-VM → Virtual Switch → Neutron → Router → External Network
+	Common Neutron Commands
+		#openstack network list
+		#openstack subnet list
+		#openstack router list
+		#openstack floating ip list
+		#openstack security group list
 
-Types of Networks
-Type	Purpose
-Tenant network	Internal/private network
-Provider network	External/public network
+4. Glance: Glance is the Image Service of OpenStack.
+	It stores and manages:
+		VM images
+		Snapshots
+		Templates for instances
 
-Common Neutron Commands
-openstack network list
-openstack subnet list
-openstack router list
-openstack floating ip list
-openstack security group list
+	Simple Definition
+	Glance stores VM images used to create virtual machines.
 
-4. Glance	 VM images
-Glance is the Image Service of OpenStack.
-It stores and manages:
-	VM images
-	Snapshots
-	Templates for instances
+	Main Responsibilities
+	Function				Description
+	Store images			VM operating system images
+	Retrieve images			Used during VM boot
+	Manage image metadata	OS type, size, format
+	Snapshot support		Save VM state
 
-Simple Definition
-Glance stores VM images used to create virtual machines.
+	Common Image Formats
+	Format	Description
+	qcow2	Most common KVM format
+	raw	Raw disk image
+	vmdk	VMware image
+	iso	Bootable installer image
 
-Main Responsibilities
-Function		Description
-Store images		VM operating system images
-Retrieve images		Used during VM boot
-Manage image metadata	OS type, size, format
-Snapshot support	Save VM state
-
-Common Image Formats
-Format	Description
-qcow2	Most common KVM format
-raw	Raw disk image
-vmdk	VMware image
-iso	Bootable installer image
-
-VM Boot Flow
-User → Nova
+	VM Boot Flow
+	User → Nova
       ↓
-Nova requests image from Glance
+	Nova requests image from Glance
       ↓
-Image sent to compute node
+	Image sent to compute node
       ↓
-VM boots
+	VM boots
 
-5. Cinder	 Block storage
-Cinder is the Block Storage Service of OpenStack.
-It provides:
-	Persistent storage volumes
-	Attach/detach volumes to VMs
-	Snapshots and backups
+5. Cinder (Block storage)
+	Cinder is the Block Storage Service of OpenStack.
+	It provides:
+		Persistent storage volumes
+		Attach/detach volumes to VMs
+		Snapshots and backups
+	Simple Definition
+	Cinder provides persistent block storage for virtual machines.
+	
+	Main Responsibilities
+	Function	Description
+	Create volumes	Persistent storage
+	Attach volumes	Connect storage to VM
+	Detach volumes	Remove storage
+	Snapshots	Backup volume data
+	Volume backups	Data protection
 
-Simple Definition
-Cinder provides persistent block storage for virtual machines.
-
-Main Responsibilities
-Function	Description
-Create volumes	Persistent storage
-Attach volumes	Connect storage to VM
-Detach volumes	Remove storage
-Snapshots	Backup volume data
-Volume backups	Data protection
-
-Volume Flow
-User → Cinder
+	Volume Flow
+	User → Cinder
       ↓
-Volume created
+	Volume created
       ↓
-Attached to VM through Nova
+	Attached to VM through Nova
 
-Common Cinder Commands
-openstack volume list
-openstack volume create
-openstack volume delete
-openstack server add volume
+	Common Cinder Commands
+		#openstack volume list
+		#openstack volume create
+		#openstack volume delete
+		#openstack server add volume
 
-openstack volume create --size 10 my-volume
+		#openstack volume create --size 10 my-volume
 
-Q) Difference between ephemeral and persistent storage?
-Answer:
-Ephemeral storage is temporary.
-Cinder volumes are persistent.
+	Q) Difference between ephemeral and persistent storage?
+	Answer:
+	Ephemeral storage is temporary.
+	Cinder volumes are persistent.
 
-Q) Which service attaches volumes to VM?
-Answer:
-	Nova integrates with Cinder to attach volumes.
-
-
-
-6. Horizon	 Web dashboard
-It provides a graphical interface to manage:
-	Virtual machines
-	Networks
-	Volumes
-	Images
-	Users/projects
-
-What You Can Do in Horizon
-Feature	Purpose
-Launch VMs	Create instances
-Create networks	Manage networking
-Attach volumes	Manage storage
-Upload images	Manage Glance images
-User/project management	Admin operations
+	Q) Which service attaches volumes to VM?
+	Answer:
+		Nova integrates with Cinder to attach volumes.
 
 
-
-
-Compute Service — Nova
-	- Creates and manages Virtual Machines (VMs)
-	- Handles instance lifecycle:
-		- launch
-		- stop
-		- reboot
-		- resize
-		- migrate
+6. Horizon (Web dashboard)
+	* Web browser-based dashboard that you use to manage OpenStack services.
+	* It provides a graphical interface to manage:
+		- Virtual machines
+		- Networks
+		- Volumes
+		- Images
+		- Users/projects
+	
+	What You Can Do in Horizon
+	Feature					Purpose
+	Launch VMs				Create instance
+	Create networks			Manage networking
+	Attach volumes			Manage storage
+	Upload images			Manage Glance images
+	manager User/project 	management	Admin operations
 
 Additional Service
+==================
 Service		Purpose
 Ironic		Manages physical servers (bare metal provisioning)
 Octavia		Load Balancer as a Service (LBaaS)
@@ -236,25 +221,20 @@ Masakari	High availability for VM instances
 Sahara		Hadoop/Spark cluster provisioning
 
 
-
-
-
 Controller Node Services
 =========================
 The controller node mainly handles APIs, scheduling, authentication, networking control, and databases.
-
-Common services:
-Service	Purpose
-
-OpenStack Keystone	Authentication
-OpenStack Nova	nova-api, scheduler, conductor
-OpenStack Neutron	neutron-server
-OpenStack Glance	Image service
-OpenStack Cinder	cinder-api, scheduler
-OpenStack Horizon	Web dashboard
-MariaDB/MySQL	Database
-RabbitMQ	Message queue
-Memcached	Token/session caching
+	Common services:
+	Service				Purpose
+	OpenStack Keystone	Authentication
+	OpenStack Nova		nova-api, scheduler, conductor
+	OpenStack Neutron	neutron-server
+	OpenStack Glance	Image service
+	OpenStack Cinder	cinder-api, scheduler
+	OpenStack Horizon	Web dashboard
+	MariaDB/MySQL		Database
+	RabbitMQ			Message queue
+	Memcached			Token/session caching
 
 Common controller processes
 nova-api
@@ -270,39 +250,119 @@ mariadb
 Compute Node Services
 =====================
 Compute node mainly runs VMs.
-Common services:
-Service	Purpose
-
-OpenStack Nova	nova-compute
-OpenStack Neutron	OVS/Linux bridge agents
-KVM/QEMU	Hypervisor
-Libvirt	VM management
+	Common services:
+	Service				Purpose
+	OpenStack Nova		nova-compute
+	OpenStack Neutron	OVS/Linux bridge agents
+	KVM/QEMU			Hypervisor
+	Libvirt				VM management
 
 Common compute processes
-nova-compute
-libvirtd
-qemu-kvm
-neutron-openvswitch-agent
-ovs-vswitchd
-ovsdb-server
+	nova-compute
+	libvirtd
+	qemu-kvm
+	neutron-openvswitch-agent
+	ovs-vswitchd
+	ovsdb-server
+
+Storage
+Nodes that provide storage for the OpenStack environment. This includes nodes for:
+	Ceph Storage nodes:
+		- Used to form storage clusters. Each node contains a Ceph Object Storage Daemon (OSD). In addition, the director installs Ceph Monitor onto the Controller nodes in situations where it deploys Ceph Storage nodes.
+		- Block storage (cinder) - Used as external block storage for HA Controller nodes. This node contains the following components:
+
+			OpenStack Block Storage (cinder) volume
+			OpenStack Telemetry (ceilometer) agent
+			Open vSwitch.
+	
+	Object storage (swift) - These nodes provide a external storage layer for Openstack Swift. The Controller nodes access these nodes through the Swift proxy. This node contains the following components:
+			OpenStack Object Storage (swift) storage
+			OpenStack Telemetry (ceilometer) agent
+			Open vSwitch.
+			
+
+High Availability 
+The Red Hat OpenStack Platform director uses a Controller node cluster to provide high availability services to your OpenStack Platform environment. 
+The director installs a duplicate set of components on each Controller node and manages them together as a single service. 
+This type of cluster configuration provides a fallback in the event of operational failures on a single Controller node; 
+this provides OpenStack users with a certain degree of continuous operation.
+
+The OpenStack Platform director uses some key pieces of software to manage components on the Controller node:
+	Pacemaker - Pacemaker is a cluster resource manager. Pacemaker manages and monitors the availability of OpenStack components across all nodes in the cluster.
+	HAProxy - Provides load balancing and proxy services to the cluster.
+	Galera - Replicates the Red Hat OpenStack Platform database across the cluster.
+	Memcached - Provides database caching.
+
+Q) Hardware requirement for controller, compute and director nodes.
+Director Node (Undercloud)
+	The Director node is used for deployment and management of the OpenStack environment.
+	Component	Recommended
+	CPU	8 vCPU
+	RAM	16–32 GB
+	Storage	100–500 GB SSD
+	Network	1–2 NICs
+	OS	RHEL 8/9
+
+	Notes
+	Used for provisioning and orchestration.
+	SSD storage improves deployment speed.
+	More RAM required for larger environments.
+
+
+Controller Nodes
+Controller nodes run core OpenStack services like:
+	Keystone
+	Glance
+	Nova API
+	Neutron
+	Horizon
+	RabbitMQ
+	MariaDB/Galera
+	Recommended HA Setup
+Minimum: 3 Controller Nodes
+Component	Recommended
+	CPU	16 vCPU
+	RAM	64 GB
+	Storage	200 GB SSD
+	Network	2–4 NICs
+	RAID	RAID1 preferred
+	
+	Notes
+	Database and messaging services consume high memory.
+	HA requires odd-number controller count (3 or 5).
+	SSD mandatory for production.
+
+Compute Nodes
+Compute nodes host virtual machines.
+	Component	Recommended
+	CPU	16–32 cores
+	RAM	128–512 GB
+	Storage	Depends on workload
+	Network	2×10GbE or higher
+	Virtualization	Intel VT-x / AMD-V enabled
+
+	Notes
+	RAM sizing depends on VM density.
+	CPU oversubscription ratio usually:
+	vCPU:Physical = 4:1 or 8:1
+	HugePages and NUMA recommended for NFV workloads.
 
 Director Node (Mostly Red Hat OpenStack)
 ========================================
 The director node is used for deployment and lifecycle management.
 Common in:
 Red Hat OpenStack Platform (RHOSP)
-
 Director node services/tools
-Service/Tool	Purpose
-TripleO	Deployment framework
-Heat	Orchestration
-Ironic	Bare metal provisioning
-Podman/Docker	Containers
+	Service/Tool	Purpose	
+	TripleO			Deployment framework
+	Heat			Orchestration
+	Ironic			Bare metal provisioning
+	Podman/Docker	Containers
+	
 Undercloud services	Manage overcloud deployment
-
 Common director commands
-	openstack overcloud deploy
-	openstack baremetal node list
+	#openstack overcloud deploy
+	#openstack baremetal node list
 
 
 Simple Architecture
@@ -444,6 +504,7 @@ Floating IP
 		- Used to access VM externally.
 
 Security Groups
+===============
 	Like firewall rules for VMs.
 	Controls:
 		SSH access
@@ -452,6 +513,7 @@ Security Groups
 		custom ports
 
 OpenStack Storage Types
+=======================
 	Storage Type	Service
 	Block Storage	Cinder
 	Object Storage	Swift
@@ -466,6 +528,7 @@ openstack volume list           # list volume
 
 
 VERY Important Interview Concepts
+=================================
 You should clearly understand:
 	What is OpenStack?
 		OpenStack is an open-source cloud platform used to manage compute, networking, and storage resources for building private or public clouds.
@@ -589,8 +652,6 @@ Next best topic after this is:
 	OpenStack interview questions
 	TripleO basics
 	KVM/libvirt in OpenStack
-
-
 
 OpenStack Troubleshooting Interview Questions
 =============================================
@@ -733,3 +794,5 @@ These sound professional in interviews:
 “I would verify service health and logs.”
 “I would check backend connectivity.”
 “I would confirm resource availability.”
+
+

@@ -1,0 +1,98 @@
+Interview Questions
+=====================
+Q) What is controller node?
+Q) what are the services run on the controller node?
+Q) Why the controller node considered the brain of the openstack?
+Q) Can multiple controller node exist? why?
+Q) Difference between controller, compute and storage node?
+
+
+
+
+VM Migration
+============
+In OpenStack, VM migration means moving an instance from one compute host to another.
+There are mainly three types of migrations:
+1. Cold Migration
+	The VM is powered OFF before migration.
+	
+	Process
+	Shut down VM
+	Copy/move instance
+	Start VM on another compute node
+
+	Features
+	Simple and reliable
+	Minimal resource requirement
+	Downtime involved
+
+	Use Cases
+	Hardware maintenance
+	Resource balancing
+	Failed compute recovery
+	
+	# openstack server migrate <vm-name>
+	
+2. Live Migration
+
+The VM is moved while running with minimal downtime.
+Process
+	Memory pages copied continuously
+	Final synchronization occurs
+	VM switches to target host
+Features
+	Near-zero downtime
+	No application interruption
+	Requires shared storage or block migration
+Requirements
+	Shared storage (NFS/Ceph) OR block migration
+	Same CPU compatibility
+	SSH connectivity between compute nodes
+Use Cases
+	Maintenance without downtime
+	Load balancing
+	Scaling operations
+	
+	# openstack server migrate --live <target-host> <vm-name>
+
+3. Block Migration
+	A type of live migration where local disk data is also copied.
+
+Features
+	Used when shared storage is NOT available
+	Copies VM disk + memory
+	Slower than normal live migration
+Use Cases
+	Local storage environments
+	Small deployments
+	
+	# openstack server migrate --live <target-host> --block-migration <vm-name>
+	
+Migration Comparison
+====================
+Type			VM State	Downtime	Shared Storage Needed
+Cold Migration	Powered 	Off	Yes		No
+Live Migration	Running		Very Low	Usually Yes
+Block Migration	Running		Very Low	No
+
+
+Q) Difference between Live Migration and Evacuation
+Live Migration			Evacuation
+Source host healthy		Source host failed
+Controlled movement		Disaster recovery
+VM running				VM restarted elsewhere
+
+
+
+Architecture Flow (Simple)
+Compute-1  -------->  Compute-2
+   VM                     VM
+
+Cold Migration:
+[Shutdown → Move → Start]
+
+Live Migration:
+[Memory Sync → Final Cutover]
+
+Block Migration:
+[Memory + Disk Copy]

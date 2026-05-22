@@ -1,0 +1,264 @@
+Interview Questions
+=====================
+Controller node
+Q) What is controller node?
+Q) what are the services run on the controller node?
+Q) Why the controller node considered the brain of the openstack?
+Q) Can multiple controller node exist? why?
+Q) Difference between controller, compute and storage node?
+
+Core services questions
+keystone(Identity)
+Q) what is keystone?
+Q) explain authentication vs authorization in keystone?
+Q) what are domain, projects, user and roles?
+Q) How does token-based authentication work?
+Q) Difference between Fernet token and UUID token?
+
+Nova(Compute)
+Q) What components of Nova run on the controller node?
+Q) Explain Nova scheduler workflow?
+Q) What is nove-conductor?
+Q) Difference between nova-api and nove compute?
+Q) How does instance scheduling happen?
+
+Neutron(Networking)
+Q) What are the services of Neutron run on controller nodes?
+Q) Difference between provider networks and tenant networks?
+Q) Explain ML2 plugin architecture?
+Q) What is L2 agent and L3 agnet?
+Q) What is DHCP agnet?
+Q) How does floating IP work?
+Q) Explain VXLAN in OpenStack?
+Q) Difference between Linux bridge and OVS?
+
+Glance(Image Service)
+Q) What is Glance?
+Q) Where are images stored?
+Q) Difference between raw, qcow2 and vmdk image format?
+Q) How does a VM boot from a images?
+
+Cinder(Block Staoge)
+Q) What controller service run for cinder?
+Q) Difference between ephemeral and persistent storage?
+Q) Explain volume attachment workflow?
+Q) What are backends in Cinder?
+
+RabbitMQ & Database Questions
+Q) How do you configure High Availability for controller nodes?
+Q) What is HAproxy in OpenStack?
+Q) Why is Keepalived in OpenStack?
+Q) What is a virtual IP (VIP)?
+Q) How do you avoid a single point of failure?
+
+Troubleshooting Questions
+Q) VM Stuck in BUILD state - how do you troubleshoot?
+Q) Instance connot get IP address - possible causes?
+Q) Neutron agent are down - how do you verify?
+Q) RabbitMQ connection errors - what logs do you check?
+Q) OpenStack dashboard inaccessible - troubleshooting steps?
+Q) How do you verify service health?
+Q) Which logs are important on the controller node?
+
+
+# openstack service list      		# list openstack services
+# openstack compute service list  	# check compute services
+# openstack network agent list 		# verify network agnet
+
+Scenario-Based Questions
+Q) A compute node is up but instances are not spawning. what would you check?
+Q) Tenant network traffic is falling between compute nodes?
+Q) API service is slow - how do you diagnose?
+Q) RabbitMQ cluster split-brain issue handing?
+Q) Database replication lag in HA controller setup?
+
+
+Advanced Questions
+Q) Explain OpenStack API flow from Horizon to VM creation?
+Q) How does scheduling work internally?
+Q) Explain message queue communication in OpenStack?
+Q) What is cell architecture in Nova?
+Q) Difference between active-active and active-passive controller?
+Q) Explain OpenStack service discovery?
+Q) How do rolling upgrade work?
+
+
+Devops/Automation Questions
+Q) Have you deploy OpenStack using
+	- kolla-ansible
+	- packstack
+	- Triple-OpenStack
+	- Juju
+Q) How do you automate controller node deployment?
+Q) How do you monitor controller node services?
+Q) Experience with Prometheus/Grafana integration?
+
+
+
+
+Ceph Storage
+Q) What is ceph and why its called distributed storage?
+Q) What problem does ceph slove?
+Q) What are the main storage types supported by ceph?
+	- Object Stoage
+	- Block storage
+	- File storage
+Q) what are the main components?
+Q) explain ceph architecture?
+Q) Difference between traditional SAN/NAS and ceph?
+
+Core component Questions
+Q) What is a ceph monitor?
+Q) Why are MON nodes important?
+Q) What happens if MON quorum is lost?
+Q) Why should we keep odd numbers of MONs?
+Q) How do you check monitor quorum?
+	# ceph quorum_status
+	
+OSD(Object storage Daemon)
+Q) what is OSD?
+Q) What responsibility does an OSD perform?
+Q) Difference between OSD in/out and up/down?
+Q) What happens when an OSD fails?
+Q) How do you replace a failed OSD?
+Q) What is OSD reweight?
+
+MGR( Manager)
+Q) What is ceph manager daemon?
+Q) Why was MGR introduced?
+Q) What modules are avalible in ceph-mgr?
+
+MDR(Manager)
+Q) What is MDS in Ceph?
+Q) When is MDS required?
+Q) Difference between CephFS and RBD?
+
+CRUSH Map Questions
+Q) What is CRUSH algorithm?
+Q) Why does ceph not need a central metadata server for object?
+Q) Explain CRUSH map hierarchy?
+Q) What are failure domains?
+Q) Difference between host,rack and row failure domains?
+Q) What is data placement in ceph?
+
+Pool Questions
+Q) What is ceph pool?
+Q) Difference between replicated and erasure-coded pools?
+Q) What is PG? and why is important?
+Q) what happens if PG count is tool low and too high?
+Q) How do you calculate PG count?
+
+Replication & Recovery Questions
+Q) How does ceph replication work?
+Q) What is the default replication factor?
+Q) What happens duraing recovery?
+Q) Difference between recovery and backfill?
+Q) Explain self-healing in ceph?
+Q) What is degraded state?
+Q) What is undersized PG?
+
+Networking Questions
+Q) Why does ceph required two network?
+	- public network
+	- cluster network
+Q) What traffic flows throgut each network?
+Q) What happens if cluster network fails?
+Q) Why is low latency important in ceph?
+Q) Recommended network speeds for production ceph?
+
+RBD(Block Storage) Questions
+Q) What is RBD in ceph?
+Q) How does OpenStack use RBD?
+Q) Benefits of using Ceph RBD with OpenStack?
+Q) Explain RBD mapping?
+Q) What is copy-on-write cloning?
+Q) What are snapshots in RBD?
+
+CephFS Questions
+Q) What is cephFS
+Q) Difference between CephFS and NFS?
+Q) What is metadata scaling?
+
+Object Storage Questions
+Q) What is RGW(rados gateway)?
+Q) Difference between S3 and Swift APIs?
+Q) How does ceph provide object storage?
+
+OpenStack + Ceph Integration Questions
+Q) Why is ceph commonly integrated with OpenStack?
+Q) Which OpenStack services ingetagete with Ceph?
+	- cinder
+	- glace
+	- Nova
+	- Manila
+	
+Q) Benefit of boot-from-volume with ceph?
+Q) How does live migration work with Ceph-backend instance?
+Q) Why does shared storage simplify compute operations?
+
+Troubleshooting Questions
+Q) What does HEALTH_WARM mean?
+Q) How do you identify slow requests?
+Q) what causes stucks PGs?
+Q) How do you toubleshoot full OSD?
+Q) What logs are important in ceph?
+Q) How do you identify network bottlenecks?
+Q) What happens when disks become slow?
+
+Performance Questions
+Q) Difference between HDD and SSD and OSDs?
+Q) what is blueStore?
+Q) Difference between BlueStore and FileStore?
+Q) What impacts ceph performace most?
+Q) How do you optimize ceph cluster performace?
+
+HA & Producation Questions
+Q) How does ceph archive high avaliblity?
+Q) Minimum MON count for production?
+Q) What happens during node failure?
+Q) Explain no single point of failure?
+Q) How do rolling upgrades work?
+
+Scenario-Based Questions
+Q) Once OSD node failed - what happens?
+Q) Cluster shows HEALTH_ERR - what would you check first?
+Q) PGs stuck in active+clean troubleshooting
+Q) Client IO latency suddenly increased?
+Q) Recovery traffic affecting production workloads?
+Q) MON quorum lost after reboot?
+Q) Nealfull/full OSD handling Steps?
+
+Advanced Questions
+Q) Explain RADOS architecture
+Q) How does ceph maintain consistency?
+Q) Explain primary OSD cencept?
+Q) What is scrub and deep-scrub?
+Q) Explain ceph balancer.
+Q) Difference between recovery priority and backfill priority?
+Q) Explain autoscaling PGs?
+Q) What is ceph orchestrator?
+Q) Explain cephadm
+
+Kubernetes & Ceph Questions
+Q) What is Rook?
+Q) How does Rook deploy Ceph in kubernetes?
+Q) What is CSI in kubernetes storage?
+Q) Difference between ceph CSI and in-tree drivers?
+
+
+Important commands
+ceph -s
+ceph health details
+
+ceph osd tree
+ceph osd status
+
+ceph osd pool ls
+
+ceph df
+
+ceph pg state
+
+
+
+
