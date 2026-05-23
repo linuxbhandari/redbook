@@ -1,13 +1,103 @@
-Interview Questions
-=====================
-Q) What is controller node?
-Q) what are the services run on the controller node?
-Q) Why the controller node considered the brain of the openstack?
-Q) Can multiple controller node exist? why?
-Q) Difference between controller, compute and storage node?
+Controller Node Services
+=========================
+The controller node mainly handles APIs, scheduling, authentication, networking control, and databases.
+	Common services:
+	Service			Purpose
+	Keystone			Authentication
+	Nova				nova-api, scheduler, conductor
+	Neutron			neutron-server
+	Glance			Image service
+	Cinder			cinder-api, scheduler
+	Horizon			Web dashboard
+	MariaDB/MySQL	Database
+	RabbitMQ			Message queue
+	Memcached		Token/session caching
 
+Common controller processes
+	nova-api: Receives compute API requests.
+			Ex:
+				create VM
+				delete VM
+				list instances
+			
+			Flow
+			User/API → nova-api → other Nova services
 
+	nova-scheduler : Selects the best compute node for VM placement.
+			checks:
+				Checks
+				CPU
+				RAM
+				Disk
+				Availability
+			That decision is made by nova-scheduler.
 
+	nova-conductor : Acts as mediator between:
+							nova-compute
+							database
+			Why Needed?
+				Compute nodes should not directly access database.
+
+			Flow : nova-compute → nova-conductor → database
+
+	neutron-server: Main networking API service.
+			Handles:
+				networks
+				subnets
+				routers
+				ports
+				security groups
+	
+	glance-api : Handles VM image operations.
+			Examples:
+				upload image
+				download image
+				image metadata
+			Nova contacts glance-api during VM boot.
+
+	cinder-api : Receives block storage API requests.
+			Examples:
+				create volume
+				attach volume
+				delete volume
+
+	httpd: Runs OpenStack APIs using WSGI.
+			Commonly serves:
+				Keystone
+				Horizon
+				Placement API
+			
+			Flow : Browser/API → httpd → OpenStack service
+
+	rabbitmq-server:
+			- Message queue system for OpenStack internal communication.
+			- Services communicate asynchronously through RabbitMQ.
+			
+			Flow : nova-api → RabbitMQ → nova-compute
+		If RabbitMQ fails:
+			VM creation fails
+			communication breaks
+
+	mariadb : Database service
+		Stores OpenStack data:
+			users
+			instances
+			networks
+			volumes
+			metadata
+		Almost all OpenStack services use MariaDB.
+
+	Overall Flow Example
+	====================
+	User → httpd → nova-api
+                ↓
+         nova-scheduler
+                ↓
+         RabbitMQ
+                ↓
+         nova-compute
+                ↓
+            MariaDB
 
 VM Migration
 ============
@@ -75,7 +165,6 @@ Cold Migration	Powered 	Off	Yes		No
 Live Migration	Running		Very Low	Usually Yes
 Block Migration	Running		Very Low	No
 
-
 Q) Difference between Live Migration and Evacuation
 Live Migration			Evacuation
 Source host healthy		Source host failed
@@ -96,3 +185,62 @@ Live Migration:
 
 Block Migration:
 [Memory + Disk Copy]
+
+===========
+Typical Upgrade Flow
+Backup
+  ↓
+Prepare undercloud
+  ↓
+Upgrade packages/images
+  ↓
+Upgrade controllers
+  ↓
+Upgrade computes
+  ↓
+Validation
+
+Pre-checks
+Step 1 — Check Cluster Health
+
+openstack compute service list
+openstack network agent list
+openstack volume service list
+
+Step 2 — Backup Important Data
+Backup:
+	MariaDB
+	configuration files
+	Heat templates
+	inventory files
+
+	#sudo podman exec -it mariadb mysqldump --all-databases > backup.sql
+
+Step 3 — Prepare Director Node (Undercloud)
+Update undercloud repositories/packages.
+	In RHOSP:
+	
+	openstack undercloud upgrade
+
+Step 4 — Pull New Container Images
+New OpenStack version containers are prepared.
+Example:
+	openstack overcloud external-upgrade prepare
+
+Step 5 — Upgrade Controller Nodes
+Controller nodes are upgraded first.
+
+Usually:
+
+one controller at a time
+rolling upgrade
+
+Director updates:
+
+containers
+configs
+databases
+services
+
+Example:
+	openstack overcloud upgrade run

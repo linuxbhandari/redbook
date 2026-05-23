@@ -221,31 +221,6 @@ Masakari	High availability for VM instances
 Sahara		Hadoop/Spark cluster provisioning
 
 
-Controller Node Services
-=========================
-The controller node mainly handles APIs, scheduling, authentication, networking control, and databases.
-	Common services:
-	Service				Purpose
-	OpenStack Keystone	Authentication
-	OpenStack Nova		nova-api, scheduler, conductor
-	OpenStack Neutron	neutron-server
-	OpenStack Glance	Image service
-	OpenStack Cinder	cinder-api, scheduler
-	OpenStack Horizon	Web dashboard
-	MariaDB/MySQL		Database
-	RabbitMQ			Message queue
-	Memcached			Token/session caching
-
-Common controller processes
-nova-api
-nova-scheduler
-nova-conductor
-neutron-server
-glance-api
-cinder-api
-httpd
-rabbitmq-server
-mariadb
 
 Compute Node Services
 =====================
@@ -346,24 +321,6 @@ Compute nodes host virtual machines.
 	CPU oversubscription ratio usually:
 	vCPU:Physical = 4:1 or 8:1
 	HugePages and NUMA recommended for NFV workloads.
-
-Director Node (Mostly Red Hat OpenStack)
-========================================
-The director node is used for deployment and lifecycle management.
-Common in:
-Red Hat OpenStack Platform (RHOSP)
-Director node services/tools
-	Service/Tool	Purpose	
-	TripleO			Deployment framework
-	Heat			Orchestration
-	Ironic			Bare metal provisioning
-	Podman/Docker	Containers
-	
-Undercloud services	Manage overcloud deployment
-Common director commands
-	#openstack overcloud deploy
-	#openstack baremetal node list
-
 
 Simple Architecture
 ===================

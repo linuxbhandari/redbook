@@ -1,0 +1,96 @@
+Interview Questions
+=====================
+Controller node
+Q) What is controller node?
+Q) what are the services run on the controller node?
+Q) Why the controller node considered the brain of the openstack?
+Q) Can multiple controller node exist? why?
+Q) Difference between controller, compute and storage node?
+
+Core services questions
+keystone(Identity)
+Q) what is keystone?
+Q) explain authentication vs authorization in keystone?
+Q) what are domain, projects, user and roles?
+Q) How does token-based authentication work?
+Q) Difference between Fernet token and UUID token?
+
+Nova(Compute)
+Q) What components of Nova run on the controller node?
+Q) Explain Nova scheduler workflow?
+Q) What is nove-conductor?
+Q) Difference between nova-api and nove compute?
+Q) How does instance scheduling happen?
+
+Neutron(Networking)
+Q) What are the services of Neutron run on controller nodes?
+Q) Difference between provider networks and tenant networks?
+Q) Explain ML2 plugin architecture?
+Q) What is L2 agent and L3 agnet?
+Q) What is DHCP agnet?
+Q) How does floating IP work?
+Q) Explain VXLAN in OpenStack?
+Q) Difference between Linux bridge and OVS?
+
+Glance(Image Service)
+Q) What is Glance?
+Q) Where are images stored?
+Q) Difference between raw, qcow2 and vmdk image format?
+Q) How does a VM boot from a images?
+
+Cinder(Block Staoge)
+Q) What controller service run for cinder?
+Q) Difference between ephemeral and persistent storage?
+Q) Explain volume attachment workflow?
+Q) What are backends in Cinder?
+
+RabbitMQ & Database Questions
+Q) How do you configure High Availability for controller nodes?
+Q) What is HAproxy in OpenStack?
+Q) Why is Keepalived in OpenStack?
+Q) What is a virtual IP (VIP)?
+Q) How do you avoid a single point of failure?
+
+Troubleshooting Questions
+Q) VM Stuck in BUILD state - how do you troubleshoot?
+Q) Instance connot get IP address - possible causes?
+Q) Neutron agent are down - how do you verify?
+Q) RabbitMQ connection errors - what logs do you check?
+Q) OpenStack dashboard inaccessible - troubleshooting steps?
+Q) How do you verify service health?
+Q) Which logs are important on the controller node?
+
+
+# openstack service list      		# list openstack services
+# openstack compute service list  	# check compute services
+# openstack network agent list 		# verify network agnet
+
+Scenario-Based Questions
+Q) A compute node is up but instances are not spawning. what would you check?
+Q) Tenant network traffic is falling between compute nodes?
+Q) API service is slow - how do you diagnose?
+Q) RabbitMQ cluster split-brain issue handing?
+Q) Database replication lag in HA controller setup?
+
+
+Advanced Questions
+Q) Explain OpenStack API flow from Horizon to VM creation?
+Q) How does scheduling work internally?
+Q) Explain message queue communication in OpenStack?
+Q) What is cell architecture in Nova?
+Q) Difference between active-active and active-passive controller?
+Q) Explain OpenStack service discovery?
+Q) How do rolling upgrade work?
+
+
+Devops/Automation Questions
+Q) Have you deploy OpenStack using
+	- kolla-ansible
+	- packstack
+	- Triple-OpenStack
+	- Juju
+Q) How do you automate controller node deployment?
+Q) How do you monitor controller node services?
+Q) Experience with Prometheus/Grafana integration?
+
+

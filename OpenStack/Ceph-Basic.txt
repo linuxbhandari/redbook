@@ -1,37 +1,389 @@
-What is Ceph?
-	Ceph is a distributed storage platform providing scalable and highly available block, object, and file storage.
+Q)What is Ceph?
+	Ceph is an open-source distributed storage platform providing scalable and highly storage platforms in the form of block, object, and file storage.
 
-What is OSD in Ceph?
+Q)Why "distributed" storage?
+	Because data is:
+		distributed across many nodes
+		replicated across multiple disks
+		accessible from multiple systems
+	
+	No single disk or single server stores all data.
+
+Q)What problem does ceph slove?
+	- Single point of Failure
+	- Scakability Problem
+	- Manual Storage management
+	- Disk/Node failure recovery
+	
+	Ceph solves the problems of scalability, high availability, fault tolerance, and expensive traditional storage systems. It distributes data across multiple servers and disks, eliminating single points of failure and enabling automatic replication, self-healing, and horizontal scaling. Ceph provides block, file, and object storage using commodity hardware, making it suitable for cloud and enterprise environments.
+
+
+Q)What is OSD in Ceph?
 	OSD stands for Object Storage Daemon. It stores data and handles replication and recovery operations.
 
-What is a Placement Group(PG)?
+Q)What is a Placement Group(PG)?
 	Placement Groups are logical groupings used by Ceph to distribute and manage object data across OSDs.
 
-What Happens if an OSD Goes Down?
-	Ceph marks the OSD as down, replication and recovery operations start automatically, and data is redistributed to maintain redundancy.
+Q)What Happens if an OSD Goes Down?
+	Ceph marks the OSD as down, replication and recovery operations start automatically, and data is redistributed to maintain redundancy and cluster health.
 
-Difference Between qcow2 and raw?
+Q)Difference Between qcow2 and raw?
 	qcow2				raw
 	Thin provisioned	Fixed allocation
 	Supports snapshots	Better performance
 	Smaller initially	Larger disk usage
 
-What is libvirt?
+Q)What is libvirt?
 	libvirt is a virtualization management layer used to manage hypervisors like KVM.
 
-What Automation Tools Have You Used?
+Q)What Automation Tools Have You Used?
 	I have used Ansible and shell scripting for operational automation and infrastructure-related tasks.
 
-What Logs Do You Usually Check?
+Q)What Logs Do You Usually Check?
 /var/log/nova/
 /var/log/neutron/
 /var/log/cinder/
 /var/log/ceph/
 journalctl
 
+Q) Explain cephadm
+	cephadm is a container-based orchestration utility that deploys Ceph services as containers using:
 
-Q) OSD Down in Ceph
-Question
-	“What happens if an OSD goes down?”
-Answer
-	Ceph automatically marks the OSD down and starts recovery and rebalancing operations to maintain data redundancy and cluster health.
+	Podman (default)
+	Docker (optional)
+
+	It automates:
+		MON deployment
+		MGR deployment
+		OSD provisioning
+		Dashboard setup
+		Monitoring stack
+		Cluster upgrades
+
+Q)What are the main components?
+
+1. OSD (Object Storage Daemon)
+		- Most important component
+		- OSD stores the actual data.
+
+	Responsibilities of OSD
+		Store data
+		Replicate data
+		Recover data
+		Rebalance data
+		Handle read/write operations
+
+2. MON (Monitor)
+	Cluster brain
+		MON maintains cluster state and quorum.
+	Responsibilities
+		Cluster maps
+		Authentication
+		Cluster membership
+		Health information
+		Quorum management
+
+	Usually deployed in odd numbers:
+		3 MONs
+		5 MONs
+	to maintain quorum.
+
+	If one MON fails:
+		remaining MONs continue cluster operation.
+
+3. MGR (Manager)
+	Introduced in newer Ceph versions.
+	Provides:
+		monitoring
+		dashboard
+		orchestration
+		metrics
+	Responsibilities
+		Dashboard UI
+		Prometheus integration
+		Ceph Orchestrator
+		REST APIs
+	Example : Dashboard service runs through MGR.
+
+4. MDS (Metadata Server)
+	Used only for:
+		CephFS 
+	Responsibilities
+		File metadata management
+		Directory structure
+		File permissions
+		File locking
+
+	Important note
+		MDS is NOT needed for:
+			RBD and Object storage
+		
+		Only needed for CephFS.
+
+5. RGW (RADOS Gateway)
+	Provides object storage APIs.
+		Supports:
+			S3 and Swift
+	Responsibilities
+		Object storage access
+		API handling
+		Bucket management
+	Used for
+		Cloud-native applications and backup systems.
+
+6. RADOS stands for:
+		Reliable Autonomic Distributed Object Store
+	Responsibilities
+		Data distribution
+		Replication
+		Recovery
+		Object storage
+		Self-healing
+
+7. CRUSH Algorithm
+		CRUSH controls:
+			data placement
+			replication location
+	without centralized lookup tables.
+	
+	Why important?
+		Determines:
+			where data should live
+			replica placement
+			failure domain awareness
+	Example
+		CRUSH can ensure replicas are stored:
+			on different disks
+			on different servers
+			on different racks
+
+short
+MON → cluster state
+MGR → monitoring/orchestration
+MDS → filesystem metadata
+RGW → object API
+	The main Ceph components are OSD, MON, MGR, MDS, RGW, and RADOS. OSDs store actual data, MONs maintain cluster state and quorum, MGR provides monitoring and orchestration features, MDS manages metadata for CephFS, and RGW provides S3-compatible object storage APIs. RADOS is the core distributed storage layer that handles data distribution, replication, and recovery across the cluster.
+
+
+
+	==========================
+
+Ceph Storage
+Q) What is ceph and why its called distributed storage?
+Q) What problem does ceph slove?
+Q) What are the main storage types supported by ceph?
+	- Object Stoage: Block storage provides virtual disks to applications or virtual machines.
+				In Ceph this is called:
+					RBD = RADOS Block Device
+	- Block storage:Object storage stores data as objects instead of files/directories.
+				Ceph object gateway is called:
+					RGW = RADOS Gateway
+				Data stored as:
+					Object = Data + Metadata + Unique ID
+				Accessed using:
+					S3 API
+					Swift API
+	- File storage(CephFS)
+				Distributed POSIX-compliant filesystem.
+				called:
+					CephFS = Ceph File System
+				Looks like normal Linux filesystem:
+					/mnt/shared
+				Used for
+					Shared directories
+
+Q) What are the main components?
+Q) Explain ceph architecture?
+Q) Difference between traditional SAN/NAS and ceph?
+
+Core component Questions
+Q) What is a ceph monitor? or Q) Why are MON nodes important?
+		The MON daemon maintains the cluster state and cluster maps.
+
+Q) What happens if MON quorum is lost?
+	If MON quorum is lost in Ceph, the cluster loses the ability to maintain a consistent cluster state. Management operations stop, cluster maps cannot be updated, and write operations may become unavailable. Ceph prevents further unsafe operations to avoid split-brain and data inconsistency. Quorum is restored when a majority of MONs become available again.
+
+Q) Why should we keep odd numbers of MONs?
+	In Ceph, Ceph Monitor nodes are kept in odd numbers to maintain proper quorum and avoid split-brain situations.
+
+Q) How do you check monitor quorum?
+	# ceph quorum_status
+	
+OSD(Object storage Daemon)
+	Q)What is OSD?
+	Q)What responsibility does an OSD perform?
+	Q)Difference between OSD in/out and up/down?
+		In Ceph, up/down indicates whether the OSD daemon is running and reachable, while in/out indicates whether the OSD participates in data placement. An OSD marked “up” is operational, and “down” means Ceph cannot communicate with it. An OSD marked “in” participates in CRUSH data placement, while “out” means Ceph excludes it from storing data and rebalances data elsewhere. These states are independent and can exist in different combinations like up+out or down+in.
+
+	Q)What happens when an OSD fails?
+		When an OSD fails in Ceph, the cluster detects the failure through heartbeat monitoring and marks the OSD as down. The MONs update the cluster state, and the cluster enters a degraded state because some replicas are missing. After a configurable timeout, the failed OSD may be marked out, and Ceph automatically starts recovery and backfilling to recreate replicas on healthy OSDs. CRUSH redistributes data, and once replication is restored, the cluster returns to HEALTH_OK.
+
+	Q)How do you replace a failed OSD?
+		1. Identify failed OSD
+		2. Mark OSD OUT
+		3. Stop/remove failed OSD
+		4. Replace disk
+		5. Create new OSD
+		6. Recovery/rebalancing starts
+
+	Q)What is OSD reweight?
+		OSD reweight in Ceph controls how much data an OSD should store relative to other OSDs. A reweight value of 1.0 means full participation, while lower values reduce the amount of data placed on that OSD. Reweighting is commonly used to rebalance uneven storage utilization, reduce load on problematic disks, or gradually drain data before maintenance. Unlike marking an OSD out, reweighting adjusts participation gradually rather than removing the OSD completely from the cluster.
+
+MGR( Manager)
+Q) What is ceph manager daemon?
+Q) Why was MGR introduced?
+Q) What modules are avalible in ceph-mgr?
+
+MDS(Ceph Metadata server)
+Q) What is MDS in Ceph?
+Q) When is MDS required?
+Q) Difference between CephFS and RBD?
+
+CRUSH Map Questions
+Q) What is CRUSH algorithm?
+Q) Why does ceph not need a central metadata server for object?
+Q) Explain CRUSH map hierarchy?
+Q) What are failure domains?
+Q) Difference between host,rack and row failure domains?
+Q) What is data placement in ceph?
+
+Pool Questions
+Q) What is ceph pool?
+Q) Difference between replicated and erasure-coded pools?
+Q) What is PG? and why is important?
+Q) what happens if PG count is tool low and too high?
+Q) How do you calculate PG count?
+
+Replication & Recovery Questions
+Q) How does ceph replication work?
+Q) What is the default replication factor?
+Q) What happens duraing recovery?
+Q) Difference between recovery and backfill?
+Q) Explain self-healing in ceph?
+Q) What is degraded state?
+Q) What is undersized PG?
+
+Networking Questions
+Q) Why does ceph required two network?
+	- public network
+	- cluster network
+Q) What traffic flows throgut each network?
+Q) What happens if cluster network fails?
+Q) Why is low latency important in ceph?
+Q) Recommended network speeds for production ceph?
+
+RBD(Block Storage) Questions
+Q) What is RBD in ceph?
+Q) How does OpenStack use RBD?
+Q) Benefits of using Ceph RBD with OpenStack?
+Q) Explain RBD mapping?
+Q) What is copy-on-write cloning?
+Q) What are snapshots in RBD?
+
+CephFS Questions
+Q) What is cephFS
+Q) Difference between CephFS and NFS?
+Q) What is metadata scaling?
+
+Object Storage Questions
+Q) What is RGW(rados gateway)?
+Q) Difference between S3 and Swift APIs?
+Q) How does ceph provide object storage?
+
+OpenStack + Ceph Integration Questions
+Q) Why is ceph commonly integrated with OpenStack?
+Q) Which OpenStack services ingetagete with Ceph?
+	- cinder
+	- glace
+	- Nova
+	- Manila
+	
+Q) Benefit of boot-from-volume with ceph?
+Q) How does live migration work with Ceph-backend instance?
+Q) Why does shared storage simplify compute operations?
+
+Troubleshooting Questions
+Q) What does HEALTH_WARM mean?
+Q) How do you identify slow requests?
+Q) what causes stucks PGs?
+Q) How do you toubleshoot full OSD?
+Q) What logs are important in ceph?
+Q) How do you identify network bottlenecks?
+Q) What happens when disks become slow?
+
+Performance Questions
+Q) Difference between HDD and SSD and OSDs?
+Q) what is blueStore?
+Q) Difference between BlueStore and FileStore?
+Q) What impacts ceph performace most?
+Q) How do you optimize ceph cluster performace?
+
+HA & Producation Questions
+Q) How does ceph archive high avaliblity?
+Q) Minimum MON count for production?
+Q) What happens during node failure?
+Q) Explain no single point of failure?
+Q) How do rolling upgrades work?
+
+Scenario-Based Questions
+Q) Once OSD node failed - what happens?
+Q) Cluster shows HEALTH_ERR - what would you check first?
+	First, I would run ceph -s to get an overall view of cluster health and identify the primary issue category such as MON quorum loss, OSD failures, degraded PGs, or full OSDs. Then I would use ceph health detail for exact errors, followed by checks on MON status, OSD state, PG health, and storage utilization to determine the impact and recovery actions required.
+
+Q) PGs stuck in active+clean troubleshooting?
+	active+clean is the healthy placement group state in Ceph. “active” means the PG is available and serving read/write operations, while “clean” means all replicas are fully synchronized and no recovery or backfill is required.
+
+Q) Client IO latency suddenly increased?
+	If client IO latency suddenly increases in Ceph, I would first check overall cluster health using ceph -s and ceph health detail to identify degraded PGs, recovery activity, or slow operations. Then I would analyze OSD performance using ceph osd perf, check PG states, OSD utilization, and ongoing backfill or recovery operations. I would also verify disk IO, CPU, and network performance on OSD nodes because recovery traffic, overloaded disks, network congestion, or failing hardware are common causes of sudden latency spikes.
+	
+Q) Recovery traffic affecting production workloads?
+Q) MON quorum lost after reboot?
+Q) Nealfull/full OSD handling Steps?
+	Ceph reports nearfull or full OSD conditions, it means some Ceph OSD disks are running out of space.
+
+	Ceph space threshold levels
+		Ceph has three important thresholds:
+			Threshold		Meaning
+			nearfull		Warning level
+			backfillfull	Recovery/backfill restricted
+			full			writes blocked
+
+		Default values
+			Typical defaults:
+				nearfull_ratio     = 0.85 (85%)
+				backfillfull_ratio = 0.90 (90%)
+				full_ratio         = 0.95 (95%)
+
+	command : ceph osd reweight osd.5 0.95
+
+
+Advanced Questions
+Q) Explain RADOS architecture
+Q) How does ceph maintain consistency?
+Q) Explain primary OSD cencept?
+Q) What is scrub and deep-scrub?
+Q) Explain ceph balancer.
+Q) Difference between recovery priority and backfill priority?
+Q) Explain autoscaling PGs?
+Q) What is ceph orchestrator?
+Q) Explain cephadm
+
+
+Kubernetes & Ceph Questions (later)
+Q) What is Rook?
+Q) How does Rook deploy Ceph in kubernetes?
+Q) What is CSI in kubernetes storage?
+Q) Difference between ceph CSI and in-tree drivers?
+
+
+Important commands
+ceph -s
+ceph health details
+
+ceph osd tree
+ceph osd status
+
+ceph osd pool ls
+
+ceph df
+ceph pg state
