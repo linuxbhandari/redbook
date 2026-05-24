@@ -1,3 +1,58 @@
+Q) Standard way to put compute node in Maintenance mode.
+========================================================
+Step 1: Disable the compute service
+		I first disable the nova-compute service so that no new workloads are scheduled.
+		
+		# openstack compute service list   << To check and verify
+		# openstack compute service set --disable <compute-host> nova-compute   << disable node
+	
+	
+	
+Step 2: Migrate or evacuate running instances
+		Then I live migrate or evacuate all running instances to other compute nodes.
+		
+		# openstack server migrate --live <server-id> <target-host>
+		or 
+		# openstack server evacuate <server-id>
+		
+Step 3: Confirm instances moved
+		# openstack server list --host <compute-host>
+		
+		and put disable the node again with proper message (optional)
+		# openstack compute service set --disable --reason "maintenance" <compute-host> nova-compute
+		
 
-Interview Questions
-Q) 
+	Once the host is empty, I perform maintenance activities like patching or rebooting. After completion, I re-enable the compute service. In production, I usually automate this process using Ansible to ensure zero human error and minimal downtime.
+	
+Step 4. Wait until host is empty
+Step 5. Perform maintenance (patching, reboot, etc.)
+Step 6. Re-enable host
+
+		# openstack compute service set --enable <host> nova-compute
+
+
+With automated this vai Ansible:
+Example flow:
+	Disable compute service
+	Get list of VMs
+	Live migrate all instances
+	Verify empty host
+	Run maintenance tasks
+	Re-enable host
+	
+
+Q) If a compute node in OpenStack goes suddenly down (crash, memory issue, power failure), you cannot do a normal live migration. In this case you use instance evacuation (host failure recovery).
+
+“If a compute node goes down unexpectedly, we cannot perform live migration. Instead, we use instance evacuation. If shared storage like Ceph is used, VMs are recovered on another compute node without data loss. If no shared storage is available, evacuation may require rebuild or password reset.”
+
+
+Q) If a compute node in OpenStack shows DOWN, How do you troubleshoot that.
+
+When a compute node shows DOWN, I start by checking connectivity between controller and compute node. Then I verify nova-compute service status on the compute node and restart it if required. I also check system resources like memory, CPU, and disk, since OOM issues are common. Next I review nova logs and messaging services like RabbitMQ. If the issue is hardware or network related, I involve infrastructure team and may evacuate instances if needed.
+
+Key Troubleshooting Flow (Easy Remember)
+👉 Ping → SSH → Service → Logs → Resources → Messaging → Hardware
+
+
+
+

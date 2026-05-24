@@ -3,16 +3,12 @@ Hi, my name is Manish. I currently work as a Sr. System Advisor Administrator wi
 I started my career as Linux Admin in 2012 wokred on various multiple open-source techonologis like Apache Tocmat, MySQL, Postgresql, Nagios, Prometheous, Elastic search, Redhat cluster suite.
 
 
-
 In my current role, I support enterprise OpenShift, OpenStack, and  and infrastructure platforms across production and non-production environments. My work includes cluster operations, troubleshooting, upgrades, monitoring, incident handling, and deployment support.
-
 
 In OpenStack I my daily work is monitoring, troubleshooting, maintenance, upgrade, incident handling
 
 also add | manage users, projects, flavors, roles, images, networking, and block storage,
 set quotas, and configure instances at instantiation.
-
-
 
 Daily check
     compute nodes
@@ -24,32 +20,31 @@ Daily check
 
 provide the support to customer on
 
-    VM provisioning suppor
-    migration support
-    quota management
-    troubleshooting failed instances
-
+    VM provisioning support to customer on 
+		- migration support
+		- quota management
+		- troubleshooting failed instances
 
 Incident Handling / Production Support
-    VM unreachable
-    compute node down
-    storage latency
-    API failures
-    RabbitMQ issue
-    Nova scheduler failure
+		- VM unreachable
+		- compute node down
+		- storage latency
+		- API failures
+		- RabbitMQ issue
+		- Nova scheduler failure
     
 Usually involves:
-    checking logs
-    service restart
-    RCA
-    escalation coordination
+		- checking logs
+		- service restart
+		- RCA
+		- escalation coordination
 
 Maintenance Activities
-    compute node maintenance
-    hypervisor patching
-    restarting services
-    evacuation/migration
-    image updates
+		- compute node maintenance
+		- hypervisor patching
+		- restarting services
+		- evacuation/migration
+		- image updates
 
 Automation Tasks
     Using:
@@ -57,11 +52,23 @@ Automation Tasks
     shell scripting
     
         Task example
+			Daily Operational Tasks Using Ansible in OpenStack
+				1. Check service status
+				2. Compute node maintenance
+				3. Capacity and Utilization Checks
+					CPU/memory usage checks
+					Hypervisor capacity validation
+					Storage usage monitoring
+					Ceph health checks
+				4. Backup Verification
+					Validate backup jobs
+					Verify database backups
+					Confirm snapshot availability
+
         automated health checks
         service restart scripts
         cleanup scripts
         deployment automation
-
 
 Ceph Daily work
     1.Cluster Health Monitoring

@@ -1,5 +1,5 @@
 OpenStack
-=========
+==============
 OpenStack is an open-source cloud platform used to create and manage Infrastructure as a Service (IaaS).
   It provides:
 	- Virtual Machines
