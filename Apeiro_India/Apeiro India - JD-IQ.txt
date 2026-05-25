@@ -140,30 +140,405 @@ Q) Post-check before openShift-upgrade and process.
 	✔ OpenShift upgrades are sequential, not random jumps
 
 
-- OpenShift cluster running slow. How to troubleshoot this.
+- OpenShift cluster running slow. How to troubleshoot this. (IMP)
 	
-
 - What is service, service flow. how to trublesheet service if not accessible to user.
-- Deployment flow and troubleshoot if end user unable to access site.
-- Deployment strategy | Affinity and their types.
-- How to do drain. Why we do draining the node and what are the commands we can use for that.
-- What is pv and pvc. how to are mapped which each other.
-	I means how to identify each other which one is right.
+	A Service in Kubernetes is an abstraction that provides a stable network endpoint to access a set of Pods. Since Pods are ephemeral and their IPs change, Service ensures stable access, load balancing, and DNS-based discovery
 
+	Types:
+	1. ClusterIP (Default)
+		Exposes service only inside the cluster
+		Use case
+			Internal communication
+			Backend services
+			Microservices communication
+	2. NodePort	
+		What it is
+			Exposes service on a static port on each node
+			Accessible from outside using NodeIP
+		Use case
+			Testing
+			Simple external access (no cloud LB)
+
+	3. LoadBalancer
+		What it is
+			Exposes service using cloud provider load balancer
+			Gets external IP automatically
+	
+	4. ExternalName
+		What it is
+			Maps Kubernetes service to external DNS name
+			No proxy or load balancing
+		externalName: example.com
+
+- How to trublesheet service if not accessible to user.
+	1. Check Service Exists
+		# kubectl get svc
+		Verify:
+			Service name is correct
+			Namespace is correct
+			Type (ClusterIP / NodePort / LoadBalancer)
+	2. Describe the Service (MOST IMPORTANT)
+		Check:
+			Selector
+			Endpoints: could be none 
+					Endpoints: <none> 
+			Port mapping
+	
+	3. Check Endpoints
+		# kubectl get endpoints
+		
+	4. Check Pods
+		Check:
+			Pods are Running
+			Correct labels exist
+			Ready = 1/1
+	5. Check Labels (VERY COMMON ISSUE)
+		If labels don’t match → Service won’t route traffic
+		
+	6. 
+- Deployment flow and troubleshoot if end user unable to access site.
+- Deployment strategy 
+	1. Recreate Strategy
+		What it is
+			First, all old Pods are deleted
+			Then new Pods are created
+	2. RollingUpdate Strategy (Default)
+		What it is
+			Old Pods are replaced gradually
+			New Pods come up step by step
+	3. Blue-Green (via Routes)
+	4. Canary (via traffic splitting / Service Mesh)
+	
+- Affinity and their types.
+	In Kubernetes, Affinity is used to control where Pods are scheduled based on rules related to nodes or other pods.
+	
+	Types:
+	1. Node Affinity
+		What it is
+			Used to place Pods on specific nodes
+			Based on node labels
+		Types of Node Affinity
+		1. Required (Hard Rule)
+			- Pod must be scheduled on matching nodes
+			- If not matched → Pod stays Pending
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: disktype
+          operator: In
+          values:
+          - ssd
+		
+		2. Preferred (Soft Rule)
+			- Kubernetes tries best to schedule on matching nodes
+			- If not available → still schedules elsewhere
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 1
+      preference:
+        matchExpressions:
+        - key: zone
+          operator: In
+          values:
+          - us-east-1
+		
+		Use case
+			SSD vs HDD nodes
+			High performance workloads
+			Zone-based placement
+
+
+	2. Pod Affinity
+		What it is
+			- Schedules a Pod close to other Pods
+			- Place my Pod near another Pod”
+		meaning
+			Place Pod on the same node as frontend pods
+		
+		Use case
+			Microservices that need low latency communication
+			App + cache (Redis + backend)
+		
+	3. Pod Anti-Affinity
+		What it is
+			- Ensures Pods are not placed together.
+			- Do NOT place my Pods on same node.
+
+		Meaning	
+			Each backend pod runs on different nodes
+			
+		Use case
+			High availability
+			Avoid single node failure impact
+			Database clusters
+
+Q) Kubernetes Patching
+	Patching a Kubernetes cluster means upgrading or updating components like:
+		Control plane (API server, scheduler, controller-manager)
+		Worker nodes (kubelet, container runtime, OS packages)
+
+	High-Level Patching Flow
+	1. Backup cluster
+	2. Drain worker nodes
+	3. Patch control plane (if applicable)
+	4. Patch worker nodes one by one
+	5. Uncordon nodes
+	6. Verify cluster health
+	
+	1. Pre-checks (VERY IMPORTANT)
+	2. Backup Cluster
+	3. Drain the Node
+	4. Patch Worker Node
+	5. Uncordon Node
+	6. Control Plane Patching
+	
+- How to do drain. Why we do draining the node and what are the commands we can use for that.
+	- Safely evicting all running Pods from a node so that the node can be maintained, patched, or removed
+	
+	After drain:
+		- Pods are moved to other healthy nodes
+		- Node is marked unschedulable (cordoned)
+	
+	Why do we drain a node?
+		1. Maintenance
+				OS patching
+				Kernel upgrade
+				Hardware upgrade
+		2. Kubernetes upgrades
+				kubelet upgrade
+				container runtime upgrade
+		3. Node issues
+				Disk pressure
+				Memory issues
+				Node instability
+		4. Decommissioning node
+				Removing old worker nodes
+	
+	What happens during drain?
+		Node → Cordon (no new pods scheduled)
+			 → Evict running pods
+             → Pods rescheduled to other nodes
+	 
 - Have you done OpenShift Installation.
 - Have you work on cloud.
 - Different between Kubernetes and openShift.
 - What is the purpose of machine config and how you can update this.
-- Edge deployment.
-- What king of work you do with Ansbile in OpenShift.
-- how can you give admin right to user on specific namespace only.
+
+Q) Edge deployment.
+	Edge deployment means running applications closer to users or data sources instead of centralized cloud. It reduces latency and bandwidth usage and is widely used in IoT, telecom, retail, and real-time systems. In Kubernetes and OpenShift, edge is implemented using lightweight clusters or remote nodes managed centrally.”
+	
+	
+Q) What king of work you do with Ansbile in OpenShift.
+	Common tasks:
+		- Restarting services
+		- Certificate renewals
+		- Scaling nodes
+		- Adding/removing worker nodes
+		
+		- Creating users and groups
+		- Assigning roles (admin, edit, view)
+		- Namespace-level access control
+
+Q)How can you give admin right to user on specific namespace only.
+	Key 			Concept
+	Scope			Resource
+	Namespace level	Role + RoleBinding
+	Cluster level	ClusterRole + ClusterRoleBinding
+
+	👉 For namespace-only admin access → use RoleBinding
+
+	Step 1: Create a Role (Admin permissions in namespace)
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dev
+  name: namespace-admin
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+  
+	Step 2: Create RoleBinding
+			Bind the Role to a user.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-admin-binding
+  namespace: dev
+subjects:
+- kind: User
+  name: john
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: namespace-admin
+  apiGroup: rbac.authorization.k8s.io
+
+🔹 Result
+	User john can:
+		Create Pods
+		Delete Deployments
+		Manage Services
+		Manage ConfigMaps
+	
+	👉 ONLY inside dev namespace
+  
+  
 - Openshift network in UPS
 - diff in  StatefulSets and deployment
-- how to troubleshoot if Node NotReady
-- How to install prometheos, grafana and altermanager in openshift
-- how to use static and dynamic storage and reclaim policy
-- how pvc identify pvc?
+	Deployment is used for stateless applications where pods are interchangeable. StatefulSet is used for stateful applications where each pod requires stable identity, persistent storage, and ordered deployment/scaling.
+	deployment Examples:
+		Web servers
+		APIs
+		Frontend applications
 
+	StatuefulSets Examples:
+		Databases
+		Kafka
+		Elasticsearch
+		ZooKeeper
+- how to troubleshoot if Node NotReady
+	If a Kubernetes node goes into NotReady state, it means the control plane cannot properly communicate with the node or some critical services on the node are unhealthy.
+	Step 1: Check Node Status
+			kubectl get nodes
+			kubectl describe node worker-1
+		Look at:
+			Conditions
+			Events
+			MemoryPressure
+			DiskPressure
+			PIDPressure
+			NetworkUnavailable
+
+	Step 2: Check Kubelet Service
+			Login to the node and verify kubelet.
+				#systemctl status kubelet
+				# journalctl -u kubelet -f
+			
+	Step 3: Check Container Runtime
+				# systemctl status containerd  << For containerd:
+				# systemctl status crio        << For CRI-O
+	
+	Step 4: Check Disk Space
+				Low disk space can make node NotReady.
+				# df -h
+					Clean old containers/images if required.
+	
+	Step 5: Check Memory and CPU
+				If system memory is exhausted:
+					Kill unwanted processes
+					Restart workloads
+					Increase resources
+
+	Step 6: Check Network Connectivity
+			Verify node can reach API server.
+			
+			Check:
+				Firewall
+				Routes
+				DNS
+				Security groups
+	
+	Step 7: Check CNI/Network Plugin
+			kubectl get pods -n kube-system
+			Examples:
+				calico
+				flannel
+				cilium
+				ovn-kubernetes
+			Common errors:
+				Failed to set up pod network
+				IP allocation issue
+				VXLAN/OVS issue
+				
+	Step 10: Reboot Node (Last Option)
+	
+	=========
+	Common Real-Time Causes
+	Cause						Symptoms
+	kubelet down				Node NotReady
+	container runtime stopped	Pods unavailable
+	Disk full					DiskPressure=True
+	Memory exhausted			MemoryPressure=True
+	CNI issue					NetworkUnavailable
+	API server unreachable		kubelet cannot register
+	Certificate expired			Authentication failures
+
+
+- How to install prometheos, grafana and altermanager in openshift
+	Prometheus can be installed in Kubernetes using Helm chart kube-prometheus-stack, which deploys Prometheus, Alertmanager, Grafana, and exporters. Alternatively, we can install it using Prometheus Operator or use built-in monitoring in OpenShift.”
+	
+
+- How to use static and dynamic storage and reclaim policy?
+	1. Retain Policy
+	2. Delete Policy
+	3. Recycle Policy (Deprecated)
+	
+	Access mode
+	1. ReadWriteOnce (RWO)
+		- ReadWriteOnce allows one node to mount the volume with read-write access.
+		Use Case
+			Databases (MySQL)
+			Stateful applications
+			Single pod applications
+
+	2. ReadOnlyMany (ROX)
+		- ReadOnlyMany allows multiple nodes to read the volume but not write.
+		Use Case
+			Shared configuration
+			Shared static files
+			Shared content distribution
+		Examples
+			Website static content
+
+	3. ReadWriteMany (RWX)
+		- ReadWriteMany allows multiple nodes to read and write simultaneously, commonly used with NFS or CephFS
+		Use Case
+			Shared storage
+			Multiple application pods
+			File sharing
+
+Storage Topics
+	- PVC binding logic
+	- StorageClass
+	- Reclaim policy
+	- Troubleshooting scenarios
+
+- How does a PVC get matched with a PV?
+	- A PVC is identified by its namespace and name. It gets bound to a PV based on matching StorageClass, access mode, storage size, and optional selector labels. 
+	- In dynamic provisioning, StorageClass triggers automatic PV creation and binding.
+	
+- What is a StorageClass?
+	- A StorageClass in Kubernetes defines how storage should be dynamically provisioned when a PVC is created.
+	Simple Meaning
+	- Instead of manually creating PVs, Kubernetes creates them on-demand using StorageClass.
+		Flow : PVC → StorageClass → CSI Driver → PV (auto-created) → Pod
+		
+
+- What happens when no PV matches a PVC request?
+	When no PersistentVolume (PV) matches a PVC request, the PVC will not get bound and will stay in a Pending state.
+	1. PVC is created
+	2. Kubernetes tries to find a matching PV
+		It checks:
+			Storage size
+			Access mode (RWO / RWX / ROX)
+			StorageClass match
+			Selector labels (if defined)
+	3. No match found ❌
+			If nothing matches:
+		No PV found → PVC stays in Pending state
+		
+- Can a single PV be bound to multiple PVCs?
+	No, a single PersistentVolume cannot be bound to multiple PVCs. Kubernetes follows a one-to-one binding model between PV and PVC. However, a single PVC can be mounted by multiple pods depending on the access mode like ReadWriteMany or ReadOnlyMany.
+	
+	
 
 ======================================
 Linux Questions
