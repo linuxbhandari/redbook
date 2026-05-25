@@ -1,3 +1,25 @@
+
+========================================================================================
+
+
+
+Ceph version
+Nautilus	14.x	Stable older release
+Octopus		15.x	Popular stable release
+Pacific		16.x	Long-term stable
+Quincy		17.x	Stable/LTS
+
+Pacific
+	- cephadm became mature
+Quincy
+	- cephadm became enterprise-optimized
+	with:
+		better upgrades
+		better recovery
+		better scalability
+		smoother operations
+
+
 Q)What is Ceph?
 	Ceph is an open-source distributed storage platform providing scalable and highly storage platforms in the form of block, object, and file storage.
 

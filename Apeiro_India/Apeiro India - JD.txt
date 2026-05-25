@@ -1,0 +1,36 @@
+About the Role
+We are seeking a skilled and proactive DevOps & Site Reliability Engineer (SRE) to join our growing technology team. The ideal candidate will have hands-on experience in designing, implementing, and maintaining scalable, secure, and highly available infrastructure and deployment systems.
+
+You will play a critical role in automating processes, improving system reliability, optimizing performance, and ensuring smooth collaboration across AI, Cloud, Backend, and UI/UX product teams.
+ 
+Key Responsibilities
+●	Design, implement, and maintain robust CI/CD pipelines for seamless application deployment.
+●	Monitor and improve system performance, reliability, scalability, and availability.
+●	Build and manage Infrastructure as Code (IaC) solutions using tools such as Terraform and CloudFormation.
+●	Implement and maintain application observability through logging, monitoring, and alerting tools (Grafana, ELK Stack, Prometheus, etc.).
+●	Automate repetitive operational tasks to improve efficiency and reduce manual intervention.
+●	Collaborate closely with developers, QA engineers, and cloud teams to streamline release management and deployment processes.
+●	Ensure adherence to best practices related to security, compliance, backup, and disaster recovery.
+●	Troubleshoot production issues, perform root cause analysis, and minimize downtime through proactive incident management.
+●	Support containerized application deployment using Docker and Kubernetes.
+●	Contribute to continuous improvement initiatives for infrastructure and operational excellence.
+ 
+Required Skills & Qualifications
+●	Bachelor’s degree in Computer Science, Information Technology, or a related field (B.Tech preferred).
+●	3–5+ years of professional experience in DevOps, SRE, or Cloud Infrastructure Engineering.
+●	Strong expertise in Linux/Unix system administration.
+●	Experience with CI/CD tools such as Jenkins, GitLab CI/CD, or GitHub Actions.
+●	Hands-on experience with cloud platforms including AWS, Azure, or GCP.
+●	Proficiency in containerization and orchestration technologies such as Docker and Kubernetes.
+●	Experience with Infrastructure as Code (IaC) tools including Terraform, Ansible, or Helm.
+●	Familiarity with monitoring, logging, and observability platforms.
+●	Strong problem-solving, debugging, and incident management skills.
+●	Excellent communication and collaboration abilities.
+ 
+Nice to Have
+●	Certifications in AWS, Kubernetes, Terraform, or DevOps-related technologies.
+●	Experience working in Agile/Scrum environments.
+●	Exposure to AI/ML infrastructure or modern cloud-native applications is an added advantage.
+
+
+=======================================

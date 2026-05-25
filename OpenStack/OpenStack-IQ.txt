@@ -1,3 +1,19 @@
+Interview Question which I have faced.
+======================================
+What is MOM and MGR
+What kind of work you do on ceph
+
+Q) If case your compute node goes down. how would you manager the instances?
+Q) Tell me about your infra of openstack and what is your daily work?
+Q) What is fencing the controller node
+Q) OS installation in Datacenter?
+Q) Tell me about OVS?
+Q) How to patch controller node?
+Q) How to add new compute nodes?
+Q) what services are runs on all nodes at the sample time and what not on controller nodes like galera
+
+
+
 Interview Questions
 =====================
 Controller node

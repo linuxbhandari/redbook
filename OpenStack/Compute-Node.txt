@@ -6,8 +6,6 @@ Step 1: Disable the compute service
 		# openstack compute service list   << To check and verify
 		# openstack compute service set --disable <compute-host> nova-compute   << disable node
 	
-	
-	
 Step 2: Migrate or evacuate running instances
 		Then I live migrate or evacuate all running instances to other compute nodes.
 		
