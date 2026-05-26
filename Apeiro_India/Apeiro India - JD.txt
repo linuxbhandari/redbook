@@ -34,3 +34,14 @@ Nice to Have
 
 
 =======================================
+Q) How to migrate openshift setup to kubetnetes
+Q) Tell me about ingress path base routhing
+Q) External Request flow in kubetnetes
+Q) kubernetes componenets
+Q) kibana
+Q) what is your daily work on kubernets
+Q) explain pathcing steps.
+Q) deployment vs statuefull 
+Q) how to trobleshoot pod
+Q) proble readness and liveness
+

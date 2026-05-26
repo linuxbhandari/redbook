@@ -1,0 +1,17 @@
+Q) What is the difference between an image and a container?
+	Docker image is a template used to create containers, while a Docker container is the running instance of that image.
+
+Q) What is a Dockerfile?
+	A Dockerfile is a text file that contains instructions to automatically build a Docker image.
+		It defines:
+			Base image
+			Application code
+			Dependencies
+			Commands to run the application
+
+Q) What is the purpose of docker build?
+Q) What is the purpose of docker run?
+Q) What is the difference between CMD and ENTRYPOINT?
+Q) Difference between COPY and ADD in Dockerfile?
+Q) What are namespaces and cgroups in Docker?
+Q) 

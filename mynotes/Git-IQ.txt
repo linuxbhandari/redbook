@@ -1,0 +1,82 @@
+Q) What is the difference between git pull and git fetch?
+	git pull : Downloads latest changes from remote repository Downloads and merges remote changes into current branch
+	git fetach : Downloads and merges remote changes into current branch.
+
+Q) What is the staging area in Git?
+	The staging area (also called the index) is an intermediate area where Git stores changes before creating a commit.
+
+Q) What is the difference between git merge and git rebase?
+	git merge : git merge combines changes from one branch into another and creates a merge commit.
+				it preserving history and creating a merge commit.
+
+	git rebase : 
+Q) What is a merge conflict?
+	A merge conflict occurs when Git cannot automatically merge changes because the same file or line was modified differently in multiple branches. Developers must manually resolve the conflict and commit the final version.
+
+Q) What is HEAD in Git?
+	HEAD is a pointer that refers to the current commit or the current branch you are working on in Git.
+
+Q) What is the difference between git reset, git revert, and git checkout?
+	git reset moves HEAD to a previous commit and can rewrite history.
+	git revert undoes changes by creating a new commit without changing history.
+	git checkout is used to switch branches or restore files.
+
+
+Q) What is .gitignore?
+	.gitignore is a special file used to tell Git which files and folders should be ignored and not tracked in the repository.
+	It helps avoid committing:
+		Temporary files
+		Build files
+		Logs
+		Environment files
+		IDE/editor settings
+
+Q) What is the purpose of git stash?
+	git stash is used to temporarily save uncommitted changes without committing them.
+	
+	It allows you to:
+		Switch branches safely
+		Pull latest code
+		Work on another task temporarily
+	
+	Later, you can restore the saved changes.
+
+Q) What is cherry-picking in Git?
+	- Cherry-picking in Git means applying a specific commit from one branch into another branch.
+	- Instead of merging the entire branch, you select only the required commit.
+
+	Why Use Cherry-Pick?
+	Use it when:
+		- You need only one specific commit
+		- A bug fix from another branch is required
+		- You don't want to merge the whole branch
+
+Q) Explain Git rebase with an example.
+Q) What are Git hooks?
+	Git hooks are scripts that run automatically before or after specific Git events such as:
+		commit
+		push
+		merge
+		rebase
+	
+	They help automate tasks and enforce rules in a repository.
+	Common Use Cases
+		Run tests before commit
+		send notifications
+
+Q) What is the difference between origin and upstream?
+Q) What is the purpose of git reflog?
+
+
+Scenario-Based Git Questions
+Q) You committed code to the wrong branch. How would you fix it?
+Q) How do you undo the last commit without losing changes?
+	git reset --soft HEAD~1
+
+Q) How do you remove a file from Git tracking but keep it locally?
+	git rm --cached <file-name>
+Q) A merge conflict occurred during pull. What would you do?
+Q) How do you revert a pushed commit?
+
+Q) How do you clean untracked files from a repository?
+	git clean removes untracked files and directories from the working directory.
