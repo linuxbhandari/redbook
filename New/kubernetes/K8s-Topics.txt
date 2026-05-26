@@ -1,0 +1,278 @@
+1. Kubernetes Architecture
+	Understand complete cluster flow.
+	
+	Control Plane Components
+		API Server
+		etcd
+		Controller Manager
+		Scheduler
+	Worker Node Components
+		kubelet
+		kube-proxy
+		Container Runtime (containerd/CRI-O)
+
+	Request Flow
+		User → API Server → Scheduler → kubelet → Pod creation
+
+Workload Objects
+================
+2. Pod : A Pod is the smallest deployable unit in Kubernetes.
+	A pod contains:
+		One or more containers
+		Shared network	
+		Shared storage
+		Same lifecycle
+	
+	Containers inside a pod communicate using localhost.
+	
+	- Multi-container pod : A pod can contain multiple containers.
+		All containers share:
+			Same IP
+			Same network namespace
+			Volumes/storage
+	
+	- Init containers : Init containers run BEFORE main application containers.
+		Purpose:
+			Setup tasks
+			Dependency checks
+			Database readiness
+			Configuration download
+			
+	- Sidecar containers : A sidecar container runs alongside the main application container.
+	
+	- Pod lifecycle : A pod goes through multiple phases during its lifetime.
+		Flow  : Pending → Running → Succeeded/Failed
+	
+	Pod states
+		Pending : 
+		Running : 
+		Succeeded
+		Failed
+		Unknown
+		
+3. ReplicaSet
+	Maintains desired pod count
+
+4. Deployment
+	Rolling updates
+	Rollback
+	Scaling
+	Update strategies
+	
+	Deployment Strategies
+		RollingUpdate
+		Recreate
+		Blue-Green
+		Canary
+
+5. StatefulSet
+Used for:
+	Databases
+	Stable hostname
+	Persistent storage
+
+Difference:
+	Deployment → stateless
+	StatefulSet → stateful
+
+6. DaemonSet
+	Runs one pod per node.
+	Examples:
+		Monitoring agents
+		Logging agents
+		Node exporters
+
+7. Job & CronJob
+	One-time execution
+	Scheduled tasks
+	
+
+Networking
+===========
+8. Services
+	Very important interview topic.
+
+	Service Types
+		ClusterIP
+		NodePort
+		LoadBalancer
+		ExternalName
+
+9. Ingress
+	HTTP/HTTPS routing
+	TLS termination
+	Path-based routing
+
+10. DNS in Kubernetes
+	CoreDNS
+	Service discovery
+
+11. Network Policies
+	Control pod-to-pod communication.
+
+Storage
+============
+12. Volumes
+		emptyDir : 
+		hostPath
+		configMap volume
+		secret volume
+
+13. Persistent Storage
+		PV (PersistentVolume)
+		PVC (PersistentVolumeClaim)
+		StorageClass
+
+		Dynamic provisioning is very important.
+
+
+Configuration & Security
+==========================
+14. ConfigMap
+		Store non-sensitive data.
+
+15. Secret
+		Store sensitive data.
+
+16. RBAC	
+	Very important for admin interviews.
+
+	Components
+		Role
+		RoleBinding
+		ClusterRole
+		ClusterRoleBinding
+		ServiceAccount
+
+	Example:
+		Namespace-specific admin access.
+
+17. Security Context
+	runAsUser
+	privileged containers
+	fsGroup
+
+18. Pod Security
+	Admission controllers
+	Restricted policies
+	
+Scheduling
+==========
+19. Node Selector
+	Schedule pod on specific node.
+
+20. Affinity & Anti-Affinity
+	Types
+	Node Affinity
+	Pod Affinity
+	Pod Anti-Affinity
+
+21. Taints & Tolerations
+	Control pod scheduling.
+	Example:
+		Dedicated infra nodes.
+
+Cluster Operations
+==================
+22. Draining Nodes
+Used before:
+	Maintenance
+	Patching
+	Upgrades
+
+Commands:
+	kubectl drain <node> --ignore-daemonsets
+	kubectl cordon <node>
+	kubectl uncordon <node>
+
+23. Cluster Upgrade
+	Worker-first or control-plane-first strategy
+	Backup etcd
+	Validate workloads
+
+24. Troubleshooting
+Very important.
+Common Commands
+	kubectl get pods
+	kubectl describe pod
+	kubectl logs
+	kubectl exec -it
+	kubectl top pod
+	kubectl get events
+Areas
+	CrashLoopBackOff
+	ImagePullBackOff
+	Pending pods
+	Service inaccessible
+	DNS issues
+	Node NotReady
+
+Monitoring & Observability
+25. Prometheus
+	Metrics collection.
+
+26. Grafana
+Visualization dashboards.
+
+27. Logging
+	EFK/ELK stack
+	Loki
+
+28. Kiali & Jaeger
+	Service mesh observability.
+	
+
+DevOps & GitOps
+33. Helm
+	Package manager.
+
+34. ArgoCD
+	GitOps deployment model.
+
+35. CI/CD Integration
+	Jenkins
+	GitHub/GitLab
+	Image pipelines
+
+
+Advanced Topics
+36. ETCD
+	Backup & restore
+	Quorum
+
+37. CNI Plugins
+	Calico
+	Flannel
+	OVN-Kubernetes
+
+38. Service Mesh
+	Istio
+	Red Hat Service Mesh
+
+39. HPA/VPA
+	Horizontal Pod Autoscaler
+	Vertical Pod Autoscaler
+
+40. Resource Management
+	Requests
+	Limits
+	QoS classes
+
+
+Most Asked Interview Topics
+Focus heavily on these:
+	Deployment vs StatefulSet
+	Service types
+	Ingress
+	PV/PVC
+	RBAC
+	Affinity/Taints
+	Troubleshooting pods
+	Node draining
+	Rolling updates
+	ConfigMap vs Secret
+	HPA
+	Network policies
+	OpenShift Routes & SCC
+	ArgoCD GitOps
+	ETCD backup

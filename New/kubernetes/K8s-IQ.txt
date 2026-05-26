@@ -1,0 +1,179 @@
+Basic
+=====
+Q) What is kubernetes?
+Q) What are the main components of Kubernetes architecture?
+Q) What is a Pod?
+Q) Difference between Pod and Container?
+Q) What is a Node?
+Q) What is a Namespace?
+Q) What is Deployment?
+Q) What is ReplicaSet?
+Q) Difference between Deployment and StatefulSet?
+
+Intermediate Level
+==================
+Q) What is ConfigMap?
+Q) What is Secrets?
+Q) What is Ingress?
+Q) Difference between Ingress and LoadBalancer?
+
+Q) What is kubelet?
+Q) What is etcd?
+Q) What are Labels and Selectors?
+Q) What is a DaemonSet?
+Q) What is a Job and CronJob?
+Q) What are Taints and Tolerations?
+
+Advanced Questions
+==================
+Q) Explain upgrade process step by step.
+Q) Explain user request flow.
+Q) Explain Kubernetes networking model.
+Q) What is CNI?
+Q) What happens during kubectl apply?
+Q) Difference between kubectl apply and create?
+Q) What is Helm and Helm Charts?
+Q) Explain rolling updates in Kubernetes.
+
+
+
+DevOps / Production Questions
+==============================
+Q) What monitoring tools are commonly used with Kubernetes?
+Q) What logging strategies are used in Kubernetes?
+Q) Explain liveness and readiness probes.
+
+Secrets and ConfigMap
+======================
+Q) How are Secrets stored in Kubernetes?
+	Secrets are stored in: etcd
+	by default in base64 encoded format (not encrypted unless configured).
+
+Q) What are ways to use ConfigMap in Pod?
+Q) What are ways to use Secrets in Pod?
+Q) Can ConfigMap be updated without restarting Pods?
+Q) What happens if ConfigMap is deleted?
+Q) What is volume-based ConfigMap?
+Q) How are Secrets secured in Kubernetes?
+Q) How to enable encryption for Secrets?
+Q) What is secret rotation?
+	Updating Secrets periodically without downtime.
+Q) Pod not picking ConfigMap values. Why?
+	ConfigMap name mismatch
+	Wrong key reference
+	Pod not restarted
+	Volume not mounted properly
+Q) Secret not accessible in Pod?
+	Secret exists
+	Namespace match
+	Correct key name
+	RBAC permissions
+Q) How do you update ConfigMap without downtime?
+Q) ConfigMap changes not reflected in Pod?
+Q) How do you secure ConfigMaps and Secrets?
+Q) What are common real production issues with Secrets/ConfigMaps?
+	wrong namespace
+	stale config after update
+	missing keys
+	permission denied
+	pod restart required
+
+Scheduling Related
+==================
+Q) What are Node Affinity and Anti-Affinity?
+Q) Types of Node Affinity?
+	requiredDuringSchedulingIgnoredDuringExecution (hard rule)
+	preferredDuringSchedulingIgnoredDuringExecution (soft rule)
+Q) What is Pod Affinity?
+Q) What is Pod Anti-Affinity?
+Q) Difference between Node Affinity and Pod Affinity?
+Q) What are requests and limits?
+Q) What are taints and tolerations?
+Q) Taint effect types?
+	NoSchedule
+	PreferNoSchedule
+	NoExecute
+Q) Pod not scheduling due to taints — fix?
+Q) How do you force a Pod to run on a specific node?	
+	Options:
+		nodeSelector
+		nodeAffinity
+		nodeName (not recommended)
+Q) What happens during node failure?
+Q) Node is ready but Pods not scheduling?
+Q) How to check node capacity?
+	kubectl describe node <node>
+	kubectl top nodes
+Q) 
+
+Networking
+==========
+Q) How does Pod-to-Pod communication work?
+Q) What is CoreDNS?
+Q) What is Network Policy?
+Q) What happens if no Network Policy exists?
+Q) What is egress and ingress traffic?
+Q) What is Service Discovery?
+Q) What is Headless Service?
+Q) What is External IP in Kubernetes Service?
+Q) What is Endpoint in Kubernetes?
+Q) How does Service load balancing work?
+Q) What is Ingress Controller?
+Q) What is TLS termination in Kubernetes?
+Q) What is Multi-cluster networking?
+Q) 
+
+Storage 
+=======
+Q) What is PV and PVC?
+Q) Difference between PV and PVC?
+Q) What is StorageClass?
+Q) What is dynamic provisioning?
+Q) What are access modes in Kubernetes storage?
+Q) What is reclaim policy?
+Q) Difference between emptyDir and Persistent Volume?
+Q) What is hostPath volume?
+Q) What is CSI in Kubernetes?
+Q) What storage backends have you worked with?
+Q) What is the difference between block storage and file storage?
+Q) What is RWX storage and where is it used?
+Q) What happens if no PV matches PVC?
+Q) Explain StatefulSet storage behavior.
+Q) What is local persistent volume?
+Q) What is ephemeral storage?
+Q) How does Ceph integrate with Kubernetes?
+Q) What is VolumeSnapshot?
+Q) What are common storage issues in Kubernetes?
+Q) What is disk pressure in Kubernetes?
+
+
+Troubleshooring Questions
+==========================
+Q) How to troubleshoot in node showing Node ready?
+Q) How to troubleshoot deployments, pods?
+Q) How do you troubleshoot PVC Pending issue?
+Q) Pod cannot mount volume. How will you troubleshoot?
+Q) PVC is bound but Pod is not starting. Why?
+Q) How do you migrate persistent data between clusters?
+Q) How do you provide shared storage to multiple Pods?
+
+Q) Pod cannot reach another Pod. How do you debug?
+Q) Service not reachable. What will you check?
+Q) DNS not resolving in cluster. How to fix?
+Q) What causes Crash in service networking?
+Q) How do you debug Ingress issues?
+Q) 
+
+Scenario-Based Questions
+========================
+Q) A Pod is stuck in Pending state. How do you troubleshoot?
+Q) A Pod is in CrashLoopBackOff. What will you do?
+Q) How do you perform zero-downtime deployments?
+Q) How do you secure Kubernetes clusters?
+Q) Explain RBAC in Kubernetes.
+Q) How does external traffic reach a Pod?
+	User → LoadBalancer → NodePort → Service → Pod
+Q) How do you expose applications externally securely?
+Q) How do you restrict traffic between namespaces?
+Q) How does service-to-service communication work?
+Q) 
