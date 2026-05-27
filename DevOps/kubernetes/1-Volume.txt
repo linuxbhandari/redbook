@@ -1,0 +1,322 @@
+Volume: Store data that can be accessed by containers inside a Pod.
+
+Types of Storage in Kubernetes
+	1. Ephemeral Storage (Temporary)
+		- EmptyDir
+		- Data exists only during pod life
+	
+	2. Persistent Storage
+		- PersistentVolume (PV)
+		- PersistentVolumeClaim (PVC)
+		- Data survives pod deletion
+
+1. EmptyDir Volume (Temporary Storage)
+
+cat >  emptydir.yaml
+-----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: emptydir-demo
+spec:
+  containers:
+  - name: app
+    image: nginx
+    volumeMounts:
+    - mountPath: /data
+      name: temp-storage
+
+  volumes:
+  - name: temp-storage
+    emptyDir: {}
+-----
+
+	How it works
+		- Volume created when pod starts
+		- Deleted when pod is removed
+
+	👉 Use cases:
+			- Cache
+			- Temporary files
+			- Shared data between containers
+
+2. HostPath Volume (Node Storage)
+		- A HostPath volume mounts a directory from the worker node filesystem into a Pod.
+		👉 So the pod directly uses the node’s disk.
+
+	Important Warning (Very Important)
+		- Works only on single node or testing environments
+		- NOT recommended for production
+		- Data is tied to the node
+
+--------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hostpath-demo
+spec:
+  containers:
+  - name: app
+    image: nginx
+    volumeMounts:
+    - name: node-storage
+      mountPath: /usr/share/nginx/html
+
+  volumes:
+  - name: node-storage
+    hostPath:
+      path: /data/webcontent
+      type: DirectoryOrCreate
+--------
+3. PersistentVolume (PV)
+		- A PV is a storage resource used to store data permanently, even if Pods are deleted or restarted.
+		or 
+		- Persistent Volume (PV) is a cluster-wide storage resource in Kubernetes that provides persistent storage independent of Pod lifecycle.
+
+		PV Workflow
+			Pod → PVC → PV → Physical Storage
+			- Pod requests storage using PVC
+			- PVC (PersistentVolumeClaim) binds to PV
+			- PV connects to actual storage
+
+		Example Storage Backends
+			- AWS EBS
+			- Azure Disk
+			- GCP Persistent Disk
+			- NFS
+			- Ceph
+			- Local Disk
+
+	Types of Provisioning
+
+	1. Static Provisioning
+			Admin manually creates PV
+	
+	2. Dynamic Provisioning
+			Kubernetes automatically creates PV using StorageClass
+
+
+
+			Example:
+
+Architecture
+
+Pod
+ ↓
+PVC
+ ↓
+StorageClass
+ ↓
+NFS Provisioner
+ ↓
+NFS Server Storage
+
+
+Step 1: Install NFS Server
+
+Step 2: Add Helm Repo
+	helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+
+Step 3: Install Provisioner
+	helm install nfs-storage nfs-subdir-external-provisioner/nfs-subdir-external-provisioner --set nfs.server=kube-master --set nfs.path=/srv/nfs/kubedata -n nfs-provisioner
+
+Step 4: Verify StorageClass
+	kubectl get storageclass
+
+
+Step 5: Create PVC
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 1Gi
+----
+
+kubectl apply -f pvc.yaml
+
+Step 6: Test With Pod
+
+------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  containers:
+  - name: app
+    image: nginx
+    volumeMounts:
+    - mountPath: /data
+      name: storage
+  volumes:
+  - name: storage
+    persistentVolumeClaim:
+      claimName: test-pvc
+-------------
+4. PVC
+
+
+# kubectl get pv
+NAME      CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+nfs-pv1   2Gi        RWX            Recycle          Bound    default/nfs-pvc1                  <unset>                          25m
+
+# kubectl get pvc
+NAME       STATUS   VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+nfs-pvc1   Bound    nfs-pv1   2Gi        RWX                           <unset>                 24m
+
+
+cat > pvc-pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-pod
+spec:
+  containers:
+  - name: app
+    image: nginx
+    volumeMounts:
+    - mountPath: /usr/share/nginx/html
+      name: storage
+
+  volumes:
+  - name: storage
+    persistentVolumeClaim:
+      claimName: nfs-pvc1
+	  
+
+
+Q) What happens if PVC is deleted?
+	Depends on policy:
+		Retain → data remains
+		Delete → storage deleted
+		Recycle → cleaned
+	  
+Types of Access Modes
+=====================
+Mode			Meaning
+ReadWriteOnce	One node read/write
+ReadOnlyMany	Many nodes read-only
+ReadWriteMany	Many nodes read/write
+
+
+Interview Questions
+===================
+Q) What is Dynamic Provisioning in Kubernetes?
+		Dynamic Provisioning automatically creates Persistent Volumes (PV) when a PersistentVolumeClaim (PVC) is requested.
+
+Q) Why is Dynamic Provisioning needed?
+		- Eliminates manual PV creation
+		- Automates storage management
+		- Improves scalability
+		- Reduces administrative overhead
+
+Q) What component enables Dynamic Provisioning?
+		StorageClass
+
+Q) What is a StorageClass? (pending)
+	Defines:
+		- Provisioner
+		- Storage type
+		- Reclaim policy
+		- Parameters for dynamic storage creation
+
+Q) What happens when a PVC is created?
+		- PVC request sent
+		- Kubernetes checks storageClassName
+		- Provisioner creates PV automatically
+		- PVC binds to PV
+
+Q) Difference Between Static and Dynamic Provisioning
+	Static Provisioning					Dynamic Provisioning
+	Admin manually creates PV		PV created automatically	
+	More manual work						Automated	
+	Hard to scale								Easy to scale
+	Less flexible								More flexible
+
+Q) 7. What is a Provisioner?
+	A plugin/component that creates storage automatically.
+	Examples
+		AWS EBS CSI
+		NFS Provisioner
+		Ceph CSI
+		Azure Disk CSI
+
+Q) What is CSI in Kubernetes?
+	Container Storage Interface
+		Standard for integrating storage systems with Kubernetes
+
+Q) What is the role of StorageClass in Dynamic Provisioning?
+	Defines how storage should be dynamically created.
+
+Q) How do you check available StorageClasses?
+	kubectl get storageclass
+
+Q) How do you know if Dynamic Provisioning worked?
+	kubectl get pv,pvc
+
+	PVC status should be: Bound
+
+Q) What happens if no StorageClass is specified?
+	Default StorageClass is used (if configured)
+
+Q) What is the default StorageClass?
+
+Q) PVC is stuck in Pending state. What will you check?
+		- StorageClass exists
+		- Provisioner running
+		- Enough storage available
+		- CSI driver healthy
+		- Access mode supported
+		- Events/logs
+
+	Commands:
+		kubectl describe pvc <pvc-name>
+		kubectl get pods -A
+		kubectl logs <provisioner-pod>
+
+Q) How do you troubleshoot Dynamic Provisioning failure?
+		Check PVC events
+		Verify StorageClass
+		Verify provisioner
+		Check node storage
+		Inspect CSI driver logs
+
+Q) Why are StatefulSets commonly used with Dynamic Provisioning?
+		Each Pod gets dedicated persistent storage automatically.
+
+Q) Can multiple Pods use the same dynamically provisioned volume?
+		Depends on access mode:
+		RWX → Yes
+		RWO → Limited
+
+Q) What is Volume Binding Mode?
+	Types
+		Immediate
+		WaitForFirstConsumer
+
+Q) Explain the Dynamic Provisioning workflow.
+
+PVC Created
+   ↓
+StorageClass Selected
+   ↓
+Provisioner Triggered
+   ↓
+PV Created
+   ↓
+PVC Bound
+   ↓
+Pod Uses Volume
+
+Q) What happens to dynamically provisioned storage after PVC deletion?
+	Depends on reclaim policy:
+		Delete → Storage removed
+		Retain → Storage preserved
+

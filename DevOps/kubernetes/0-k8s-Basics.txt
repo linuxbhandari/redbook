@@ -1,5 +1,6 @@
 Q) kubernetes 
 	- Kubernetes is an open-source container orchestration platform used to automate deployment, scaling, networking, and management of containerized applications.
+
 Q) Main components of Kubernetes architecture?
 	Control Plane Components
 		API Server
@@ -8,7 +9,7 @@ Q) Main components of Kubernetes architecture?
 		etcd
 	
 	Worker Node Components
-		Kubelet
+		Kubelet : Kubelet is an agent running on each node that ensures containers are running as expected.
 		Kube Proxy
 		Container Runtime (Docker/containerd)
 
@@ -17,6 +18,7 @@ Q) What is a Pod?
 		Network namespace
 		Storage volumes
 		IP address
+
 Q) What is a Node?
 	A Node is a worker machine (VM or physical server) where Pods run.
 
@@ -36,6 +38,13 @@ Q What is ReplicaSet?
 	ReplicaSet ensures the specified number of Pod replicas are running.
 
 Q)Difference between Deployment and StatefulSet?
+	Feature				Deployment			StatefulSet
+	Application type	Stateless			Stateful
+	Pod identity		Random				Stable (fixed names)
+	Storage				Shared / ephemeral	Persistent per Pod
+	Scaling	Parallel	Ordered
+	Pod replacement		New identity		Same identity
+	Use case			APIs, web apps		Databases, clusters
 
 Q) What is a Service in Kubernetes?
 	A Service exposes Pods internally or externally.
@@ -44,8 +53,10 @@ Q) What is a Service in Kubernetes?
 		NodePort
 		LoadBalancer
 		ExternalName
+
 Q) What is ConfigMap?
 	ConfigMap stores non-sensitive configuration data separately from application code.
+
 Q) What is Secret?
 	Secrets store sensitive information such as:
 		Passwords
@@ -56,9 +67,6 @@ Q) What is Ingress?
 	Ingress manages external HTTP/HTTPS access to services with routing rules.
 
 Q) Difference between Ingress and LoadBalancer?
-
-Q) What is kubelet?
-	Kubelet is an agent running on each node that ensures containers are running as expected.
 
 Q) What are Labels and Selectors?
 	- Labels are key-value metadata attached to objects.

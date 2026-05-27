@@ -1,0 +1,8 @@
+Cluster Operations
+==================
+22. Draining Nodes
+Used before:
+	Maintenance
+	Patching
+	Upgrades
+

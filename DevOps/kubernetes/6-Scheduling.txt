@@ -1,0 +1,15 @@
+19. Node Selector
+	Schedule pod on specific node.
+
+20. Affinity & Anti-Affinity
+	Types
+	Node Affinity
+	Pod Affinity
+	Pod Anti-Affinity
+
+21. Taints & Tolerations
+	Control pod scheduling.
+	Example:
+		Dedicated infra nodes.
+
+		
