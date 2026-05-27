@@ -33,7 +33,7 @@ Nice to Have
 ●	Exposure to AI/ML infrastructure or modern cloud-native applications is an added advantage.
 
 
-=======================================
+
 Q) How to migrate openshift setup to kubetnetes
 Q) Tell me about ingress path base routhing
 Q) External Request flow in kubetnetes

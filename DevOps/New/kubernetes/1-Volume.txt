@@ -47,7 +47,7 @@ How it works
 		NOT recommended for production
 		Data is tied to the node
 
----
+--------
 apiVersion: v1
 kind: Pod
 metadata:
@@ -65,8 +65,7 @@ spec:
     hostPath:
       path: /data/webcontent
       type: DirectoryOrCreate
----
-
+--------
 3. PersistentVolume (PV)
 
 PV = actual storage in cluster
@@ -76,4 +75,50 @@ PV = actual storage in cluster
 		Ceph
 		Local disk
 
+
 4. PVC
+
+
+# kubectl get pv
+NAME      CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+nfs-pv1   2Gi        RWX            Recycle          Bound    default/nfs-pvc1                  <unset>                          25m
+
+# kubectl get pvc
+NAME       STATUS   VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+nfs-pvc1   Bound    nfs-pv1   2Gi        RWX                           <unset>                 24m
+
+
+cat > pvc-pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-pod
+spec:
+  containers:
+  - name: app
+    image: nginx
+    volumeMounts:
+    - mountPath: /usr/share/nginx/html
+      name: storage
+
+  volumes:
+  - name: storage
+    persistentVolumeClaim:
+      claimName: nfs-pvc1
+	  
+
+
+Q) What happens if PVC is deleted?
+	Depends on policy:
+		Retain → data remains
+		Delete → storage deleted
+		Recycle → cleaned
+	  
+Types of Access Modes
+=====================
+Mode			Meaning
+ReadWriteOnce	One node read/write
+ReadOnlyMany	Many nodes read-only
+ReadWriteMany	Many nodes read/write
+
+
