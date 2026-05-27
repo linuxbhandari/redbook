@@ -1,0 +1,914 @@
+Chapter/Unit-3 Pod scheduling
+==============================
+
+Pod scheduling in Kubernetes is the process of assigning a pod to a node in the cluster. The Kube-scheduler is responsible for selecting a suitable node based on resource availability, constraints, and scheduling policies.
+
+Q) How Does Kubernetes Schedule Pods?
+Q) 
+Note: Pod scheduling are 4 types
+			1) Node name based pod scheduling
+			2) Name label and Pod selecter based
+			3) Taint and tolerations
+			4) Affinity and Anti-affinity rules.
+
+1) Node name based Pod scheduling
+================================
+ => It does not matter the health of node. pod will run as per node which you have defined.
+ => Not use in companies, because we can put only one name at a time and in case if node went down then scheduler will not run your pod on different node.(does not provide fail-over)
+ => Only Node based scheduling work in case if scheduling went down. and rest scheduling techonology will not work.
+
+root@kube-master:~# cat Node-name-deployment.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dep1
+  name: dep1
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: dep1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dep1
+    spec:
+      nodeName: kube-node1               <<<< Node Name : Pod are always run on kude-node1
+      containers:
+      - image: docker.io/nginx:1.16
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl create -f Node-name-deployment.yml
+
+
+IQ)if pod are showing pending stage what is the resion?
+ans => There are lots of reason, but may be the node are not present which you have define to run pod. (Pod scheduling failed)
+
+14:00 Interview Question
+
+IQ) Can we deploy your application if scheduler not work or present?
+   => Yes, we can. if that case only nodename based schduling works.
+   => reset scheduling methods are requrired (medantaty) for pod scheduling.
+
+2) Name label and Pod selecter based
+====================================
+  This will provide two things
+    a) Node choice
+    b) failover
+
+root@kube-master:~# kubectl label nodes kube-node1 role=db
+root@kube-master:~# kubectl label nodes kube-node2 role=app
+root@kube-master:~# kubectl get nodes --show-labels
+
+  Note: we can define multiple label on one node
+
+IQ) What is Nodegroup?
+ans: it just a grouping of nodes where you want to run application.
+
+root@kube-master:~# kubectl label nodes kube-node1 zone=mumbai
+root@kube-master:~# kubectl label nodes kube-node1 zone=delhi --overwrite
+
+root@kube-master:~# cat Node-name-selecter.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dep1
+  name: dep1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dep1                          <<< pod selector, on the base of this value it determine the pod
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dep1
+    spec:
+      nodeSelector:
+              role: app                   <<<< Node selector
+      containers:
+      - image: docker.io/nginx:1.16
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl create -f Node-name-selecter.yml
+root@kube-master:~# kubectl get nodes -l role=app
+
+root@kube-master:~# kubectl describe pod dep1-6d47d55dcb-bpbcm | grep -i Node-Selectors
+Node-Selectors:              role=app
+
+IQ) What is the purpose of Node label and NodeSelector?
+
+Node Label => use for node side.
+Nodeselector => use for depeloyment side.
+
+ Note: we can put nodeselector on two level.
+    a) deployment level
+    b) namespace/projet level. (in kubernetes, on namespace level, nodeSelector parametor is off by-default. You have to open it. after thar you can use it.)
+
+  Note: kubernetes does not allow any change directly on api containers.
+
+root@kube-master:~# ls -l /etc/kubernetes/manifests/
+total 16
+-rw------- 1 root root 2285 Dec 25 22:41 etcd.yaml
+-rw------- 1 root root 4019 Dec 25 22:41 kube-apiserver.yaml              <<<< this file control the api container
+-rw------- 1 root root 3401 Dec 25 22:41 kube-controller-manager.yaml
+-rw------- 1 root root 1435 Dec 25 22:41 kube-scheduler.yaml
+
+To enable the patametor for namespace level
+
+root@kube-master:~# vim /etc/kubernetes/manifests/kube-apiserver.yaml
+add => PodNodeSelector
+
+--enable-admission-plugins=NodeRestriction,PodNodeSelector
+wq!
+ 				once you update it will automatically updated. no need to anything. (take 1 mins approx)
+
+root@kube-master:~# ps -ef | grep api| grep PodNodeSelector --color
+root       76224   76171  9 14:24 ?        00:00:30 kube-apiserver --advertise-address=192.168.122.241 --allow-privileged=true --authorization-mode=Node,RBAC --client-ca-file=/etc/kubernetes/pki/ca.crt --enable-admission-plugins=NodeRestriction,PodNodeSelector --enable-bootstrap-token-auth=true --etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt --etcd-certfile=/etc/kubernetes/pki/apiserver-etcd-client.crt --etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key --etcd-servers=https://127.0.0.1:2379 --kubelet-client-certificate=/etc/kubernetes/pki/apiserver-kubelet-client.crt --kubelet-client-key=/etc/kubernetes/pki/apiserver-kubelet-client.key --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname --proxy-client-cert-file=/etc/kubernetes/pki/front-proxy-client.crt --proxy-client-key-file=/etc/kubernetes/pki/front-proxy-client.key --requestheader-allowed-names=front-proxy-client --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt --requestheader-extra-headers-prefix=X-Remote-Extra- --requestheader-group-headers=X-Remote-Group --requestheader-username-headers=X-Remote-User --secure-port=6443 --service-account-issuer=https://kubernetes.default.svc.cluster.local --service-account-key-file=/etc/kubernetes/pki/sa.pub --service-account-signing-key-file=/etc/kubernetes/pki/sa.key --service-cluster-ip-range=10.96.0.0/12 --tls-cert-file=/etc/kubernetes/pki/apiserver.crt --tls-private-key-file=/etc/kubernetes/pki/apiserver.key
+
+https://stackoverflow.com/questions/52487333/how-to-assign-a-namespace-to-certain-nodes   <<== URL
+
+root@kube-master:~# kubectl label node kube-node1 disk=ssd          set label
+
+root@kube-master:~# kubectl get ns demo
+root@kube-master:~# kubectl edit ns demo
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:                                             <<<
+    scheduler.alpha.kubernetes.io/node-selector: disk=ssd  <<<      set label
+  creationTimestamp: "2023-12-29T09:06:25Z"
+  labels:
+    kubernetes.io/metadata.name: demo
+  name: demo
+  resourceVersion: "204484"
+  uid: f77e3d7e-0c17-41e7-8691-926a8f048bce
+spec:
+  finalizers:
+  - kubernetes
+status:
+  phase: Active
+
+root@kube-master:~# kubectl get nodes -l disk=ssd       <<== verity the node which have disk=ssd label
+NAME         STATUS   ROLES    AGE     VERSION
+kube-node1   Ready    <none>   2d22h   v1.28.2
+
+root@kube-master:~# kubectl get pod -o wide -n demo
+NAME   READY   STATUS    RESTARTS   AGE     IP            NODE         NOMINATED NODE   READINESS GATES
+test   1/1     Running   0          3m16s   172.17.9.68   kube-node1   <none>           <none>
+
+Note: after this any application which come on demo namespace will run on kube-node1
+
+IQ)
+=> what is annotation?
+=> if we have 3 api servers then we have to update PodNodeSelector all side.
+Q) What is static pod in kubenetes?
+
+
+
+3) Taint and tolerations
+=========================
+ => In Kubernetes, taints and tolerations are used to control the scheduling of pods into nodes in a cluster.
+ => They help to ensure that only certain pods are placed on specific nodes, based on specific conditions and requirements.
+
+ For this we have two rules
+ 1) taint: node side
+ 2) tolerations: deployment side.
+
+Each taint consists of three parts:
+  => Key: The key represents the name of the taint and is used to uniquely identify it.
+  => Value: An optional value associated with the taint key.
+  => Effect: The effect determines how the taint affects pod scheduling.
+
+
+IQ) why any service is not scheduled on master node?
+
+
+root@kube-master:~# kubectl taint node kube-node1 web:NoSchedule      <<== To set taint the node
+root@kube-master:~# kubectl taint node kube-node1 web:NoSchedule-     <<== - to untant the node
+
+root@kube-master:~# kubectl describe nodes kube-node1  | grep -i taints
+Taints:             web:NoSchedule
+
+or
+root@kube-master:~# kubectl describe node | grep -i taints              <<== To check all taints node in one command
+Taints:             node-role.kubernetes.io/control-plane:NoSchedule
+Taints:             web:NoSchedule
+Taints:             <none>
+
+root@kube-master:~# kubectl create deployment test --image=nginx --replicas=2
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+test-7955cf7657-p6jzk   1/1     Running   0          8s    172.17.233.197   kube-node2   <none>           <none>
+test-7955cf7657-w5m8s   1/1     Running   0          8s    172.17.233.199   kube-node2   <none>           <none>
+
+root@kube-master:~# kubectl label nodes kube-node1 role=app
+
+oot@kube-master:~# cat deploy.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+      nodeSelector:                        <<< update nodeselector
+              disk: ssd
+      tolerations:                         <<< update tolerations
+             - key: web
+               effect: NoSchedule
+               operator: Exists            <<< exists allow to run pod on taint node.
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+demo-76cd4d99bf-dcblq   1/1     Running   0          97s   172.17.9.75   kube-node1   <none>           <none>
+demo-76cd4d99bf-fblkh   1/1     Running   0          94s   172.17.9.73   kube-node1   <none>           <none>
+
+Note:
+=> we can create multiple taint node with same label. so that pod can run on both side.(if one node went down then pod will migrate on  another taint node.)
+=> we will do this because if we have only one taint node and if that node went down.
+   then application will not migrate and down also.
+
+Taint Effect:
+=============
+Syntax
+
+# kubectl taint nodes node1 key1=value1:NoSchedule
+# kubectl taint nodes node1 key1=value1:NoExecute
+# kubectl taint nodes node1 key2=value1:PreferNoSchedule
+
+# kubectl taint node kube-node1 size=large:NoSchedule
+
+conditions
+==========
+1. Not mention operator.
+
+  tolerations:
+      - key: size
+        value: large
+        effect: NoSchedule
+
+      => if you not mention operator in tolerations, then it will automatically take Equal operator which is bydefault.
+
+2. If the value not match
+
+  tolerations:
+      - key: size
+        operator: Equal
+        value: abc
+        effect: NoSchedule
+
+     => then the pod will stuck in pending state.
+
+3. allow all taint to tolerance all pods.
+
+  tolerations:
+      - key: ""
+        operator: Exist
+        effect: ""
+==========================================================
+
+
+Example-1 (Equal)
+
+kubectl taint nodes k3d-worker-node-0 taint=start:NoSchedule
+
+  tolerations:
+      - key: taint
+        operator: Equal
+        value: start
+        effect: NoSchedule
+
+Example-2 (Exists)
+
+  tolerations:
+      - key: size
+        operator: Exists
+        effect: NoSchedule
+
+  ==> In that case it will work according to key should present on node. value does not need to mention.
+
+
+are 3 types:
+
+Hard effect:-
+=============
+1) NoSchedule: it does not evict(delete) existing pod from Node even they don't have tolerance.
+                => But if you delete/migrate existing pod then it will not run again on taint node without tolerance.
+
+2) NoExcure: It basically terminate all existing pod from node if they don't have tolerations repective this nodes.
+
+
+Soft effect:-
+=============
+3) PreferNoSchedule:  A soft effect where the system will try to avoid placing a pod that does not tolerate the taint on the node unless necessary.
+                      (rarelly use on servers)
+
+
+root@kube-master:~# kubectl run test --image=nginx
+pod/test created
+root@kube-master:~# kubectl get pod -o wide
+NAME   READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+test   1/1     Running   0          4s    172.17.233.205   kube-node2   <none>           <none>
+
+root@kube-master:~# kubectl taint node kube-node2 web:NoSchedule
+node/kube-node2 tainted
+root@kube-master:~# kubectl get pod -o wide                                                                <<== After taint this node, pod still running on this node.
+NAME   READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+test   1/1     Running   0          68s   172.17.233.205   kube-node2   <none>           <none>
+
+root@kube-master:~# kubectl taint node kube-node2 web:NoExecute-
+
+Toleration side:-
+operator:
+	(22:00) video still pending bacause its confused me.
+
+
+
+4) Affinity and Anti-affinity rules.
+================================
+Affinity is a k8s feature that allows you to schedule your pods on specific nodes in your cluster based on various criteria, such as the node's labels, the pods's lables or the pods
+
+---
+What is Node Affinity?
+🔹 Node Affinity ensures that pods prefer or require specific nodes for scheduling.
+🔹 It is an advanced version of nodeSelector that allows hard (required) and soft (preferred) constraints.
+
+✅ Example Use Cases:
+✔ Schedule GPU workloads on GPU-enabled nodes.
+✔ Ensure database pods run on high-memory nodes.
+✔ Prefer running web applications on SSD-backed nodes but allow fallback.
+
+
+What is Node Anti-Affinity?
+🔹 Node Anti-Affinity ensures that pods avoid specific nodes based on conditions.
+🔹 It helps spread workloads across different nodes for fault tolerance and high availability.
+
+
+✅ Example Use Cases:
+✔ Avoid scheduling multiple replicas of a service on the same node.
+✔ Prevent resource-intensive workloads from running on the same node.
+✔ Spread critical applications across multiple zones/nodes to avoid single points of failure.
+
+---
+Types of Node Affinity & Anti-Affinity
+
+Both Node Affinity and Node Anti-Affinity have two types of constraints:
+
+Type	                                                       |Node Affinity	                                                                            | Node Anti-Affinity
+Required (requiredDuringSchedulingIgnoredDuringExecution)	  | Pod must be scheduled on matching nodes (hard rule).                                   |	Pod must not be scheduled on matching nodes (hard rule).
+Preferred (preferredDuringSchedulingIgnoredDuringExecution)	| Pod should be scheduled on matching nodes but can run elsewhere if needed (soft rule).	| Pod should not be scheduled on matching nodes but can still be placed there if no alternatives exist.
+
+---
+Node Affinity Example
+
+Scenario: Schedule a pod only on nodes with disktype=ssd.
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:  # Hard rule
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: disktype
+            operator: In
+            values:
+            - ssd
+  containers:
+  - name: my-container
+    image: nginx
+
+✅ The pod only runs on nodes labeled disktype=ssd.
+❌ If no such node exists, the pod remains Pending.
+
+
+---
+Node Anti-Affinity Example
+
+Scenario: Prevent multiple replicas of an application from running on the same node.
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anti-affinity-example
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - my-app
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: my-container
+          image: nginx
+
+---
+Explanation:
+ - podAntiAffinity ensures that pods with the same app: my-app label are not scheduled on the same node.
+ - requiredDuringSchedulingIgnoredDuringExecution makes the rule strict, meaning the scheduler must place pods on different nodes.
+ - topologyKey: "kubernetes.io/hostname" enforces anti-affinity at the node level (ensuring different nodes for each pod).
+
+
+Use Cases:
+Ensuring high availability by distributing replicas across different nodes.
+Avoiding resource contention by separating workloads.
+
+
+
+
+
+Types of affinity and anti-Affinity.
+  1. Node lables Affinity.
+  2. Pod Affinity.
+  3. Pod Anto-affinity.
+
+
+hard affinity rules
+===================
+ 1. requiredDuringSchedulingIgnoredDuringExecution
+ 2. requiredDuringSchedulingRequiredDuringExecution
+
+  => Required during schduling.
+  => Running pods will not effect, if someone changes the node labels after deployment.
+
+Soft affinity rules
+===================
+preferredDuringSchedulingIgnoredDuringExecution:
+
+Operator for Affinity
+ 1. In
+ 2. Exists
+
+  Note: values is not required for Exists operator. it will run pods on the basis of key.
+
+Operator for Anti-Affinity
+ 1. NotIn
+ 2. DoesNotExists
+
+
+ For both
+ LT
+ GT
+
+1.
+Node level rules:
+================
+pratical-2
+==========
+First set the labels on nodes
+
+root@kube-master:~# kubectl label nodes kube-node1 role=app
+root@kube-master:~# kubectl label nodes kube-node2 role=db
+
+root@kube-master:~# cat a.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+     containers:
+      - image: nginx
+        name: nginx
+     affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:                                 <<<<<<<<<<
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: In
+                values:
+                - app
+
+
+root@kube-master:~/deployments/k8s# kubectl label nodes kube-node1 role-
+node/kube-node1 unlabeled
+root@kube-master:~/deployments/k8s# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+demo-6c7d989956-jbhfg   1/1     Running   0          56s   172.17.9.96   kube-node1   <none>           <none>           <<<< pods still running after label remove
+demo-6c7d989956-ztfcl   1/1     Running   0          56s   172.17.9.98   kube-node1   <none>           <none>
+
+pratical-2
+==========
+root@kube-master:~/deployments/k8s# cat a.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+     containers:
+      - image: nginx
+        name: nginx
+     affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: In
+                values:
+                  - demo               <<<< if depeloyment did not found demo labels then it move do db label
+                  - db
+
+
+root@kube-master:~/deployments/k8s# kubectl create -f a.yml
+
+root@kube-master:~/deployments/k8s# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+demo-86898597d8-2lq5b   1/1     Running   0          8s    172.17.233.215   kube-node2   <none>           <none>
+demo-86898597d8-5jkqr   1/1     Running   0          8s    172.17.233.216   kube-node2   <none>           <none>
+
+
+pratical-3
+==========
+root@kube-master:~/deployments/k8s# cat a.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+     containers:
+      - image: nginx
+        name: nginx
+     affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: Exists                                      <<<<<<<<
+
+
+Note: 
+ - values is not required for Exists operator. it will run pods on the basis of key.
+ - The Exists operator in pod affinity and pod anti-affinity is used when we want to match pods based only on the existence of a label key, regardless of its value.
+
+
+
+root@kube-master:~/deployments/k8s# kubectl create -f a.yml
+
+root@kube-master:~/deployments/k8s# kubectl get po -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+demo-657f8d9bcc-pfhq5   1/1     Running   0          6s    172.17.9.97      kube-node1   <none>           <none>
+demo-657f8d9bcc-qt6nq   1/1     Running   0          6s    172.17.233.213   kube-node2   <none>           <none>
+
+
+Anit-Affinity
+=============
+pratical-1 (NotIn)
+====================
+root@kube-master:~# cat a.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+     containers:
+      - image: nginx
+        name: nginx
+     affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: NotIn                       <<< do not run pods which have db label
+                values:
+                  - db
+
+
+root@kube-master:~/deployments/k8s# kubectl create -f a.yml
+
+root@kube-master:~/deployments/k8s# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+demo-86b67d7dd6-7gpzv   1/1     Running   0          8s    172.17.9.99      kube-node1   <none>           <none>
+demo-86b67d7dd6-gsdbv   1/1     Running   0          8s    172.17.119.157   kube-node3   <none>           <none>                     <<< does not have any label, but still pods running here.
+
+    Note: Now pods will run on nodes which have or not have lables except kube-node2 because kube-node2 have db label
+
+
+
+pratical-2 (DoesNotExists)
+==========================
+
+
+root@kube-master:~/deployments/k8s# cat a.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+     containers:
+      - image: nginx
+        name: nginx
+     affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: DoesNotExist
+
+
+root@kube-master:~/deployments/k8s# kubectl create -f a.yml
+root@kube-master:~/deployments/k8s# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+demo-659cbdfcf4-zkj5l   1/1     Running   0          12s   172.17.119.158   kube-node3   <none>           <none>
+demo-659cbdfcf4-zkvpn   1/1     Running   0          12s   172.17.119.159   kube-node3   <none>           <none>
+
+    Note: because kube-node3 does not have role key. and if we have role key on all nodes then pods will show on pendins stage.
+
+
+2. Pod level Anti-Affinity
+
+First remove all levels on nodes
+
+root@kube-master:~/deployments/k8s# kubectl label nodes kube-node1 role-
+root@kube-master:~/deployments/k8s# kubectl label nodes kube-node2 role-
+
+
+pod to pod Affinity
+===================
+=> whenever you want to run pods on same node always
+
+pratical-1
+===========
+1. create pod with label
+
+root@kube-master:~# cat a.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: cache
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: store
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: store
+    spec:
+     containers:
+      - image: redis
+        name: redis
+
+root@kube-master:~/deployments/k8s# kubectl get pod --show-labels
+NAME                    READY   STATUS    RESTARTS   AGE   LABELS
+cache-67f7f6cbb-ddsrh   1/1     Running   0          11m   app=store,pod-template-hash=67f7f6cbb
+
+
+2. create deployment with pod-affinity rules
+
+root@kube-master:~# cat b.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: web
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: web
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - store
+            topologyKey: "kubernetes.io/hostname"
+
+
+root@kube-master:~/deployments/k8s# kubectl create -f b.yml
+root@kube-master:~/deployments/k8s# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP             NODE         NOMINATED NODE   READINESS GATES
+cache-67f7f6cbb-ddsrh   1/1     Running   0          11m   172.17.9.101   kube-node1   <none>           <none>
+web-d6dc6bdfc-psct6     1/1     Running   0          5s    172.17.9.100   kube-node1   <none>           <none>
+
+   Note: Now web will run alwasy with cache on same node.
+
+
+pratical-2
+===========
+root@kube-master:~# cat redis.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-cache
+spec:
+  selector:
+    matchLabels:
+      app: store
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: store
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - store
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: redis-server
+        image: redis:3.2-alpine
+
+
+root@kube-master:~# cat web.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-server
+spec:
+  selector:
+    matchLabels:
+      app: web-store
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: web-store
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - web-store
+            topologyKey: "kubernetes.io/hostname"
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - store
+            topologyKey: "kubernetes.io/hostname"                   <<< It like node label
+      containers:
+      - name: web-app
+        image: nginx:1.16-alpine
+
+root@kube-master:~/deployments/k8s# kubectl get pod -o wide
+NAME                           READY   STATUS    RESTARTS   AGE    IP               NODE         NOMINATED NODE   READINESS GATES
+redis-cache-568dc6ff97-fb9p9   1/1     Running   0          6m1s   172.17.9.103     kube-node1   <none>           <none>
+redis-cache-568dc6ff97-hlbhn   1/1     Running   0          6m1s   172.17.119.161   kube-node3   <none>           <none>
+redis-cache-568dc6ff97-v7nd7   1/1     Running   0          6m1s   172.17.233.218   kube-node2   <none>           <none>
+web-server-7bb7f9b46d-brlmn    1/1     Running   0          96s    172.17.119.162   kube-node3   <none>           <none>
+web-server-7bb7f9b46d-gv8qf    1/1     Running   0          96s    172.17.9.107     kube-node1   <none>           <none>
+web-server-7bb7f9b46d-hlc9j    1/1     Running   0          96s    172.17.233.219   kube-node2   <none>           <none>
+
+Q) What is topology in pod-Affinity ?
+
+   not understood
+
+
+

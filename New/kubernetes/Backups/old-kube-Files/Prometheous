@@ -1,0 +1,324 @@
+1. Resources Monitoring.(Normal Monitoring) means => CPU, memory, disk monitoring
+  	1. Prometheous: metrics service
+	2. Grafana (GUI - Vizulize tool)
+	3. Node exporter: (agent)
+	
+2. Logs Monitoring.
+	1. ElasticSearch (log server)
+	2. kibana:(vizulize tool)
+	3. fluentd/logstash: (agent)
+	
+      EFK (Elastic fluentd kibana)
+      ELK (Elastic logstash kibana)
+      
+Example lab1
+
+	1. Install nfs server and configure
+	2. enable dynamic provisioning (Lab pratical not success)
+	https://www.exxactcorp.com/blog/Troubleshooting/deploying-dynamic-nfs-provisioning-in-kubernetes
+	
+	
+	At last we did via local volume
+	
+	3. Install helm
+	
+	4. add prometheous repo via helm.
+		
+	root@kube-master:~# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	"prometheus-community" has been added to your repositories
+
+	root@kube-master:~# helm repo list
+	NAME                	URL                                               
+	prometheus-community	https://prometheus-community.github.io/helm-charts
+
+	
+	root@kube-master:~# helm search repo prometheus-community
+	
+	root@kube-master:~# kubectl create ns monitoring
+	namespace/monitoring created
+
+	root@kube-master:~# helm install prometheous prometheus-community/prometheus -n monitoring ( but the problem is this chart required pvc)
+	
+	root@kube-master:~# kubectl get pvc -n monitoring
+	NAME                                 STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS     AGE
+	prometheous-prometheus-server        Pending                                      my-nfs-storage   49s
+	storage-prometheous-alertmanager-0   Pending                                      my-nfs-storage   48s
+	
+	root@kube-master:~# helm uninstall prometheous -n monitoring
+	release "prometheous" uninstalled
+
+        and disable the volume in values.yml file.
+        
+        
+        
+        root@kube-master:/tmp/prometheus# helm install prometheous prometheus-community/prometheus -n monitoring -f /root/values.yaml
+        
+        
+root@kube-master:/tmp/prometheus# kubectl get pvc -n monitoring
+NAME                                 STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS     AGE
+storage-prometheous-alertmanager-0   Pending                                      my-nfs-storage   9m31s (ignore this) now there no pending pvc
+
+root@kube-master:/tmp/prometheus# kubectl get pod -n monitoring
+NAME                                                  READY   STATUS    RESTARTS   AGE
+prometheous-kube-state-metrics-6bcf748dfb-czrlb       0/1     Running   0          16s
+prometheous-prometheus-node-exporter-92kmc            1/1     Running   0          16s
+prometheous-prometheus-node-exporter-qrl5z            1/1     Running   0          16s
+prometheous-prometheus-node-exporter-xsxmt            1/1     Running   0          16s
+prometheous-prometheus-pushgateway-59486d9554-xkldr   0/1     Running   0          16s
+prometheous-prometheus-server-6cf457786f-7q2kf        1/2     Running   0          16s
+root@kube-master:/tmp/prometheus# 
+
+
+root@kube-master:/tmp/prometheus# kubectl get service -n monitoring
+NAME                                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+prometheous-kube-state-metrics         ClusterIP   10.96.16.126    <none>        8080/TCP   3m5s
+prometheous-prometheus-node-exporter   ClusterIP   10.104.13.107   <none>        9100/TCP   3m5s
+prometheous-prometheus-pushgateway     ClusterIP   10.109.1.228    <none>        9091/TCP   3m5s
+prometheous-prometheus-server          ClusterIP   10.97.180.80    <none>        80/TCP     3m5s
+
+root@kube-master:/tmp/prometheus# kubectl edit service prometheous-prometheus-server -n monitoring
+service/prometheous-prometheus-server edited
+
+===========
+spec:
+  clusterIP: 10.97.180.80
+  clusterIPs:
+  - 10.97.180.80
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    nodePort: 30001               <<=====
+    port: 80
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app.kubernetes.io/component: server
+    app.kubernetes.io/instance: prometheous
+    app.kubernetes.io/name: prometheus
+  sessionAffinity: None
+  type: NodePort                 <<== replace this
+status:
+  loadBalancer: {}
+
+
+root@kube-master:~# kubectl get service -n monitoring
+NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+alertmanager-operated                     ClusterIP   None             <none>        9093/TCP,9094/TCP,9094/UDP   4m15s
+prometheus-grafana                        ClusterIP   10.108.24.72     <none>        80/TCP                       4m24s
+prometheus-kube-prometheus-alertmanager   ClusterIP   10.110.136.109   <none>        9093/TCP,8080/TCP            4m24s
+prometheus-kube-prometheus-operator       ClusterIP   10.110.252.67    <none>        443/TCP                      4m24s
+prometheus-kube-prometheus-prometheus     ClusterIP   10.102.243.81    <none>        9090/TCP,8080/TCP            4m24s
+prometheus-kube-state-metrics             ClusterIP   10.101.101.230   <none>        8080/TCP                     4m24s
+prometheus-operated                       ClusterIP   None             <none>        9090/TCP                     4m15s
+prometheus-prometheus-node-exporter       ClusterIP   10.98.173.15     <none>        9100/TCP                     4m24s
+
+
+kubectl patch svc prometheus-kube-prometheus-prometheus -n monitoring -p '{"spec":{"type":"NodePort"}}'       # prometheus server
+kubectl patch svc prometheus-kube-prometheus-alertmanager -n monitoring -p '{"spec":{"type":"NodePort"}}'     # alertmanager 
+
+kubectl patch svc prometheus-grafana -n monitoring -p '{"spec":{"type":"NodePort"}}'                          # Grafana
+
+root@kube-master:~# kubectl get service -n monitoring 
+NAME                                      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                         AGE
+alertmanager-operated                     ClusterIP   None             <none>        9093/TCP,9094/TCP,9094/UDP      15m
+prometheus-grafana                        NodePort    10.108.24.72     <none>        80:30617/TCP                    15m
+prometheus-kube-prometheus-alertmanager   NodePort    10.110.136.109   <none>        9093:31831/TCP,8080:31099/TCP   15m
+prometheus-kube-prometheus-operator       ClusterIP   10.110.252.67    <none>        443/TCP                         15m
+prometheus-kube-prometheus-prometheus     NodePort    10.102.243.81    <none>        9090:30489/TCP,8080:31770/TCP   15m
+prometheus-kube-state-metrics             ClusterIP   10.101.101.230   <none>        8080/TCP                        15m
+prometheus-operated                       ClusterIP   None             <none>        9090/TCP                        15m
+prometheus-prometheus-node-exporter       ClusterIP   10.98.173.15     <none>        9100/TCP                        15m
+
+
+
+
+
+
+===========
+root@kube-master:/tmp/prometheus# kubectl get service -n monitoring
+NAME                                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+prometheous-kube-state-metrics         ClusterIP   10.96.16.126    <none>        8080/TCP       5m17s
+prometheous-prometheus-node-exporter   ClusterIP   10.104.13.107   <none>        9100/TCP       5m17s
+prometheous-prometheus-pushgateway     ClusterIP   10.109.1.228    <none>        9091/TCP       5m17s
+prometheous-prometheus-server          NodePort    10.97.180.80    <none>        80:30001/TCP   5m17s
+
+
+http://192.168.122.175:30001/
+
+
+1(CPU) = 1000 micro
+10m = 0.001
+
+
+You should know how to use operators to write queries in promethous
+
+Install grafana
+===============
+
+root@kube-master:~# helm repo add grafana https://grafana.github.io/helm-charts
+"grafana" has been added to your repositories
+
+root@kube-master:~# helm repo list
+NAME                	URL                                               
+prometheus-community	https://prometheus-community.github.io/helm-charts
+grafana             	https://grafana.github.io/helm-charts             
+root@kube-master:~# helm search repo grafana
+NAME                                          	CHART VERSION	APP VERSION      	DESCRIPTION                                       
+grafana/grafana                               	7.2.4        	10.2.3           	The leading tool for querying and visualizing t...
+grafana/grafana-agent                         	0.31.1       	v0.39.1          	Grafana Agent                                     
+grafana/grafana-agent-operator                	0.3.15       	0.39.1           	A Helm chart for Grafana Agent Operator           
+grafana/enterprise-logs                       	2.5.0        	v1.5.2           	Grafana Enterprise Logs                           
+grafana/enterprise-logs-simple                	1.3.0        	v1.4.0           	DEPRECATED Grafana Enterprise Logs (Simple Scal...
+grafana/enterprise-metrics                    	1.10.0       	v1.7.0           	DEPRECATED Grafana Enterprise Metrics             
+grafana/fluent-bit                            	2.6.0        	v2.1.0           	Uses fluent-bit Loki go plugin for gathering lo...
+grafana/k6-operator                           	3.4.0        	0.0.12           	A Helm chart to install the k6-operator           
+grafana/k8s-monitoring                        	0.8.6        	1.6.1            	A Helm chart for gathering, scraping, and forwa...
+grafana/lgtm-distributed                      	1.0.1        	6.59.4           	Umbrella chart for a distributed Loki, Grafana,...
+grafana/loki                                  	5.41.8       	2.9.3            	Helm chart for Grafana Loki in simple, scalable...
+grafana/loki-canary                           	0.14.0       	2.9.1            	Helm chart for Grafana Loki Canary                
+grafana/loki-distributed                      	0.78.2       	2.9.2            	Helm chart for Grafana Loki in microservices mode 
+grafana/loki-simple-scalable                  	1.8.11       	2.6.1            	Helm chart for Grafana Loki in simple, scalable...
+grafana/loki-stack                            	2.10.1       	v2.9.3           	Loki: like Prometheus, but for logs.              
+grafana/mimir-distributed                     	5.2.1        	2.11.0           	Grafana Mimir                                     
+grafana/mimir-openshift-experimental          	2.1.0        	2.0.0            	Grafana Mimir on OpenShift Experiment             
+grafana/oncall                                	1.3.92       	v1.3.92          	Developer-friendly incident response with brill...
+grafana/phlare                                	0.5.4        	0.5.1            	🔥 horizontally-scalable, highly-available, mul...
+grafana/promtail                              	6.15.4       	2.9.3            	Promtail is an agent which ships the contents o...
+grafana/pyroscope                             	1.4.0        	1.3.0            	🔥 horizontally-scalable, highly-available, mul...
+grafana/rollout-operator                      	0.13.0       	v0.11.0          	Grafana rollout-operator                          
+grafana/snyk-exporter                         	0.1.0        	v1.4.1           	Prometheus exporter for Snyk.                     
+grafana/synthetic-monitoring-agent            	0.2.0        	v0.9.3-0-gcd7aadd	Grafana's Synthetic Monitoring application. The...
+grafana/tempo                                 	1.7.1        	2.3.0            	Grafana Tempo Single Binary Mode                  
+grafana/tempo-distributed                     	1.8.2        	2.3.1            	Grafana Tempo in MicroService mode                
+grafana/tempo-vulture                         	0.4.1        	2.2.3            	Grafana Tempo Vulture - A tool to monitor Tempo...
+prometheus-community/kube-prometheus-stack    	56.1.0       	v0.71.2          	kube-prometheus-stack collects Kubernetes manif...
+prometheus-community/prometheus-druid-exporter	1.1.0        	v0.11.0          	Druid exporter to monitor druid metrics with Pr...
+
+root@kube-master:~# helm install grafana grafana/grafana -n monitoring
+NAME: grafana
+LAST DEPLOYED: Fri Jan 26 11:04:52 2024
+NAMESPACE: monitoring
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get your 'admin' user password by running:
+
+   kubectl get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+
+2. The Grafana server can be accessed via port 80 on the following DNS name from within your cluster:
+
+   grafana.monitoring.svc.cluster.local
+
+   Get the Grafana URL to visit by running these commands in the same shell:
+     export POD_NAME=$(kubectl get pods --namespace monitoring -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana" -o jsonpath="{.items[0].metadata.name}")
+     kubectl --namespace monitoring port-forward $POD_NAME 3000
+
+3. Login with the password from step 1 and the username: admin
+#################################################################################
+######   WARNING: Persistence is disabled!!! You will lose your data when   #####
+######            the Grafana pod is terminated.                            #####
+#################################################################################
+root@kube-master:~# 
+
+
+root@kube-master:~# kubectl get pod -n monitoring
+NAME                                                  READY   STATUS    RESTARTS   AGE
+grafana-5b4bcd64bf-gw87m                              0/1     Running   0          33s
+prometheous-kube-state-metrics-6bcf748dfb-czrlb       1/1     Running   0          59m
+prometheous-prometheus-node-exporter-92kmc            1/1     Running   0          59m
+prometheous-prometheus-node-exporter-qrl5z            1/1     Running   0          59m
+prometheous-prometheus-node-exporter-xsxmt            1/1     Running   0          59m
+prometheous-prometheus-pushgateway-59486d9554-xkldr   1/1     Running   0          59m
+prometheous-prometheus-server-6cf457786f-7q2kf        2/2     Running   0          59m
+
+
+root@kube-master:~# kubectl get service -n monitoring
+NAME                                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+grafana                                ClusterIP   10.103.252.84   <none>        80/TCP         69s      <<= add nodeport to access 
+prometheous-kube-state-metrics         ClusterIP   10.96.16.126    <none>        8080/TCP       60m
+prometheous-prometheus-node-exporter   ClusterIP   10.104.13.107   <none>        9100/TCP       60m
+prometheous-prometheus-pushgateway     ClusterIP   10.109.1.228    <none>        9091/TCP       60m
+prometheous-prometheus-server          NodePort    10.97.180.80    <none>        80:30001/TCP   60m
+
+root@kube-master:~# kubectl edit service grafana -n monitoring
+
+oot@kube-master:~# kubectl get service -n monitoring
+NAME                                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+grafana                                NodePort    10.103.252.84   <none>        80:30002/TCP   2m58s    <<==
+prometheous-kube-state-metrics         ClusterIP   10.96.16.126    <none>        8080/TCP       62m
+prometheous-prometheus-node-exporter   ClusterIP   10.104.13.107   <none>        9100/TCP       62m
+prometheous-prometheus-pushgateway     ClusterIP   10.109.1.228    <none>        9091/TCP       62m
+prometheous-prometheus-server          NodePort    10.97.180.80    <none>        80:30001/TCP   62m
+
+
+
+TO get password
+
+root@kube-master:~# kubectl get secrets -n monitoring
+NAME                                TYPE                 DATA   AGE
+grafana                             Opaque               3      5m26s
+sh.helm.release.v1.grafana.v1       helm.sh/release.v1   1      5m26s
+sh.helm.release.v1.prometheous.v1   helm.sh/release.v1   1      64m
+
+
+root@kube-master:~# kubectl get secrets grafana -n monitoring  -o yaml
+apiVersion: v1
+data:
+  admin-password: U2hGVUVzUnhLazBOcVZaSG5SQXVDOTR3R1pFZHB4YmVPRnVTcWtNWQ==
+  admin-user: YWRtaW4=
+  ldap-toml: ""
+kind: Secret
+metadata:
+  annotations:
+    meta.helm.sh/release-name: grafana
+    meta.helm.sh/release-namespace: monitoring
+  creationTimestamp: "2024-01-26T05:34:52Z"
+  labels:
+    app.kubernetes.io/instance: grafana
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/version: 10.2.3
+    helm.sh/chart: grafana-7.2.4
+  name: grafana
+  namespace: monitoring
+  resourceVersion: "32098"
+  uid: c2408d37-b8b2-4c14-8a75-7c4abfd34fb1
+type: Opaque
+
+
+root@kube-master:~# echo -n YWRtaW4= |base64 -d         <<< dcryped this
+admin
+root@kube-master:~# 
+
+
+adminroot@kube-master:~# kubectl get service -n monitoring
+NAME                                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+grafana                                NodePort    10.103.252.84   <none>        80:30002/TCP   9m4s
+prometheous-kube-state-metrics         ClusterIP   10.96.16.126    <none>        8080/TCP       68m
+prometheous-prometheus-node-exporter   ClusterIP   10.104.13.107   <none>        9100/TCP       68m
+prometheous-prometheus-pushgateway     ClusterIP   10.109.1.228    <none>        9091/TCP       68m
+prometheous-prometheus-server          NodePort    10.97.180.80    <none>        80:30001/TCP   68m       <<<< Put this name for promethous url
+
+
+========================================
+
+Elastic search(Logs monitoring) (Do later)
+
+	1. ElasticSearch (log server)
+	2. kibana:(vizulize tool)
+	3. fluentd/logstash: (agent)
+	
+      EFK (Elastic fluentd kibana)
+      ELK (Elastic logstash kibana)
+      
+
+
+
+
+
+	

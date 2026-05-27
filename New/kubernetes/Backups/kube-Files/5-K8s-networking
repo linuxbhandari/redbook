@@ -1,0 +1,2853 @@
+Pod networking/ Kubernetes network.
+===================================
+1) Each pod  should have seprate ipaddress . (True)
+
+2) Two  pod should be communicate to each on same host. (True)
+
+      PodA---Calico (Bridge network)----POdB
+
+3) Two  pod should be communicate to each other ever they are on different host. (True)
+
+      PodA---Calico---Tunl0 (packet encapsulate)-----Network(Infra)------Tunl0---Calico---PodB
+
+4) Pod should be go out side the cluster Network .  (True)
+
+      PodA--Calico--NAT(Iptables)--Eth0---Router--ISP---Internet
+
+
+Important Notes:
+
+1) Pod network works  SDN(software define network)/CNI(Container network interface)  concept.
+     => SDN provide L3 level features.
+
+2) CNI flavour
+
+  1) Weave
+  2) flannel
+  3) calico
+
+calico
+
+1) It is software define network which provide L-3 layer networking for kubernetes  pod .
+2) It act as L3 layer switch on each kubernetes Nodes.
+3) Calico  basically designed based on BGP(Border gateway protocol) protocol.
+4) Calico also configured routing for Pod . that is why remote pod they are able to reach.
+
+Installation:
+
+1) Container Mode .
+
+2) during installation  calico has configured one default subnet  192.168.0.0/16  (Pod Network)
+
+Total Nodes
+Pod per Nodes
+
+
+Node Network: Infra : underlay  172.31.41.155
+
+Pod Network:  overlay Network:  192.168.0.0/16
+
+3) Kubernetes Api  basically break your network into small small network . then  it put  on
+  each worker Node. Api basically does subnet based on /26 cidr .according  it place
+   small network on each worker.
+
+
+4) calico basically  create route table as well on each worker .
+
+5) all nodes's calico swaitch are connected through tunl0  ports.
+
+SNAT
+DNAT
+
+
+curl -O -L  https://github.com/projectcalico/calicoctl/releases/download/v3.14.0/calicoctl
+chmod +x calicoctl
+sudo mv calicoctl /usr/local/bin
+
+root@kube-master:~# mkdir -p /etc/calico
+root@kube-master:~# cat > etc/calico/calicoctl.cfg
+apiVersion: projectcalico.org/v3
+kind: CalicoAPIConfig
+metadata:
+spec:
+  datastoreType: "kubernetes"
+  kubeconfig: "/etc/kubernetes/admin.conf"
+
+Read this to understand iptables natting.
+  1) SNAT
+  2) DNAT
+
+I will do it later.
+
+========================================================
+
+Lab1: how to configure custom network in calico  network.
+
+
+5) Two tier intergration in kubernetes/Service discovery/ micro service Intregration .
+6) Load distribution accross the Pod .
+
+7) How to expose Pod for external world.
+
+8) DNS System how it works in Pod life .
+
+9) network policies .
+
+DROP       all  --  anywhere             anywhere             /* cali:zTj6P0TIgYvgz-md            */ /* Unknown interface */
+
+Chain cali-to-hep-forward (1 references)
+target     prot opt source               destination
+
+Chain cali-to-host-endpoint (1 references)
+target     prot opt source               destination
+
+Chain cali-to-wl-dispatch (1 references)
+target     prot opt source               destination
+DROP       all  --  anywhere             anywhere             /* cali:7KNphB1nNHw80nIO            */ /* Unknown interface */
+
+Chain cali-wl-to-host (1 references)
+target     prot opt source               destination
+cali-from-wl-dispatch  all  --  anywhere             anywhere             /* cali:Ee9Sb           o10IpVujdIY */
+ACCEPT     all  --  anywhere             anywhere             /* cali:nSZbcOoG1xPONxb8            */ /* Configured DefaultEndpointToHostAction */
+
+
+
+root@kube-master:~# kubectl get ippools
+NAME                  AGE
+default-ipv4-ippool   5d4h
+root@kube-master:~# kubectl get ippools default-ipv4-ippool -o yaml
+apiVersion: crd.projectcalico.org/v1
+kind: IPPool
+metadata:
+  annotations:
+    projectcalico.org/metadata: '{"uid":"18ecc2bf-b1f0-48d1-9a5c-29954dd37f19","creationTimestamp":"2023-12-26T10:00:32Z"}'
+  creationTimestamp: "2023-12-26T10:00:32Z"
+  generation: 1
+  name: default-ipv4-ippool
+  resourceVersion: "4953"
+  uid: e1be2862-0980-4de9-a224-206e19ce961d
+spec:
+  allowedUses:
+  - Workload
+  - Tunnel
+  blockSize: 26
+  cidr: 172.17.0.0/16
+  ipipMode: Always
+  natOutgoing: true
+  nodeSelector: all()
+  vxlanMode: Never
+root@kube-master:~# kubectl get ippools default-ipv4-ippool -o yaml > default-ipv4-ippool.yaml
+
+root@kube-master:~# cp default-ipv4-ippool.yaml demo-pool.yml
+
+root@kube-master:~# cat demo-pool.yml
+apiVersion: crd.projectcalico.org/v1
+kind: IPPool
+metadata:
+  name: demo-pool
+spec:
+  blockSize: 28
+  cidr: 172.24.0.0/16
+  ipipMode: Always
+  natOutgoing: true
+  nodeSelector: all()
+  vxlanMode: Never
+
+root@kube-master:~# kubectl apply -f demo-pool.yml
+ippool.crd.projectcalico.org/demo-pool created
+root@kube-master:~# kubectl get ippools.crd.projectcalico.org
+NAME                  AGE
+default-ipv4-ippool   5d4h        << primary network and if you create new pod, it will get ip from default pool.
+demo-pool             10s         << secondary network,
+
+Note: if you need ip from secondary network, then you have to disable primary network.
+
+Now how to disable primary network.
+===================================
+root@kube-master:~# calicoctl ipam show --show-blocks
++----------+-------------------+-----------+------------+--------------+
+| GROUPING |       CIDR        | IPS TOTAL | IPS IN USE |   IPS FREE   |
++----------+-------------------+-----------+------------+--------------+
+| IP Pool  | 172.17.0.0/16     |     65536 | 10 (0%)    | 65526 (100%) |
+| Block    | 172.17.221.192/26 |        64 | 1 (2%)     | 63 (98%)     |
+| Block    | 172.17.233.192/26 |        64 | 4 (6%)     | 60 (94%)     |
+| Block    | 172.17.9.64/26    |        64 | 5 (8%)     | 59 (92%)     |
+| IP Pool  | 172.24.0.0/16     |     65536 | 0 (0%)     | 65536 (100%) |  <<<<<
++----------+-------------------+-----------+------------+--------------+
+
+
+root@kube-master:~# cat default-ipv4-ippool.yaml
+apiVersion: crd.projectcalico.org/v1
+kind: IPPool
+metadata:
+  name: default-ipv4-ippool
+spec:
+  blockSize: 26
+  cidr: 172.17.0.0/16
+  ipipMode: Always
+  disabled: true            <<=== add this
+  natOutgoing: true
+  nodeSelector: all()
+  vxlanMode: Never
+
+
+root@kube-master:~# kubectl apply -f default-ipv4-ippool.yaml
+Warning: resource ippools/default-ipv4-ippool is missing the kubectl.kubernetes.io/last-applied-configuration annotation which is required by kubectl apply. kubectl apply should only be used on resources created declaratively by either kubectl create --save-config or kubectl apply. The missing annotation will be patched automatically.
+ippool.crd.projectcalico.org/default-ipv4-ippool configured     <<<===
+
+
+root@kube-master:~# kubectl run test --image=nginx    <<=== Now when you create new pod, you will get ip from new pool.
+pod/test created
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE     IP               NODE         NOMINATED NODE   READINESS GATES
+demo-664dc5dfd4-5bw79   1/1     Running   0          6h47m   172.17.233.201   kube-node2   <none>           <none>
+demo-664dc5dfd4-c2ks9   1/1     Running   0          6h47m   172.17.9.120     kube-node1   <none>           <none>
+demo-664dc5dfd4-xc8dv   1/1     Running   0          6h47m   172.17.9.124     kube-node1   <none>           <none>
+demo-664dc5dfd4-xjkb8   1/1     Running   0          6h47m   172.17.233.197   kube-node2   <none>           <none>    <<== old pod remain same, but if restart it pod will get new ip from promary pool.
+test                    1/1     Running   0          5s      172.24.186.113   kube-node2   <none>           <none>    <<=== get new ip
+
+
+
+
+
+[root@kubemaster ~]# calicoctl get ippol
+Failed to get resources: Version mismatch.
+Client Version:   v3.21.5
+Cluster Version:  v3.23.3
+Use --allow-version-mismatch to override.
+
+[root@kubemaster ~]# calicoctl get ippool
+[root@kubemaster ~]# calicoctl get ippool
+Failed to get resources: Version mismatch.
+Client Version:   v3.21.5
+Cluster Version:  v3.23.3
+Use --allow-version-mismatch to override.
+
+[root@kubemaster ~]#
+[root@kubemaster ~]# calicoctl get ippool --allow-version-mismatch
+NAME                  CIDR             SELECTOR
+default-ipv4-ippool   192.168.0.0/16   all()
+
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# calicoctl get ippool default-ipv4-ippool  --allow-version-mismatch  -o yaml  >  pool.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim pool.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# calicoctl  apply -f  pool.yml
+[root@kubemaster ~]# calicoctl  apply -f  pool.yml
+Version mismatch.
+Client Version:   v3.21.5
+Cluster Version:  v3.23.3
+Use --allow-version-mismatch to override.
+
+[root@kubemaster ~]# calicoctl  apply -f  pool.yml  --allow-version-mismatch
+Failed to execute command: error parsing document: cannot parse string '/28' into field IPPoolSpec.blockSize of type int
+[root@kubemaster ~]# vim pool.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# calicoctl  apply -f  pool.yml  --allow-version-mismatch
+Successfully applied 1 'IPPool' resource(s)
+[root@kubemaster ~]#
+[root@kubemaster ~]# calicoctl  get ippool
+Failed to get resources: Version mismatch.
+Client Version:   v3.21.5
+Cluster Version:  v3.23.3
+Use --allow-version-mismatch to override.
+
+[root@kubemaster ~]# calicoctl  get ippool --allow-version-mismatch
+NAME                  CIDR             SELECTOR
+default-ipv4-ippool   192.168.0.0/16   all()
+webprod               10.0.0.0/8       all()
+
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete deploy --all
+deployment.apps "test" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create deploy test --image=nginx
+deployment.apps/test created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP                NODE      NOMINATED NODE   READINESS GATES
+test-764c85dd84-nx95t   1/1     Running   0          6s    192.168.235.154   worker1   <none>           <none>
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# calicoctl get ippool default-ipv4-ippool  --allow-version-mismatch  -o yaml  >  pool.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim pool.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# calicoctl  apply -f  pool.yml  --allow-version-mismatch
+Successfully applied 1 'IPPool' resource(s)
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl  run demo  --image=nginx
+pod/demo created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get  pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE    IP                NODE      NOMINATED NODE   READINESS GATES
+demo                    1/1     Running   0          7s     10.134.170.97     worker1   <none>           <none>
+test-764c85dd84-nx95t   1/1     Running   0          106s   192.168.235.154   worker1   <none>           <none>
+[root@kubemaster ~]# calicoctl  ipam show --allow-version-mismatch  --show-blocks
++----------+--------------------+------------+------------+-------------------+
+| GROUPING |        CIDR        | IPS TOTAL  | IPS IN USE |     IPS FREE      |
++----------+--------------------+------------+------------+-------------------+
+| IP Pool  | 192.168.0.0/16     |      65536 | 6 (0%)     | 65530 (100%)      |
+| Block    | 192.168.141.0/26   |         64 | 0 (0%)     | 64 (100%)         |
+| Block    | 192.168.189.64/26  |         64 | 3 (5%)     | 61 (95%)          |
+| Block    | 192.168.235.128/26 |         64 | 3 (5%)     | 61 (95%)          |
+| IP Pool  | 10.0.0.0/8         | 1.6777e+07 | 4 (0%)     | 1.6777e+07 (100%) |
+| Block    | 10.109.101.208/28  |         16 | 1 (6%)     | 15 (94%)          |
+| Block    | 10.134.170.96/28   |         16 | 2 (12%)    | 14 (88%)          |
+| Block    | 10.99.250.112/28   |         16 | 1 (6%)     | 15 (94%)          |
++----------+--------------------+------------+------------+-------------------+
+[root@kubemaster ~]# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         172.31.32.1     0.0.0.0         UG    0      0        0 eth0
+10.99.250.112   172.31.37.48    255.255.255.240 UG    0      0        0 tunl0
+10.109.101.208  0.0.0.0         255.255.255.240 U     0      0        0 *
+10.134.170.96   172.31.45.176   255.255.255.240 UG    0      0        0 tunl0
+169.254.169.254 0.0.0.0         255.255.255.255 UH    0      0        0 eth0
+172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 docker0
+172.31.32.0     0.0.0.0         255.255.240.0   U     0      0        0 eth0
+192.168.141.0   0.0.0.0         255.255.255.192 U     0      0        0 *
+192.168.189.64  172.31.37.48    255.255.255.192 UG    0      0        0 tunl0
+192.168.235.128 172.31.45.176   255.255.255.192 UG    0      0        0 tunl0
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# route -n  | grep tunl0
+10.99.250.112   172.31.37.48    255.255.255.240 UG    0      0        0 tunl0
+10.134.170.96   172.31.45.176   255.255.255.240 UG    0      0        0 tunl0
+192.168.189.64  172.31.37.48    255.255.255.192 UG    0      0        0 tunl0
+192.168.235.128 172.31.45.176   255.255.255.192 UG    0      0        0 tunl0
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete deploy --all
+deployment.apps "test" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get ippool
+NAME                  AGE
+default-ipv4-ippool   22d
+webprod               5m5s
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete ippool webprod
+ippool.crd.projectcalico.org "webprod" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim pool.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# calicoctl  apply -f  pool.yml
+Version mismatch.
+Client Version:   v3.21.5
+Cluster Version:  v3.23.3
+Use --allow-version-mismatch to override.
+
+[root@kubemaster ~]#
+[root@kubemaster ~]# calicoctl  apply -f  pool.yml  --allow-version-mismatch
+Failed to apply 'IPPool' resource: [update conflict: IPPool(default-ipv4-ippool)]
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim pool.yml
+[root@kubemaster ~]# calicoctl  apply -f  pool.yml  --allow-version-mismatch
+Successfully applied 1 'IPPool' resource(s)
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl run  test  --image=nginx
+pod/test created
+[root@kubemaster ~]# kubectl get pod  -o wide
+NAME   READY   STATUS    RESTARTS   AGE     IP                NODE      NOMINATED NODE   READINESS GATES
+demo   1/1     Running   0          3m54s   10.134.170.97     worker1   <none>           <none>
+test   1/1     Running   0          5s      192.168.235.163   worker1   <none>           <none>
+[root@kubemaster ~]# kubectl delete pod --all
+pod "demo" deleted
+pod "test" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubeadm  init --help
+Run this command in order to set up the Kubernetes control plane
+
+The "init" command executes the following phases:
+```
+preflight                    Run pre-flight checks
+certs                        Certificate generation
+  /ca                          Generate the self-signed Kubernetes CA to provision identities for other Kubernetes components
+  /apiserver                   Generate the certificate for serving the Kubernetes API
+  /apiserver-kubelet-client    Generate the certificate for the API server to connect to kubelet
+  /front-proxy-ca              Generate the self-signed CA to provision identities for front proxy
+  /front-proxy-client          Generate the certificate for the front proxy client
+  /etcd-ca                     Generate the self-signed CA to provision identities for etcd
+  /etcd-server                 Generate the certificate for serving etcd
+  /etcd-peer                   Generate the certificate for etcd nodes to communicate with each other
+  /etcd-healthcheck-client     Generate the certificate for liveness probes to healthcheck etcd
+  /apiserver-etcd-client       Generate the certificate the apiserver uses to access etcd
+  /sa                          Generate a private key for signing service account tokens along with its public key
+kubeconfig                   Generate all kubeconfig files necessary to establish the control plane and the admin kubeconfig file
+  /admin                       Generate a kubeconfig file for the admin to use and for kubeadm itself
+  /kubelet                     Generate a kubeconfig file for the kubelet to use *only* for cluster bootstrapping purposes
+  /controller-manager          Generate a kubeconfig file for the controller manager to use
+  /scheduler                   Generate a kubeconfig file for the scheduler to use
+kubelet-start                Write kubelet settings and (re)start the kubelet
+control-plane                Generate all static Pod manifest files necessary to establish the control plane
+  /apiserver                   Generates the kube-apiserver static Pod manifest
+  /controller-manager          Generates the kube-controller-manager static Pod manifest
+  /scheduler                   Generates the kube-scheduler static Pod manifest
+etcd                         Generate static Pod manifest file for local etcd
+  /local                       Generate the static Pod manifest file for a local, single-node local etcd instance
+upload-config                Upload the kubeadm and kubelet configuration to a ConfigMap
+  /kubeadm                     Upload the kubeadm ClusterConfiguration to a ConfigMap
+  /kubelet                     Upload the kubelet component config to a ConfigMap
+upload-certs                 Upload certificates to kubeadm-certs
+mark-control-plane           Mark a node as a control-plane
+bootstrap-token              Generates bootstrap tokens used to join a node to a cluster
+kubelet-finalize             Updates settings relevant to the kubelet after TLS bootstrap
+  /experimental-cert-rotation  Enable kubelet client certificate rotation
+addon                        Install required addons for passing conformance tests
+  /coredns                     Install the CoreDNS addon to a Kubernetes cluster
+  /kube-proxy                  Install the kube-proxy addon to a Kubernetes cluster
+```
+
+Usage:
+  kubeadm init [flags]
+  kubeadm init [command]
+
+Available Commands:
+  phase       Use this command to invoke single phase of the init workflow
+
+Flags:
+      --apiserver-advertise-address string   The IP address the API Server will advertise it's listening on. If not set the default network interface will be used.
+      --apiserver-bind-port int32            Port for the API Server to bind to. (default 6443)
+      --apiserver-cert-extra-sans strings    Optional extra Subject Alternative Names (SANs) to use for the API Server serving certificate. Can be both IP addresses and DNS names.
+      --cert-dir string                      The path where to save and store the certificates. (default "/etc/kubernetes/pki")
+      --certificate-key string               Key used to encrypt the control-plane certificates in the kubeadm-certs Secret.
+      --config string                        Path to a kubeadm configuration file.
+      --control-plane-endpoint string        Specify a stable IP address or DNS name for the control plane.
+      --cri-socket string                    Path to the CRI socket to connect. If empty kubeadm will try to auto-detect this value; use this option only if you have more than one CRI installed or if you have non-standard CRI socket.
+      --dry-run                              Don't apply any changes; just output what would be done.
+      --feature-gates string                 A set of key=value pairs that describe feature gates for various features. Options are:
+                                             PublicKeysECDSA=true|false (ALPHA - default=false)
+                                             RootlessControlPlane=true|false (ALPHA - default=false)
+                                             UnversionedKubeletConfigMap=true|false (BETA - default=true)
+  -h, --help                                 help for init
+      --ignore-preflight-errors strings      A list of checks whose errors will be shown as warnings. Example: 'IsPrivilegedUser,Swap'. Value 'all' ignores errors from all checks.
+      --image-repository string              Choose a container registry to pull control plane images from (default "k8s.gcr.io")
+      --kubernetes-version string            Choose a specific Kubernetes version for the control plane. (default "stable-1")
+      --node-name string                     Specify the node name.
+      --patches string                       Path to a directory that contains files named "target[suffix][+patchtype].extension". For example, "kube-apiserver0+merge.yaml" or just "etcd.json". "target" can be one of "kube-apiserver", "kube-controller-manager", "kube-scheduler", "etcd". "patchtype" can be one of "strategic", "merge" or "json" and they match the patch formats supported by kubectl. The default "patchtype" is "strategic". "extension" must be either "json" or "yaml". "suffix" is an optional string that can be used to determine which patches are applied first alpha-numerically.
+      --pod-network-cidr string              Specify range of IP addresses for the pod network. If set, the control plane will automatically allocate CIDRs for every node.
+      --service-cidr string                  Use alternative range of IP address for service VIPs. (default "10.96.0.0/12")
+      --service-dns-domain string            Use alternative domain for services, e.g. "myorg.internal". (default "cluster.local")
+      --skip-certificate-key-print           Don't print the key used to encrypt the control-plane certificates.
+      --skip-phases strings                  List of phases to be skipped
+      --skip-token-print                     Skip printing of the default bootstrap token generated by 'kubeadm init'.
+      --token string                         The token to use for establishing bidirectional trust between nodes and control-plane nodes. The format is [a-z0-9]{6}\.[a-z0-9]{16} - e.g. abcdef.0123456789abcdef
+      --token-ttl duration                   The duration before the token is automatically deleted (e.g. 1s, 2m, 3h). If set to '0', the token will never expire (default 24h0m0s)
+      --upload-certs                         Upload control-plane certificates to the kubeadm-certs Secret.
+
+Global Flags:
+      --add-dir-header           If true, adds the file directory to the header of the log messages
+      --log-file string          If non-empty, use this log file
+      --log-file-max-size uint   Defines the maximum size a log file can grow to. Unit is megabytes. If the value is 0, the maximum file size is unlimited. (default 1800)
+      --one-output               If true, only write logs to their native severity level (vs also writing to each lower severity level)
+      --rootfs string            [EXPERIMENTAL] The path to the 'real' host root filesystem.
+      --skip-headers             If true, avoid header prefixes in the log messages
+      --skip-log-headers         If true, avoid headers when opening log files
+  -v, --v Level                  number for the log level verbosity
+
+Use "kubeadm init [command] --help" for more information about a command.
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim calico.yaml
+[root@kubemaster ~]#cat
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+
+
+
+[root@kubemaster ~]# cat /etc/calico/calicoctl.cfg
+apiVersion: projectcalico.org/v3
+kind: CalicoAPIConfig
+metadata:
+spec:
+  datastoreType: "kubernetes"
+  kubeconfig: "/root/.kube/config"
+[root@kubemaster ~]#
+
+
+
+
+
+5) Two tier intergration in kubernetes/Service discovery/ micro service Intregration .
+======================================================================================
+
+
+kube-proxy  => It  is  proxy  server by which we can talk our pods . (hide actual ip)
+            => it has already deployed on every cluster nodes as a container. so every node has own proxy server.
+            => kube proxy also do load balancing.
+            =>
+
+
+Appp -- proxyIP--------------- database (Pod Ip)
+
+
+root@kube-master:~# kubectl get ds -n kube-system
+NAME          DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+calico-node   3         3         3       3            3           kubernetes.io/os=linux   5d5h
+kube-proxy    3         3         3       3            3           kubernetes.io/os=linux   5d6h
+
+root@kube-master:~# kubectl get cm -n kube-system
+NAME                                                   DATA   AGE
+calico-config                                          4      5d5h
+coredns                                                1      5d6h
+extension-apiserver-authentication                     6      5d6h
+kube-apiserver-legacy-service-account-token-tracking   1      5d6h
+kube-proxy                                             2      5d6h
+kube-root-ca.crt                                       1      5d6h
+kubeadm-config                                         1      5d6h
+kubelet-config                                         1      5d6h
+
+root@kube-master:~# kubectl get cm -n kube-system kubeadm-config -o yaml
+apiVersion: v1
+data:
+  ClusterConfiguration: |
+    apiServer:
+      extraArgs:
+        authorization-mode: Node,RBAC
+      timeoutForControlPlane: 4m0s
+    apiVersion: kubeadm.k8s.io/v1beta3
+    certificatesDir: /etc/kubernetes/pki
+    clusterName: kubernetes
+    controllerManager: {}
+    dns: {}
+    etcd:
+      local:
+        dataDir: /var/lib/etcd
+    imageRepository: registry.k8s.io
+    kind: ClusterConfiguration
+    kubernetesVersion: v1.28.5
+    networking:
+      dnsDomain: cluster.local
+      serviceSubnet: 10.96.0.0/12               <<======
+    scheduler: {}
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2023-12-26T09:03:28Z"
+  name: kubeadm-config
+  namespace: kube-system
+  resourceVersion: "198"
+  uid: 19b4f567-c204-4672-9d1c-794163e91bbf
+
+=> Note kube cluster we have 3 pool bydefault
+  1) node pool
+  2) pod pool
+  3) service ip pool
+
+  all three pool should not be conflict each other.
+
+
+Why we need service ip
+======================
+Because, discovery ip is not static for pod. pod always come with new ip. that why we need service ip.
+
+
+root@kube-master:~# kubectl create deployment demo --image=nginx
+deployment.apps/demo created
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+demo-664dc5dfd4-bjs2q   1/1     Running   0          41s   172.24.186.115   kube-node2   <none>           <none>
+
+root@kube-master:~# curl 172.24.186.115
+
+
+root@kube-master:~# kubectl expose deployment demo --port=80 (when you expose pod then pod label automatally becaose selector)
+service/demo exposed
+
+root@kube-master:~# kubectl describe service demo
+Name:              demo
+Namespace:         default
+Labels:            app=demo                        <<<<<<<<<<<<<<<
+Annotations:       <none>
+Selector:          app=demo
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.98.93.112
+IPs:               10.98.93.112
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         172.24.186.115:80           <<<< pod ip
+Session Affinity:  None
+Events:            <none>
+
+root@kube-master:~# kubectl get service
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+demo         ClusterIP   10.98.93.112     <none>        80/TCP         12s
+kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP        5d7h
+
+root@kube-master:~# kubectl exec -it demo-664dc5dfd4-bjs2q  bash
+
+root@demo-664dc5dfd4-bjs2q:/# echo "Test" > /usr/share/nginx/html/index.html
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE     IP               NODE         NOMINATED NODE   READINESS GATES
+demo-664dc5dfd4-bjs2q   1/1     Running   0          2m59s   172.24.186.115   kube-node2   <none>           <none>
+
+root@kube-master:~# curl 172.24.186.115
+Test
+
+root@kube-master:~# curl 10.98.93.112
+Test
+
+
+root@kube-master:~# kubectl describe service demo
+Name:              demo
+Namespace:         default
+Labels:            app=demo
+Annotations:       <none>
+Selector:          app=demo
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.98.93.112
+IPs:               10.98.93.112
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         172.24.186.115:80           <<<< pod ip
+Session Affinity:  None
+Events:            <none>
+
+Now if you delete pod, then new endpoint will update ()
+
+
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS    RESTARTS   AGE
+demo-664dc5dfd4-bjs2q   1/1     Running   0          7m54s
+
+root@kube-master:~# kubectl delete pod demo-664dc5dfd4-bjs2q
+pod "demo-664dc5dfd4-bjs2q" deleted
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+demo-664dc5dfd4-7wb46   1/1     Running   0          11s   172.24.11.1   kube-node1   <none>           <none>
+
+root@kube-master:~# kubectl describe service demo
+Name:              demo
+Namespace:         default
+Labels:            app=demo
+Annotations:       <none>
+Selector:          app=demo
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.98.93.112
+IPs:               10.98.93.112
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         172.24.11.1:80    <<<<<<<<<<<
+Session Affinity:  None
+Events:            <none>
+
+
+root@kube-master:~# kubectl scale --replicas=3 deployment demo    <<<< when you scale replicas
+deployment.apps/demo scaled
+
+root@kube-master:~# kubectl describe service demo | grep Endpoints
+Endpoints:         172.24.11.1:80,172.24.186.116:80,172.24.186.117:80
+
+
+root@kube-master:~# iptables -t nat -L KUBE-SERVICES -n | column -t         <<< to check iptables net rules
+Chain                      KUBE-SERVICES  (2   references)
+target                     prot           opt  source       destination
+KUBE-SVC-73JNOU5FOFXIWZLE  tcp            --   0.0.0.0/0    10.98.93.112  /*  default/demo                  cluster  IP          */     tcp   dpt:80
+KUBE-SVC-NPX46M4PTMTKRN6Y  tcp            --   0.0.0.0/0    10.96.0.1     /*  default/kubernetes:https      cluster  IP          */     tcp   dpt:443
+KUBE-SVC-TCOU7JCQXEZGVUNU  udp            --   0.0.0.0/0    10.96.0.10    /*  kube-system/kube-dns:dns      cluster  IP          */     udp   dpt:53
+KUBE-SVC-ERIFXISQEP7F7OF4  tcp            --   0.0.0.0/0    10.96.0.10    /*  kube-system/kube-dns:dns-tcp  cluster  IP          */     tcp   dpt:53
+KUBE-SVC-JD5MR3NA4I4DYORP  tcp            --   0.0.0.0/0    10.96.0.10    /*  kube-system/kube-dns:metrics  cluster  IP          */     tcp   dpt:9153
+KUBE-NODEPORTS             all            --   0.0.0.0/0    0.0.0.0/0     /*  kubernetes                    service  nodeports;  NOTE:  this  must      be  the  last  rule  in  this  chain  */  ADDRTYPE  match  dst-type  LOCAL
+
+root@kube-master:~# iptables -t nat -L KUBE-SVC-73JNOU5FOFXIWZLE  -n | column -t
+Chain                      KUBE-SVC-73JNOU5FOFXIWZLE  (1   references)
+target                     prot                       opt  source       destination
+KUBE-SEP-6QYSOYEGIXP5IQUO  all                        --   0.0.0.0/0    0.0.0.0/0    /*  default/demo  ->  172.24.11.1:80     */  statistic  mode  random  probability  0.33333333349
+KUBE-SEP-FB77VZUSNTJWQDLH  all                        --   0.0.0.0/0    0.0.0.0/0    /*  default/demo  ->  172.24.186.116:80  */  statistic  mode  random  probability  0.50000000000
+KUBE-SEP-OB55FDH3OECMF7D2  all                        --   0.0.0.0/0    0.0.0.0/0    /*  default/demo  ->  172.24.186.117:80  */
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP               NODE         NOMINATED NODE   READINESS GATES
+demo-664dc5dfd4-7wb46   1/1     Running   0          17m   172.24.11.1      kube-node1   <none>           <none>
+demo-664dc5dfd4-gl4tj   1/1     Running   0          15m   172.24.186.117   kube-node2   <none>           <none>
+demo-664dc5dfd4-lssl9   1/1     Running   0          15m   172.24.186.116   kube-node2   <none>           <none>
+
+
+https://ronaknathani.com/blog/2020/07/kubernetes-nodeport-and-iptables-rules/  << for detail
+
+When you delete pods
+=======================
+root@kube-master:~# kubectl get pod
+NAME                    READY   STATUS    RESTARTS   AGE
+demo-664dc5dfd4-7wb46   1/1     Running   0          36m
+demo-664dc5dfd4-gl4tj   1/1     Running   0          34m
+demo-664dc5dfd4-lssl9   1/1     Running   0          34m
+root@kube-master:~# kubectl delete deployments.apps demo
+deployment.apps "demo" deleted
+root@kube-master:~# kubectl describe service demo
+Name:              demo
+Namespace:         default
+Labels:            app=demo
+Annotations:       <none>
+Selector:          app=demo
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.98.93.112
+IPs:               10.98.93.112
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         <none>
+Session Affinity:  None
+Events:            <none>
+root@kube-master:~# curl 10.98.93.112
+curl: (7) Failed to connect to 10.98.93.112 port 80: Connection refused <<<<<<<<<
+
+Now what happen if we create new pod with same label (app=demo)
+
+then service ip adopt this pods, because it works according to selector.
+========================================================================
+root@kube-master:~# kubectl run test --image=nginx -l app=demo --dry-run=client -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: test
+spec:
+  containers:
+  - image: nginx
+    name: test
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+
+root@kube-master:~# kubectl run test --image=nginx -l app=demo --dry-run=client -o yaml > pod.yml
+root@kube-master:~# kubectl create -f pod.yml
+pod/test created
+root@kube-master:~# kubectl describe service demo| grep -i end
+Endpoints:         172.24.186.118:80
+root@kube-master:~# curl 10.98.93.112
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+
+Note:
+=> label is mandatory on pad to run. bacause without pad label micro service will not reach to pod. to discovery micro services we need service ip and servie ip talks based on the label.
+
+Linux taffice flow
+====================
+Traffice => Networklayer => iptables =>
+
+
+create service via file method
+
+root@kube-master:~# cat service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: "null"
+  labels:
+    app: db
+  name: db
+spec:
+  ports:
+  - port: 80                <== proxy ip/connection port/traffice port/end user port
+    protocol: TCP
+    targetPort: 80          <== actual Pod port/Application port.
+  selector:
+    app: abc
+status:
+  loadBalancer: {}
+
+
+root@kube-master:~# kubectl expose deployment demo --port=8080 --target-port=80    <<< command line way
+service/demo exposed
+root@kube-master:~# kubectl get service
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+demo         ClusterIP   10.97.255.226   <none>        8080/TCP   8s
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP    5d8h
+
+root@kube-master:~# curl 10.97.255.226:8080
+
+root@kube-master:~# netstat -tulnp | grep -w 8080          << but binded with host ip
+root@kube-master:~# netstat -tulnp | grep -w 80
+
+
+===================
+
+
+
+ProxyIp Pool
+
+Node Network:
+
+Pod Network
+
+Service Ip Pool
+
+https://ronaknathani.com/blog/2020/07/kubernetes-nodeport-and-iptables-rules/
+
+
+
+
+
+
+
+
+6) Load distribution accross the Pod .
+=======================================
+kube-proxy do the load balancing also
+
+
+7) How to expose Pod for external world.
+========================================
+
+   1) Portforwarding
+                             1) Pod  level (which is not recomended )
+                             2) Service IP forwarding (which is recomended)
+
+Note: In the k8s to expose the service we have three ways. so that end-user can access that service.
+  1. NodePort
+  2. ClusterIP
+  3. Loadbalancer
+
+
+Indivisual Pod level forwarding
+===============================
+root@kube-master:~# cat demo.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: demo
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        ports:
+         - containerPort: 80           <<<<<  backend port.
+           hostPort: 8080              <<<<<  Forntend port.
+
+
+root@kube-master:~# kubectl create -f demo.yaml
+deployment.apps/demo created
+
+root@kube-node1:~# telnet localhost 8080             <<< It consume the 8080 port on worker node and due to this we cannot increase the pod cout, because it is alredy in use.
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+
+root@kube-node2:~# telnet localhost 8080
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+
+
+Service ip pod deployment
+
+root@kube-master:~# kubectl expose deployment demo --port=8080 --target-port=80 --type=NodePort
+service/demo exposed
+
+Note: NodePort consufe the ramdom port from master node.
+
+root@kube-master:~# kubectl get service
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+demo         NodePort    10.108.205.237   <none>        8080:32355/TCP   3m25s
+
+root@kube-master:~# curl 192.168.122.219:32355    <<== external port against kube proxy for end users.
+
+We can also do this via file method.
+=====================================
+root@kube-master:~# cat demo.yml
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: demo
+  name: demo
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 80
+    nodePort: 30001      <<===
+  selector:
+    app: demo
+  type: NodePort
+status:
+  loadBalancer: {}
+
+root@kube-master:~# curl 192.168.122.219:30001    <<< This is the service ip port starting standard range.
+
+
+
+ EndUser---WorkerNodesIPs:NodePort---(Iptables)ServiceIP---PodIP
+
+
+
+client--KRnetworcloud.org---ISP---DNS---Externalbalancer---WorkerNode(NodePort)---PodIP
+
+Aws: ELB
+
+Local laptop: (Ha - proxy)
+
+F5
+
+
+CLiennt--ISP---DNS(Route53)--------NodeIP:nodePort--Kubeproxy(Serviceip)--Podip
+
+Exteral Balancer Integration
+=============================
+I will do it later.
+
+
+
+
+
+  2) Ingress Controller (Recording )
+
+
+
+
+
+8) DNS System how it works in Pod life .
+9) network  Policies
+
+
+
+rules
+1) Ingress: FROM
+2) Egress: TO
+
+
+there are 3 type of match/criteria
+
+   1) NetworkBased
+   2) Namespace based rules
+   3) Pod label based rules
+
+
+and
+or
+
+
+
+Note: Bases on matching criterias only traffic will acceptable execept deny .
+
+
+networkPolicy: Namespace level Scope
+
+
+
+lab-1:
+
+qa
+
+  app
+  db
+  web
+
+
+lab-2:
+
+webprod:
+app:
+
+Namespace should be webprod
+app pod
+
+
+
+
+
+
+
+lab-3: default  all pod want to allow from webprod namespace all pods on 80 ports
+
+
+lab-4:  or
+
+
+
+
+
+
+
+[root@kubemaster ~]# kubectl run app --image=nginx
+pod/app created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl run db --image=nginx
+pod/db created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl run web --image=nginx
+pod/web created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it  db bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@db:/# cd  /usr/share/nginx/html/
+root@db:/usr/share/nginx/html# echo
+
+root@db:/usr/share/nginx/html# echo "Hello I am Db server"  > index.html
+root@db:/usr/share/nginx/html# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod -o wide
+NAME   READY   STATUS    RESTARTS   AGE   IP                NODE      NOMINATED NODE   READINESS GATES
+app    1/1     Running   0          48s   192.168.235.179   worker1   <none>           <none>
+db     1/1     Running   0          42s   192.168.235.178   worker1   <none>           <none>
+web    1/1     Running   0          38s   192.168.189.125   worker2   <none>           <none>
+[root@kubemaster ~]# kubectl exec -it web bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@web:/# curl 192.168.235.178
+Hello I am Db server
+root@web:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]# clear
+[root@kubemaster ~]#
+[root@kubemaster ~]# cat  > net.yml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-network-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 172.17.0.0/16
+            except:
+              - 172.17.1.0/24
+        - namespaceSelector:
+            matchLabels:
+              project: myproject
+        - podSelector:
+            matchLabels:
+              role: frontend
+      ports:
+        - protocol: TCP
+          port: 6379
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/24
+      ports:
+        - protocol: TCP
+          port: 5978
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod --show-labels
+NAME   READY   STATUS    RESTARTS   AGE     LABELS
+app    1/1     Running   0          4m31s   run=app
+db     1/1     Running   0          4m25s   run=db
+web    1/1     Running   0          4m21s   run=web
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get networkpolicies
+NAME        POD-SELECTOR   AGE
+app-to-db   run=db         8s
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl describe networkpolices  app-to-db
+error: the server doesn't have a resource type "networkpolices"
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl describe networkpolicies  app-to-db
+Name:         app-to-db
+Namespace:    default
+Created on:   2022-09-11 05:40:37 +0000 UTC
+Labels:       <none>
+Annotations:  <none>
+Spec:
+  PodSelector:     run=db
+  Allowing ingress traffic:
+    To Port: 80/TCP
+    From:
+      PodSelector: run=app
+  Not affecting egress traffic
+  Policy Types: Ingress
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod -owdie
+error: unable to match a printer suitable for the output format "wdie", allowed formats are: custom-co      lumns,custom-columns-file,go-template,go-template-file,json,jsonpath,jsonpath-as-json,jsonpath-file,na      me,template,templatefile,wide,yaml
+[root@kubemaster ~]# kubectl get pod -owode
+error: unable to match a printer suitable for the output format "wode", allowed formats are: custom-co      lumns,custom-columns-file,go-template,go-template-file,json,jsonpath,jsonpath-as-json,jsonpath-file,na      me,template,templatefile,wide,yaml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod -owide
+NAME   READY   STATUS    RESTARTS   AGE     IP                NODE      NOMINATED NODE   READINESS GAT      ES
+app    1/1     Running   0          9m20s   192.168.235.179   worker1   <none>           <none>
+db     1/1     Running   0          9m14s   192.168.235.178   worker1   <none>           <none>
+web    1/1     Running   0          9m10s   192.168.189.125   worker2   <none>           <none>
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it  app bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@app:/# curl 192.168.235.178
+Hello I am Db server
+root@app:/# exit
+exit
+[root@kubemaster ~]# kubectl exec -it  web bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@web:/# curl 192.168.235.178
+^C
+root@web:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]# kubectl delete -f net.yml
+networkpolicy.networking.k8s.io "app-to-db" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create ns webprod
+Error from server (AlreadyExists): namespaces "webprod" already exists
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl label ns  webprod  project=webprod
+namespace/webprod labeled
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+Error from server (AlreadyExists): error when creating "net.yml": networkpolicies.networking.k8s.io "a      pp-to-db" already exists
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete -f  net.yml
+networkpolicy.networking.k8s.io "app-to-db" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f  net.yml
+networkpolicy.networking.k8s.io/app-to-db-webprod created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl run app  --image=nginx -n webprod
+pod/app created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod
+NAME   READY   STATUS    RESTARTS   AGE
+app    1/1     Running   0          16m
+db     1/1     Running   0          16m
+web    1/1     Running   0          16m
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it app bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@app:/# curl 192.168.235.178
+^C
+root@app:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]# kubectl exec -it web bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@web:/# curl 192.168.235.178
+^C
+root@web:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl run xyz  --image=nginx -n webprod
+pod/xyz created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it  xyz  bash  -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@xyz:/# exit
+exit
+[root@kubemaster ~]# kubectl get pod --show-lables -n webprod
+error: unknown flag: --show-lables
+See 'kubectl get --help' for usage.
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod --show-labeles -n webprod
+error: unknown flag: --show-labeles
+See 'kubectl get --help' for usage.
+[root@kubemaster ~]# kubectl get pod  --show-labels  -n webprod
+NAME   READY   STATUS    RESTARTS       AGE    LABELS
+app    1/1     Running   0              118s   run=app
+demo   1/1     Running   2 (178m ago)   45h    run=test
+test   1/1     Running   2 (178m ago)   44h    run=test
+xyz    1/1     Running   0              54s    run=xyz
+[root@kubemaster ~]# kubectl exec -it  xyz  bash -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@xyz:/# curl 192.168.235.178
+^C
+root@xyz:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it app  bash -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@app:/#
+root@app:/# curl 192.168.235.178
+Hello I am Db server
+root@app:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete -f net.yml
+networkpolicy.networking.k8s.io "app-to-db-webprod" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db-webprod created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it app bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@app:/#
+root@app:/# curl 192.168.235.178
+^C
+root@app:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod
+NAME   READY   STATUS    RESTARTS   AGE
+app    1/1     Running   0          21m
+db     1/1     Running   0          21m
+web    1/1     Running   0          21m
+[root@kubemaster ~]# kubectl exec -it  xyz  bash -n prod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+Error from server (NotFound): namespaces "prod" not found
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it  xyz  bash -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@xyz:/#
+root@xyz:/#
+root@xyz:/# curl 192.168.235.178
+Hello I am Db server
+root@xyz:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete -f  net.yml
+networkpolicy.networking.k8s.io "app-to-db-webprod" deleted
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db-webprod created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it xyz bash -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@xyz:/#
+root@xyz:/#
+root@xyz:/# curl 192.168.235.178
+Hello I am Db server
+root@xyz:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create ns demo
+namespace/demo created
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim pod.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f  pod.yml  -n  demo
+pod/shyam created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it web bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@web:/# curl 192.168.235.178
+^C
+root@web:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod --show-labels -n demo
+NAME    READY   STATUS    RESTARTS   AGE   LABELS
+shyam   1/1     Running   0          57s   color=blue
+[root@kubemaster ~]# kubectl exec -it shyam  bash  -n demo
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@shyam:/#
+root@shyam:/# curl 192.168.235.178
+^C
+root@shyam:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create  -f net.yml
+Error from server (AlreadyExists): error when creating "net.yml": networkpolicies.networking.k8s.io "a      pp-to-db-webprod" already exists
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f  pod.yml
+pod/shyam created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it shyam  bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@shyam:/# curl 192.168.235.178
+Hello I am Db server
+root@shyam:/# exit
+exit
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+Error from server (AlreadyExists): error when creating "net.yml": networkpolicies.networking.k8s.io "a      pp-to-db-webprod" already exists
+[root@kubemaster ~]# kubectl delete -f net.yml
+networkpolicy.networking.k8s.io "app-to-db-webprod" deleted
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db-webprod created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it shyam  bash  -n qa
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+Error from server (NotFound): namespaces "qa" not found
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it shyam  bash  -n demo
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@shyam:/#
+root@shyam:/#
+root@shyam:/# curl 192.168.235.178
+Hello I am Db server
+root@shyam:/#
+root@shyam:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# cat net.yml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-to-db-webprod
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+      - namespaceSelector:
+            matchLabels:
+               project: webprod
+      - podSelector:
+            matchLabels:
+               color: blue
+        namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create ns my-app
+namespace/my-app created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+
+networkpolicy.networking.k8s.io/allow-port-from-namespace created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl label ns  my-app project=my-app
+namespace/my-app labeled
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create ns internal
+namespace/internal created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl label ns internal  project=internal
+namespace/internal labeled
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete -f net.yml
+networkpolicy.networking.k8s.io "allow-port-from-namespace" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/allow-port-from-namespace created
+[root@kubemaster ~]#
+
+
+
+[root@kubemaster ~]# kubectl run app --image=nginx
+pod/app created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl run db --image=nginx
+pod/db created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl run web --image=nginx
+pod/web created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it  db bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@db:/# cd  /usr/share/nginx/html/
+root@db:/usr/share/nginx/html# echo
+
+root@db:/usr/share/nginx/html# echo "Hello I am Db server"  > index.html
+root@db:/usr/share/nginx/html# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod -o wide
+NAME   READY   STATUS    RESTARTS   AGE   IP                NODE      NOMINATED NODE   READINESS GATES
+app    1/1     Running   0          48s   192.168.235.179   worker1   <none>           <none>
+db     1/1     Running   0          42s   192.168.235.178   worker1   <none>           <none>
+web    1/1     Running   0          38s   192.168.189.125   worker2   <none>           <none>
+[root@kubemaster ~]# kubectl exec -it web bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@web:/# curl 192.168.235.178
+Hello I am Db server
+root@web:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]# clear
+[root@kubemaster ~]#
+[root@kubemaster ~]# cat  > net.yml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-network-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 172.17.0.0/16
+            except:
+              - 172.17.1.0/24
+        - namespaceSelector:
+            matchLabels:
+              project: myproject
+        - podSelector:
+            matchLabels:
+              role: frontend
+      ports:
+        - protocol: TCP
+          port: 6379
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/24
+      ports:
+        - protocol: TCP
+          port: 5978
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod --show-labels
+NAME   READY   STATUS    RESTARTS   AGE     LABELS
+app    1/1     Running   0          4m31s   run=app
+db     1/1     Running   0          4m25s   run=db
+web    1/1     Running   0          4m21s   run=web
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get networkpolicies
+NAME        POD-SELECTOR   AGE
+app-to-db   run=db         8s
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl describe networkpolices  app-to-db
+error: the server doesn't have a resource type "networkpolices"
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl describe networkpolicies  app-to-db
+Name:         app-to-db
+Namespace:    default
+Created on:   2022-09-11 05:40:37 +0000 UTC
+Labels:       <none>
+Annotations:  <none>
+Spec:
+  PodSelector:     run=db
+  Allowing ingress traffic:
+    To Port: 80/TCP
+    From:
+      PodSelector: run=app
+  Not affecting egress traffic
+  Policy Types: Ingress
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod -owdie
+error: unable to match a printer suitable for the output format "wdie", allowed formats are: custom-co      lumns,custom-columns-file,go-template,go-template-file,json,jsonpath,jsonpath-as-json,jsonpath-file,na      me,template,templatefile,wide,yaml
+[root@kubemaster ~]# kubectl get pod -owode
+error: unable to match a printer suitable for the output format "wode", allowed formats are: custom-co      lumns,custom-columns-file,go-template,go-template-file,json,jsonpath,jsonpath-as-json,jsonpath-file,na      me,template,templatefile,wide,yaml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod -owide
+NAME   READY   STATUS    RESTARTS   AGE     IP                NODE      NOMINATED NODE   READINESS GAT      ES
+app    1/1     Running   0          9m20s   192.168.235.179   worker1   <none>           <none>
+db     1/1     Running   0          9m14s   192.168.235.178   worker1   <none>           <none>
+web    1/1     Running   0          9m10s   192.168.189.125   worker2   <none>           <none>
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it  app bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@app:/# curl 192.168.235.178
+Hello I am Db server
+root@app:/# exit
+exit
+[root@kubemaster ~]# kubectl exec -it  web bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@web:/# curl 192.168.235.178
+^C
+root@web:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]# kubectl delete -f net.yml
+networkpolicy.networking.k8s.io "app-to-db" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create ns webprod
+Error from server (AlreadyExists): namespaces "webprod" already exists
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl label ns  webprod  project=webprod
+namespace/webprod labeled
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+Error from server (AlreadyExists): error when creating "net.yml": networkpolicies.networking.k8s.io "a      pp-to-db" already exists
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete -f  net.yml
+networkpolicy.networking.k8s.io "app-to-db" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f  net.yml
+networkpolicy.networking.k8s.io/app-to-db-webprod created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl run app  --image=nginx -n webprod
+pod/app created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod
+NAME   READY   STATUS    RESTARTS   AGE
+app    1/1     Running   0          16m
+db     1/1     Running   0          16m
+web    1/1     Running   0          16m
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it app bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@app:/# curl 192.168.235.178
+^C
+root@app:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]# kubectl exec -it web bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@web:/# curl 192.168.235.178
+^C
+root@web:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl run xyz  --image=nginx -n webprod
+pod/xyz created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it  xyz  bash  -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@xyz:/# exit
+exit
+[root@kubemaster ~]# kubectl get pod --show-lables -n webprod
+error: unknown flag: --show-lables
+See 'kubectl get --help' for usage.
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod --show-labeles -n webprod
+error: unknown flag: --show-labeles
+See 'kubectl get --help' for usage.
+[root@kubemaster ~]# kubectl get pod  --show-labels  -n webprod
+NAME   READY   STATUS    RESTARTS       AGE    LABELS
+app    1/1     Running   0              118s   run=app
+demo   1/1     Running   2 (178m ago)   45h    run=test
+test   1/1     Running   2 (178m ago)   44h    run=test
+xyz    1/1     Running   0              54s    run=xyz
+[root@kubemaster ~]# kubectl exec -it  xyz  bash -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@xyz:/# curl 192.168.235.178
+^C
+root@xyz:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it app  bash -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@app:/#
+root@app:/# curl 192.168.235.178
+Hello I am Db server
+root@app:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete -f net.yml
+networkpolicy.networking.k8s.io "app-to-db-webprod" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db-webprod created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it app bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@app:/#
+root@app:/# curl 192.168.235.178
+^C
+root@app:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod
+NAME   READY   STATUS    RESTARTS   AGE
+app    1/1     Running   0          21m
+db     1/1     Running   0          21m
+web    1/1     Running   0          21m
+[root@kubemaster ~]# kubectl exec -it  xyz  bash -n prod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+Error from server (NotFound): namespaces "prod" not found
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it  xyz  bash -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@xyz:/#
+root@xyz:/#
+root@xyz:/# curl 192.168.235.178
+Hello I am Db server
+root@xyz:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete -f  net.yml
+networkpolicy.networking.k8s.io "app-to-db-webprod" deleted
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db-webprod created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it xyz bash -n webprod
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@xyz:/#
+root@xyz:/#
+root@xyz:/# curl 192.168.235.178
+Hello I am Db server
+root@xyz:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create ns demo
+namespace/demo created
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim pod.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f  pod.yml  -n  demo
+pod/shyam created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it web bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@web:/# curl 192.168.235.178
+^C
+root@web:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl get pod --show-labels -n demo
+NAME    READY   STATUS    RESTARTS   AGE   LABELS
+shyam   1/1     Running   0          57s   color=blue
+[root@kubemaster ~]# kubectl exec -it shyam  bash  -n demo
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@shyam:/#
+root@shyam:/# curl 192.168.235.178
+^C
+root@shyam:/# exit
+exit
+command terminated with exit code 130
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create  -f net.yml
+Error from server (AlreadyExists): error when creating "net.yml": networkpolicies.networking.k8s.io "a      pp-to-db-webprod" already exists
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f  pod.yml
+pod/shyam created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it shyam  bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@shyam:/# curl 192.168.235.178
+Hello I am Db server
+root@shyam:/# exit
+exit
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+Error from server (AlreadyExists): error when creating "net.yml": networkpolicies.networking.k8s.io "a      pp-to-db-webprod" already exists
+[root@kubemaster ~]# kubectl delete -f net.yml
+networkpolicy.networking.k8s.io "app-to-db-webprod" deleted
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/app-to-db-webprod created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it shyam  bash  -n qa
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+Error from server (NotFound): namespaces "qa" not found
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl exec -it shyam  bash  -n demo
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [      POD] -- [COMMAND] instead.
+root@shyam:/#
+root@shyam:/#
+root@shyam:/# curl 192.168.235.178
+Hello I am Db server
+root@shyam:/#
+root@shyam:/# exit
+exit
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# cat net.yml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-to-db-webprod
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+      - namespaceSelector:
+            matchLabels:
+               project: webprod
+      - podSelector:
+            matchLabels:
+               color: blue
+        namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create ns my-app
+namespace/my-app created
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+
+networkpolicy.networking.k8s.io/allow-port-from-namespace created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl label ns  my-app project=my-app
+namespace/my-app labeled
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create ns internal
+namespace/internal created
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl label ns internal  project=internal
+namespace/internal labeled
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl delete -f net.yml
+networkpolicy.networking.k8s.io "allow-port-from-namespace" deleted
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# vim net.yml
+[root@kubemaster ~]#
+[root@kubemaster ~]#
+[root@kubemaster ~]# kubectl create -f net.yml
+networkpolicy.networking.k8s.io/allow-port-from-namespace created
+[root@kubemaster ~]# history
+  219  ls -l
+  220  kubectl delete rs -aal
+  221  kubectl delete rs -all
+  222  kubectl delete rs --all
+  223  ls -l
+  224  cat rs.yml
+  225  kubectl get deplo
+  226  kubectl get deploy
+  227  kubectl create deploy test --image=nginx
+  228  kubectl get deploy
+  229  kubectl get pod
+  230  kubectl get pod -owide
+  231  kubectl scale --replicas=3 deploy test
+  232  kubectl get pod -owide
+  233  kubectl scale --replicas=4 deploy test
+  234  kubectl get pod -owide
+  235  kubectl delete pod test-764c85dd84-8rnfb
+  236  kubectl get pod -owide
+  237  kubectl delete deploy test
+  238  kubectl get pod -owide
+  239  kubectl get pod
+  240  kubectl create deploy test --image=nginx
+  241  kubectl get rs
+  242  kubectl get deploy
+  243  kubectl get pod
+  244  kubectl get pod -owid
+  245  kubectl get pod -owide
+  246  kubectl describe pod test  | grep -i controll
+  247  kubectl scale --replicas=4 deploy test
+  248  kubectl describe pod test  | grep -i controll
+  249  kubectl get pod -owide
+  250  kubectl describe pod test  | grep -i controll
+  251  kubectl describe pod test-764c85dd84-4p4zn  | grep -i controll
+  252  kubectl describe pod test  | grep -i controll
+  253  kubectl get rs
+  254  kubectl get rs
+  255  kubectl delete deploy test
+  256  kubectl get rs
+  257  kubectl get deploy
+  258  kubectl create deploy test --image=nginx --replicas=3
+  259  kubectl get deploy
+  260  kubectl get pod -owide
+  261  kubectl delete dploy
+  262  kubectl delete deploy
+  263  kubectl delete deploy test
+  264  kubectl get pod -owide
+  265  cat rs.yml
+  266  cat xyz.yml
+  267  kubectl create deploy test --image=nginx --replicas=5
+  268  kubectl get pod -owide
+  269  kubectl get ds -n kube-system
+  270  kubectl get pods
+  271  kubectl get pods -owide
+  272  kubectl get pod -owide
+  273  kubectl get ds -n kube
+  274  kubectl get ds -n kubesystem
+  275  kubectl get ds -n kube-system
+  276  kubectl describe ds calico-node -n kube-system | grep -i image
+  277  kubectl describe ds calico-node -n kube-system | grep -i proxy
+  278  kubectl describe ds calico-node -n kube-system
+  279  kubectl get pod -n kube-system | grep proxy
+  280  kubectl get pod -n kube-system -owide
+  281  kubectl get pod -n kube-system -owide | grep proxy
+  282  kubectl get ds
+  283  ls
+  284  cat xyz.yml
+  285  cat rs.yml
+  286  kubectl get pos
+  287  kubectl get pod
+  288  cat xyz.yml
+  289  cat rs.yml
+  290  kubectl get pos
+  291  kubectl get pod
+  292  kubectl delete deploy test
+  293  kubectl get pod
+  294  kubectl get pod -0wide
+  295  kubectl get pod -owide
+  296  kubectl create deploy test --image=nginx --dry-run  -o yaml  > deploy.yml
+  297  cat deploy.yml
+  298  kubectl get node
+  299  kubectl get pod
+  300  kubectl get pod -owide
+  301  kubectl get node --show-labels
+  302  kubectl get pod
+  303  kubectl get node
+  304  kubectl get node -owide
+  305  ls -l /etc/kubernetes/manifests/
+  306  kubectl get pod -A  | grep api
+  307  kubectl get pod a
+  308  kubectl get pod A
+  309  kubectl get pod -a
+  310  kubectl get pod -A
+  311  kubectl get events
+  312  cd /etc/kubernetes/manifests/
+  313  ls
+  314  cat kube-apiserver.yaml
+  315  cd
+  316  ps -ef | grep api
+  317  kubectl describe node  worker1
+  318  kubectl describe node  worker2
+  319  kubectl get node
+  320  kubectl describe node  kubemaster
+  321  kubectl get role
+  322  kubectl get  nodes
+  323  kubectl get clusterrole
+  324  kubectl get ns
+  325  kubectl  taint   node  worker1   payment:NoSchedule
+  326  kubectl describe node worker1 | grep -i tainty
+  327  kubectl describe node worker1 | grep -i taint
+  328  kubectl delete deploy --all
+  329  ls
+  330  cat deploy.yml
+  331  kubectl describe node worker1 | grep -i taint
+  332  kubectl create deploy  xyz --image=nginx
+  333  kubectl create deploy  abc --image=nginx
+  334  kubectl  get  pod -o wide
+  335  kubectl  get  pod
+  336  kubectl  get  pod -o wide
+  337  vi deploy.yml
+  338  cat deploy.yml
+  339  kubectl create -f deploy.yml
+  340  kubectl  get  pod -o wide
+  341  kubectl scale --replicas=3 deploy  test
+  342  kubectl  get  pod -o wide
+  343  vi deploy.yml
+  344  kubectl  get  pod -o wide
+  345  kubectl delete deploy  test
+  346  kubectl  get  pod -o wide
+  347  kubectl create -f deploy.yml
+  348  kubectl  get  pod -o wide
+  349  kubectl scale --replicas=3 deploy  test
+  350  kubectl  get  pod -o wide
+  351  kubectl describe node worker1 | grep -i taint
+  352  kubectl describe node worker1
+  353  kubectl describe node worker1 | grep -i taint
+  354  kubectl  get  pod -o wide
+  355  kubectl  get  pod
+  356  kubectl  taint   node  worker1   payment:danish
+  357  kubectl  taint   node  worker1   payment
+  358  kubectl  taint   node  worker1   payment:danish
+  359  kubectl describe node worker1 | grep -i taint
+  360  kubectl delete deploy  test
+  361  kubectl  get  pod
+  362  vi deploy.yml
+  363  kubectl create -f deploy.yml
+  364  vi deploy.yml
+  365  kubectl create -f deploy.yml
+  366  vi deploy.yml
+  367  kubectl create -f deploy.yml
+  368  kubectl  get  pod
+  369  kubectl  get  pod -owide
+  370  kubectl scale --replicas=2 deploy xyz
+  371  kubectl  get  pod -owide
+  372  kubectl get pod -o wide | grep xyz
+  373  kubectl scale --replicas=3 deploy   test
+  374  kubectl  get  pod -owide
+  375  kubectl get pod -o wide | grep test
+  376  vi deploy.yml
+  377  kubectl get pod -o wide | grep test
+  378  kubectl delete deploy  test
+  379  kubectl get pod -o wide | grep test
+  380  kubectl get pod -o wide
+  381  kubectl create -f deploy.yml
+  382  kubectl get pod -o wide
+  383  kubectl get pod -o wide | grep test
+  384  kubectl scale --replicas=3 deploy test
+  385  kubectl get pod -o wide | grep test
+  386  cat deploy.yml
+  387  vi deploy.yml
+  388  kubectl get pod -o wide | grep test
+  389  kubectl delete deploy  test
+  390  kubectl create -f deploy.yml
+  391  kubectl get pod -o wide | grep test
+  392  kubectl scale --replicas=8 deploy test
+  393  kubectl get pod -o wide | grep test
+  394  vi deploy.yml
+  395  kubectl delete deploy  test
+  396  vi deploy.yml
+  397  kubectl create -f deploy.yml
+  398  kubectl get pod -o wide | grep test
+  399  kubectl get pod -o wide
+  400  kubectl scale --replicas=8 deploy xyz
+  401  kubectl get pod -o wide
+  402  kubectl scale --replicas=8 deploy xyz
+  403  kubectl get pod -o wide
+  404  kubectl get pod -o wide | grep xyz
+  405  kubectl get pod -o wide | grep abc
+  406  kubectl get pod -o wide | grep test
+  407  kubectl scale --replicas=2 deploy test
+  408  kubectl get pod -o wide | grep test
+  409  cat deploy.yml
+  410  kubectl get pod -o wide
+  411  kubectl delete deploy  xyz
+  412  kubectl get pod -o wide | grepxyz
+  413  kubectl get pod -o wide | grep xyz
+  414  kubectl create -f xyz.yml
+  415  kubectl get pod -o wide
+  416  kubectl delete deploy  danish
+  417  kubectl delete danish
+  418  kubectl delete deploy  xyz
+  419  kubectl delete deploy  danish
+  420  kubectl get pod -o wide
+  421  ls
+  422  cat xyz.yml
+  423  kubectl delete deploy  xyz
+  424  kubectl delete deploy  danish
+  425  kubectl delete deploy  danish-bs425
+  426  kubectl delete rc danish
+  427  kubectl get pod -o wide
+  428  kubectl scale --replicas=3 deploy test
+  429  kubectl get pod -o wide | grep test
+  430  kubectl get pod -o wide
+  431  kubectl get  node --show-labels
+  432  kubectl edit deploy  test
+  433  kubectl get nodes
+  434  kubectl describe  node kubemaster  | grep  -i taint
+  435  kubectl get pod -o wide
+  436  kubectl create deploy  xyz --image=nginx
+  437  kubectl get pod -o wide
+  438  kubectl scale --replicas=3 deploy xyz
+  439  kubectl get pod -o wide
+  440  kubectl get pod -o wide | grep -E 'xyz|abc'
+  441  kubectl  taint   node  worker1   payment:NoSchedule-
+  442  kubectl get pod -o wide
+  443  kubectl get pod -o wide | grep -E 'xyz|abc'
+  444  kubectl delete pod --all
+  445  kubectl get pod -o wide
+  446  kubectl get pod -o wide | grep -E 'xyz|abc'
+  447  kubectl get pod -o wide
+  448  kubectl edit node worker1
+  449  kubectl  taint   node  worker1   payment:NoSchedule
+  450  kubectl edit node worker1
+  451  kubectl  taint   node  worker1   payment:NoSchedule-
+  452  ubectl delete deploy  --all
+  453  kubectl delete deploy  --all
+  454  kubectl get pod -o wide
+  455  kubectl get nodes
+  456  kubectl describe node  | grep -i taint
+  457  kubectl edit node kubemaster
+  458  kubectl get nodes
+  459  kubectl get pod
+  460  kubectl get pod -owide
+  461  ls
+  462  kubectl get ns
+  463  kubectl describe nodes worker1 | grep allcatyed
+  464  kubectl describe nodes worker1 | grep allocatyed
+  465  kubectl describe nodes worker1 | grep allocated
+  466  kubectl describe nodes worker1 | grep -iA5 allocated
+  467  kubectl delete deploy --all
+  468  ls
+  469  kubectl run test  --image=nginx --dry-run -o yaml >  pod.yml
+  470  cat pod.yml
+  471  kubectl get pod -owide
+  472  vi pod.yml
+  473  kubectl describe nodes worker1 | grep -iA5 allocated
+  474  kubectl describe nodes worker1
+  475  kubectl describe nodes worker2
+  476  kubectl describe nodes kubemaster
+  477  vi pod.yml
+  478  cat pod.yml
+  479  kubectl create -f pod.yml
+  480  kubectl get pod
+  481  kubectl get pod test
+  482  kubectl get pod -owide
+  483  kubectl describe nodes worker1
+  484  cat pod.yml
+  485  vi pod.yml
+  486  kubectl delete -f pod.yml
+  487  kubectl create -f pod.yml
+  488  kubectl get pod -owide
+  489  kubectl describe nodes worker1
+  490  kubectl delete -f pod.yml
+  491  kubectl describe nodes worker1
+  492  cat deploy.yml
+  493  kubectl create ns webprod
+  494  kubectl get ns
+  495  kubectl create quota test --hard=memory=400Mi , cpu=400m  -n webprod
+  496  kubectl create quota test --hard=memory=400Mi,cpu=400m  -n webprod
+  497  kubectl get quota
+  498  kubectl get quota ns
+  499  kubectl get quota -n webprod
+  500  kubectl describe quota test -n webprod
+  501  cat pod.yml
+  502  vi pod.yml
+  503  cat pod.yml
+  504  kubectl get pod
+  505  kubectl create -f pod.yml -n webprod
+  506  kubectl get pod
+  507  kubectl get pod -owide
+  508  kubectl describe quota test -n webprod
+  509  cat deploy.yml
+  510  vi deploy.yml
+  511  cat deploy.yml
+  512  kubectl create -f deploy.yml -n webprod
+  513  vi deploy.yml
+  514  kubectl create -f deploy.yml -n webprod
+  515  vi deploy.yml
+  516  kubectl create -f deploy.yml -n webprod
+  517  kubectl describe quota test -n webprod
+  518  kubectl scale --replicas=3 deploy test -n webprod
+  519  kubectl describe quota test -n webprod
+  520  kubectl scale --replicas=4 deploy test -n webprod
+  521  kubectl describe quota test -n webprod
+  522  kubectl scale --replicas=8 deploy test -n webprod
+  523  kubectl describe quota test -n webprod
+  524  kubectl get pod -ns
+  525  kubectl get pod -ns webprod
+  526  kubectl get pod - webprod
+  527  kubectl get pod
+  528  kubectl get pods --all-namespaces
+  529  kubectl get pods -o wide
+  530  kubectl get pod -n webprod
+  531  vi pod.yml
+  532  kubectl create -f pod.yml -n webprod
+  533  kubectl create quota test --hard=memory=400Mi , cpu=400m  -n webprod --dry-run -o yaml > quota.yml
+  534  kubectl create quota test --hard=memory=400Mi,cpu=400m  -n webprod --dry-run -o yaml > quota.yml
+  535  ls
+  536  vi quota.yml
+  537  cat quota.yml
+  538
+  539  kubectl apply -f quota.yml
+  540  kubectl describe quota test -n webprod
+  541  cat pod.yml
+  542  kubectl create -f pod.yml -n webprod
+  543  kubectl describe quota test -n webprod
+  544  kubectl get pod -n webprod
+  545  kubectl describe quota test-6dd5fcb7d7-8hz8n
+  546  kubectl describe quota test-6dd5fcb7d7-8hz8n -n webprod
+  547  kubectl describe quota test-6dd5fcb7d7-8hz8n
+  548  kubectl describe  test-6dd5fcb7d7-8hz8n
+  549  kubectl describe  test-6dd5fcb7d7-8hz8n  -n webprod
+  550  kubectl delete pod --all -n webprod
+  551  kubectl get pod -n webprod
+  552  kubectl delete deploy -all -n webprod
+  553  kubectl delete deploy --all -n webprod
+  554  kubectl get pod -n webprod
+  555  kubectl describe quota test -n webprod
+  556  his
+  557  hsitory
+  558  history
+  559  kubectl describe quota test -n webprod
+  560  kubectl get node
+  561  kubectl get nodes
+  562  kubectl describe nodes worker1 | grep -iA5 allocated
+  563  ls -l
+  564  ls
+  565  kubectl describe nodes worker1
+  566  kubectl describe nodes worker2
+  567  kubectl get pod
+  568  kubectl get ns
+  569  kubectl get pod -owide
+  570  cat pod.yml
+  571  kubectl describe quota test -n webprod
+  572  cat quota.yml
+  573  cat deploy.yml
+  574  kubectl describe quota test -n webprod
+  575  cat quota.yml
+  576  cat deploy.yml
+  577  kubectl get pod -n webpress
+  578  kubectl get pod -n webprod
+  579  cat quota.yml
+  580  kubectl get limitrange
+  581  kubectl get limitrange -n webprod
+  582  kubectl get nodes
+  583  cd /etc/kubernetes/pki/
+  584  ls
+  585  ls -l
+  586  cat ca.crt
+  587  cat ram.crt  | base64 -w0
+  588  cd
+  589  cd certs/
+  590  ls
+  591  cp /etc/kubernetes/pki/ca.
+  592  cp /etc/kubernetes/pki/ca.crt .
+  593  cp /etc/kubernetes/pki/ca.key .
+  594  ls
+  595  ls -l /etc/kubernetes/pki/
+  596  mkdir certs
+  597  ls
+  598  cd certs/
+  599  ls
+  600  cd ../
+  601  cd certs/
+  602  ls -l /etc/kubernetes/pki/
+  603  ls -l /etc/kubernetes/pki/ca.crt
+  604  ls -l /etc/kubernetes/pki/ca.key
+  605  cp /etc/kubernetes/pki/ca.crt
+  606  cp /etc/kubernetes/pki/ca.crt .
+  607  cp /etc/kubernetes/pki/ca.key .
+  608  ls
+  609  grep -i user /etc/kubernetes/admin.conf
+  610  grep -i cert /etc/kubernetes/admin.conf
+  611  ls /etc/kubernetes/pki/
+  612  grep -i server /etc/kubernetes/admin.conf
+  613  cd
+  614  ls
+  615  kubectl get role
+  616  kubectl get culsterrole
+  617  kubectl get  clusterrole
+  618  kubectl get pod -n webprod
+  619  ls
+  620  ls
+  621  ls -l /etc/kubernetes/pki/
+  622  cd certs/
+  623  ls
+  624  openssl genrsa -out ram.key 2048
+  625  ls
+  626  openssl req -new -key ram.key -subj "/CN=ram/O=staff" -out ram.csr
+  627  ls
+  628  openssl x509 -req -in ram.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out ram.crt -days 365
+  629  ls
+  630  rm -f ram.csr  ca.srl  ca.key
+  631  ls
+  632  ls -l /etc/kubernetes/admin.conf
+  633  grep -i user /etc/kubernetes/admin.conf
+  634  grep -i cert /etc/kubernetes/admin.conf
+  635  grep -i key  /etc/kubernetes/admin.conf
+  636  ls
+  637  ls /etc/kubernetes/pki/
+  638  grep -i  server  /etc/kubernetes/admin.conf
+  639  cp /etc/kubernetes/admin.conf  ram.conf
+  640  ls
+  641  vi ram.conf
+  642  ls
+  643  vi ram.conf
+  644  cat ram.crt
+  645  cat ram.crt  | base64 -w0
+  646  vi ram.conf
+  647  cat ram.key  | base64 -w0
+  648  vi ram.conf
+  649  ls
+  650  rm -f  ram.key ram.crt  ca.crt
+  651  ls
+  652  scp ram.conf ram@172.31.38.110:~
+  653  scp ram.conf ram@172.31.38.110 :~
+  654  scp ram.conf ram@172.31.38.110:~
+  655  cat ram.conf
+  656  scp ram.conf ram@172.31.38.110:~
+  657  cd
+  658  scp ram.conf ram@172.31.38.110:~
+  659  cert
+  660  cd certs/
+  661  ls
+  662  scp ram.conf ram@172.31.38.110:~
+  663  cd
+  664  kubectl create clusterrolebinding   xyz     --clusterrole=admin  --user=ram
+  665  kubectl get ns
+  666  cert
+  667  cd certs/
+  668  cat ram.conf
+  669
+  670  ifconfig eth0
+  671  cd
+  672  kubectl delete clusterrolebinding  xyz
+  673  kubectl create clusterrolebinding   xyz     --clusterrole=cluster-admin  --user=ram
+  674  kubectl delete clusterrolebinding  xyz
+  675  cd certs/
+  676  ls
+  677  vi ram.conf
+  678  cd certs/
+  679  ls
+  680  cat ram.conf
+  681   cd cert
+  682  kubectl get nodes
+  683  kubectl get ns
+  684  kubectl get nodes
+  685  kubectl get nodes -A
+  686  kubectl get nodes -owide
+  687  kubectl get nodes -A
+  688  kubectl get pod -owide
+  689  kubectl get pod
+  690  ls
+  691  cd certs/
+  692  ls
+  693  scp ram.conf ram@172.31.38.110:~
+  694  ls
+  695  cat ca.crt
+  696  ls -l /etc/kubernetes/admin.conf
+  697  grep -i  server  /etc/kubernetes/admin.conf
+  698  cat ca.crt | base64 -w0
+  699  vi ram.conf
+  700  cat ca.key | base64 -w0
+  701  vi ram.conf
+  702  cat ram.conf
+  703  scp ram.conf ram@172.31.38.110:~
+  704  ls
+  705  rm ca.crt ca.key
+  706  ls
+  707  rm ca.key
+  708  ls
+  709  scp ram.conf ram@172.31.38.110:~
+  710  ifconfig eth0
+  711  ls
+  712  rm ram.conf
+  713  ls
+  714  openssl x509 -req -in ram.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out ram.crt -days 365
+  715  openssl genrsa -out ram.key 2048
+  716  openssl req -new -key ram.key -subj "/CN=ram/O=staff" -out ram.csr
+  717  openssl x509 -req -in ram.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out ram.crt -days 365
+  718  openssl req -new -key ram.key -subj "/CN=ram/O=staff" -out ram.csr
+  719  openssl x509 -req -in ram.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out ram.crt -days 365
+  720  cp   /etc/kubernetes/pki/ca.crt .
+  721  cp   /etc/kubernetes/pki/ca.key  .
+  722  ls
+  723  openssl x509 -req -in ram.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out ram.crt -days 365
+  724  ls
+  725  rm -f ram.csr  ca.srl  ca.key
+  726  ls /etc/kubernetes/pki/
+  727  cp /etc/kubernetes/admin.conf  ram.conf
+  728  ls
+  729  cat ram.conf
+  730  vi ram.conf
+  731  cat ram.crt
+  732  cat ca.crt
+  733  vi ram.conf
+  734  cat ram.crt  | base64 -w0
+  735  vi ram.conf
+  736  ls
+  737  cat ram.key  | base64 -w0
+  738  vi ram.conf
+  739  cat /etc/yum.repos.d/kube.repo
+  740  ls
+  741  scp  ram.conf   ram@172.31.42.170:~
+  742  scp ram.conf ram@172.31.38.110:~
+  743  cd
+  744  kubectl create clusterrolebinding   xyz     --clusterrole=admin  --user=ram
+  745  ls
+  746  cd certs/
+  747  ls
+  748  scp ram.conf ram@172.31.38.110:~
+  749  cd
+  750  kubectl get role
+  751  kubectl get clustorrole
+  752  kubectl get clusterrole
+  753  kubectl delete clusterrolebinding  xyz
+  754  kubectl create clusterrolebinding   xyz     --clusterrole=cluster-admin  --user=ram
+  755  kubectl delete clusterrolebinding  xyz
+  756  kubectl create rolebinding  xyz --clusterrole=admin  --user=ram  -n webprod
+  757  kubectl  get rolebinding  -n webprod
+  758  kubectl  describe  rolebinding  xyz  -n webprod
+  759  cat pod.yml
+  760  kubectl create -f pod.yml  -n webprod
+  761  kubectl get pod -n webprod
+  762  kubectl describe  quota  test   -n webprod
+  763  kubectl delete  quota  test   -n webprod
+  764  kubectl create clusterrolebinding  demo  --clusterrole=cluster-admin --group=staff
+  765  kubectl delete clusterrolebinding  demo
+  766  kubectl delete rolebinding  xyz  -n webprod
+  767  grep -i user   .kube/config
+  768  ubectl  get  clusterrole   |  grep  cluster-admin
+  769  kubectl  get  clusterrole   |  grep  cluster-admin
+  770  kubectl describe  clusterrolebinding  cluster-admin
+  771  kubectl create clusterrole  pod-reader  --resource=pod  --verb=list  --dry-run -o yaml > role.yml
+  772  ls
+  773  cat role.yml
+  774  bectl create -f role.yml
+  775  kubectl create -f role.yml
+  776  kubectl create   clusterrolebinding  xyz  --clusterrole=pod-reader  --user=ram
+  777  kubectl get nodes
+  778  kubectl get pod
+  779  kubectl get pods
+  780  kubectl get pods -n webprod
+  781  kubectl delete -f role.yml
+  782  kubectl delete clusterrolebinding  xyz
+  783  vi role.yml
+  784  kubectl get sa -n webprod
+  785  kubectl get ns
+  786  ls
+  787  cat deploy.yml
+  788  cat role.yml
+  789  cat pod.yml
+  790  kubectl get service
+  791  vi /etc/ssh/sshd_config
+  792  systemctl restart sshd
+  793  passwd ec2-user
+  794  cat /etc/ssh/sshd_config
+  795  ls
+  796  exit
+  797  clear
+  798  kubectl get  pod
+  799  clear
+  800  kubectl  create  deploy  test --image=nginx
+  801  kubectl scale --replicas=3 deploy test
+  802  kubectl get pod -o wide
+  803  kubectl exec -it test-764c85dd84-s6p5b  bash
+  804  ls
+  805  kubectl get pod -n  kube-system  -o  wide |  grep calico
+  806  kubectl get pod -n  kube-system  -o  wide |  grep calico-node
+  807  kubectl get ippool
+  808  kubectl get ippool  -o yaml
+  809  kubectl get ippool
+  810  kubectl get ippool default-ipv4-ippool  -o yaml >  pool.yml
+  811  vim pool.yml
+  812  ifconfig eth0
+  813  kubectl get pod -o wide
+  814  vim pool.yml
+  815  calicoctl
+  816  clear
+  817  curl -O https://github.com/projectcalico/calicoctl/releases/download/v3.20.6/calicoctl
+  818  ls
+  819  chmod u+x calicoctl
+  820  mv calicoctl  /bin/
+  821  calicoctl
+  822  calicoctl  -h
+  823  rm -f /bin/calicoctl
+  824  wget https://github.com/projectcalico/calicoctl/releases/tag/v3.21.5
+  825  ls
+  826  wget https://github.com/projectcalico/calicoctl/archive/refs/tags/v3.21.5.tar.gz
+  827  clear
+  828  ls
+  829  tar -xzf v3.21.5.tar.gz
+  830  ls
+  831  cd calicoctl-3.21.5/
+  832  ls
+  833  cd calicoctl/
+  834  ls
+  835  cd
+  836  rm -rf v3.21.5*
+  837  wget https://github.com/projectcalico/calicoctl/releases/download/v3.21.5/calicoctl-linux-amd64
+  838  ls
+  839  chmod   u+x calicoctl-linux-amd64
+  840  ls
+  841  ./calicoctl-linux-amd64
+  842  ./calicoctl-linux-amd64  -h
+  843  ls
+  844  mv  calicoctl-linux-amd64   /bin/calicoctl
+  845  calicoctl
+  846   mkdir -p /etc/calico
+  847  cd  /etc/calico/
+  848  vim  calicoctl.cfg
+  849  cd
+  850  clear
+  851  calicoctl get  ippool
+  852  calicoctl get  ippool --allow-version-mismatch
+  853  calicoctl get  ippool --show-block  --allow-version-mismatch
+  854  calicoctl get  ippool --show-blocks  --allow-version-mismatch
+  855  calicoctl get  ippool --block-show  --allow-version-mismatch
+  856  calicoctl get  ippool  --h
+  857  calicoctl get  ippool  --help
+  858  calicoctl get  ippool --show-block
+  859  calicoctl get  ippool --show
+  860  calicoctl  ipam show
+  861  calicoctl  ipam show --allow-version-mismatch
+  862  calicoctl  ipam show --show-blocks  --allow-version-mismatch
+  863  kubectl get po -o wide | grep worker1
+  864  kubectl get po -o wide | grep worker2
+  865  clear
+  866  ip route
+  867  kubectl get node -o wide
+  868  clear
+  869  ifconfig
+  870  ip route
+  871  vim pod.yml
+  872  vim  pool.yml
+  873  kubectl get ds -n  kube-system
+  874  route -n
+  875  vim calico.yaml
+  876  calicoctl
+  877  calicoctl  node
+  878  calicoctl  node show
+  879  calicoctl  node status
+  880  calicoctl  node show
+  881  calicoctl  node checksystem
+  882  calicoctl  --help
+  883  calicoctl  node
+  884  calicoctl  node --help
+  885  calicoctl  node status
+  886  kubectl ipam  show
+  887  calicoctl  ipam show
+  888  calicoctl  ipam show --allow-version-mismatch
+  889  calicoctl  ipam show --allow-version-mismatch --show-block
+  890  calicoctl  ipam show --allow-version-mismatch --help
+  891  calicoctl  ipam show --allow-version-mismatch --show-configuration
+  892  calicoctl  ipam show --allow-version-mismatch --show-borrowed
+  893  crictl  image
+  894  calicoctl  peer
+  895  calicoctl  datastore
+  896  calicoctl  datastore --help
+  897  calicoctl  datastore show
+  898  calicoctl  datastore  --show
+  899  clear
+  900  ifconfig
+  901  iptables -L
+  902  clear
+  903  calicoctl get ippol
+  904  calicoctl get ippool
+  905  calicoctl get ippool --allow-version-mismatch
+  906  calicoctl get ippool default-ipv4-ippool  --allow-version-mismatch  -o yaml  >  pool.yml
+  907  vim pool.yml
+  908  calicoctl  apply -f  pool.yml
+  909  calicoctl  apply -f  pool.yml  --allow-version-mismatch
+  910  vim pool.yml
+  911  calicoctl  apply -f  pool.yml  --allow-version-mismatch
+  912  calicoctl  get ippool
+  913  calicoctl  get ippool --allow-version-mismatch
+  914  kubectl delete deploy --all
+  915  kubectl create deploy test --image=nginx
+  916  kubectl get pod -o wide
+  917  calicoctl get ippool default-ipv4-ippool  --allow-version-mismatch  -o yaml  >  pool.yml
+  918  vim pool.yml
+  919  calicoctl  apply -f  pool.yml  --allow-version-mismatch
+  920  kubectl  run demo  --image=nginx
+  921  kubectl get  pod -o wide
+  922  calicoctl  ipam show --allow-version-mismatch  --show-blocks
+  923  route -n
+  924  route -n  | grep tunl0
+  925  kubectl delete deploy --all
+  926  kubectl get ippool
+  927  kubectl delete ippool webprod
+  928  vim pool.yml
+  929  calicoctl  apply -f  pool.yml
+  930  calicoctl  apply -f  pool.yml  --allow-version-mismatch
+  931  vim pool.yml
+  932  calicoctl  apply -f  pool.yml  --allow-version-mismatch
+  933  kubectl run  test  --image=nginx
+  934  kubectl get pod  -o wide
+  935  kubectl delete pod --all
+  936  kubeadm  init --help
+  937  vim calico.yaml
+  938  cat /etc/calico/calicoctl.cfg
+  939  kubectl get pod
+  940  ls
+  941  kubectl get pod
+  942  kubectl get pod -owide
+  943  history
+  944  kubectl get pod -owide
+  945  ls
+  946  cat calico.yaml
+  947  clear
+  948  cat calico.yaml
+  949  clear
+  950  kubectl get pod -n kubesystem -o wide
+  951  kubectl get pod -n kubesystem -o wide | grep calico-node
+  952  kubectl get ns
+  953  kubectl get pod -n kube-system -o wide | grep calico-node
+  954  kubectl get pod -n kube-system -o wide
+  955  kubectl get pod -n kube-system -o wide | grep calico-node
+  956  kubectl get ippoll
+  957  kubectl get ippool
+  958  ifconfig
+  959  kubectl get ippool -o ymal
+  960  ls
+  961  cat pool.yml
+  962  kubectl get ippool -o ymal
+  963  ifconfig
+  964  kubectl get ippool -o ymal
+  965  cat pool.yml
+  966  calicoctl
+  967  ls
+  968  calicoctl ipam show
+  969  calicoctl ipam show --allow-version-mismatch
+  970  calicoctl ipam show --show-blocks --allow-version-mismatch
+  971  kubectl get pod -o wide | grep worker1
+  972  kubectl get pod -o wide | grep worker2
+  973  kubectl get pod -o wide | grep kube
+  974  kubectl get pod -o wide | grep kubemaster
+  975  kubectl get po -o wide | grep kubemaster
+  976  kubectl get pod -o wide | grep kubemaster
+  977  kubectl get po -o wide | grep kubemaster
+  978  kubectl get po -o wide | grep worker
+  979  kubectl get po -o wide | grep 192.168.141
+  980  kubectl get po -o wide | grep 192.168.235.161
+  981  kubectl get po -o wide | grep 192.168.189.64/26
+  982  kubectl get po -o wide | grep 192.168.141.1
+  983   grep 192.168.141.1
+  984  kubectl get po -o wide
+  985  iproute
+  986  iprout
+  987  iproute
+  988  ip route
+  989  ls
+  990  cat pool.yml
+  991  calicoctl get ippool
+  992  calicoctl get ippool --allow-version-mismatch
+  993  kubectl get pod
+  994  kubectl get pod -owide
+  995  cat pool.yml
+  996  ls
+  997  clear
+  998  kubectl get nodes
+  999  clear
+ 1000  kubectl delete deploy  --all
+ 1001  kubectl create deploy  db --image=nginx
+ 1002  kubectl create deploy  app --image=nginx
+ 1003  kubectl get pod  -o wide
+ 1004  kubectl exec -it  app-84767f674f-8r967 bash
+ 1005  kubectl get pod  -o wide
+ 1006  kubectl delete  pod  db-79c5598466-pxppd
+ 1007  kubectl get pod  -o wide
+ 1008  kubectl expose deploy db --port=80
+ 1009  kubectl get service
+ 1010  kubeadm init --help
+ 1011  kubectl get service
+ 1012  kubectl describe service db
+ 1013  kubectl get pod -owide | grep db
+ 1014  kubectl delete pod db-79c5598466-tfgw5
+ 1015  kubectl get service
+ 1016  kubectl describe service db | grep -i end
+ 1017  kubectl get pod -owide | grep db
+ 1018  kubectl get pod
+ 1019  kubectl exec  -it  app-84767f674f-8r967  bash
+ 1020  kubectl scale --replicas=2 deploy  db
+ 1021  kubectl describe service db | grep -i end
+ 1022  kubectl get pod -owide | grep db
+ 1023  kubectl exec -it  db-79c5598466-7jgj5  bash
+ 1024  kubectl exec -it db-79c5598466-qbxbj  bash
+ 1025  kubectl  get service
+ 1026  curl 10.97.160.235
+ 1027  kubectl delete deploy  db
+ 1028  kubect get pod
+ 1029  kubectl get pod
+ 1030  kubectl get service
+ 1031  kubectl create deploy db --image=ngibx
+ 1032  kubectl delete deploy db
+ 1033  curl 10.97.160.235
+ 1034  kubectl describe service db | grep -i end
+ 1035  kubectl create deploy db --image=nginx
+ 1036  kubectl describe service db | grep -i end
+ 1037  kubectl delete deploy db
+ 1038  kubectl describe service db | grep -i end
+ 1039  vim pod.yml
+ 1040  kubectl create  -f  pod.yml
+ 1041  kubectl exec -it  demo bash
+ 1042  curl 10.97.160.235
+ 1043  kubectl describe service db | grep -i end
+ 1044  kubectl get pod demo -o wied
+ 1045  kubectl get pod demo -o wide
+ 1046  kubectl describe service db
+ 1047  kubectl edit service db
+ 1048  kubectl describe service db | grep -i end
+ 1049  vim  pod.yml
+ 1050  kubectl create -f  pod.yml
+ 1051  kubectl describe service db | grep -i end
+ 1052  vim pod.yml
+ 1053  kubectl create -f pod.yml
+ 1054  kubectl describe service db | grep -i end
+ 1055  kubectl get pod
+ 1056  kubectl edit service db
+ 1057  kubectl delete pod shyam
+ 1058  vi pod.yml
+ 1059  kubectl create -f  pod.yml
+ 1060  kubectl describe service db | grep -i end
+ 1061  kubectl delete deploy  --all
+ 1062  kubectl delete pod --all
+ 1063  clear
+ 1064  kubectl create deploy test  --image=nginx
+ 1065  kubectl get pod --show-labels
+ 1066  kubectl expose deploy test  --port=80 --dry-run  -o yaml > service.yml
+ 1067  vim service.yml
+ 1068  kubectl expose  deploy test  --port=8080 --target-port=80 --dry-run -o yaml > service.yml
+ 1069  vim service.yml
+ 1070  kubectl create -f service.yml
+ 1071  kubectl get service
+ 1072  curl 10.100.104.175:8080
+ 1073  kubectl get pod -n kube-system  |  grep kube-proxy
+ 1074  kubectl get pod -n kube-system -o wide  |  grep kube-proxy
+ 1075  kubectl expose  deploy test  --port=8080 --target-port=80  --name=krnetwork
+ 1076  kubectl get service krnetwork
+ 1077  kubectl delete service krnetwork
+ 1078  cat > service.yml
+ 1079  vim service.yml
+ 1080  kubectl create -f service.yml
+ 1081  ifconfig eth0
+ 1082  curl 172.31.41.155:8080
+ 1083  iptables -L
+ 1084  iptables -L  -t nat  kube-service
+ 1085  iptables -L  -t nat  kube-services
+ 1086  iptables   -t nat  kube-services
+ 1087  iptables -t nat -L PREROUTING | column -t
+ 1088  iptables -t nat -L KUBE-SERVICES -n  | column -t
+ 1089  kubectl get service
+ 1090  kubectl describe service db | grep -i end
+ 1091  kubectl describe service my-service | grep -i end
+ 1092  kubectl describe service my-service | grep -i selector
+ 1093  vi pod.yml
+ 1094  kubectl create -f pod.yml
+ 1095  kubectl describe service my-service | grep -i end
+ 1096  iptables -t nat -L KUBE-SERVICES -n  | column -t
+ 1097  curl 10.105.45.158:8080
+ 1098  curl 10.105.45.158:80
+ 1099  iptables -t nat -L  KUBE-SVC-FXIYY6OHUSNBITIX  -n  | column -t
+ 1100  kubectl get po shyam -o wide
+ 1101  kubectl delete deploy  --all\
+ 1102  kubectl delete deploy  --all
+ 1103  kubectl delete pod --all
+ 1104  kubectl expose deploy  test  --image=nginx --dry-run -o yaml > deploy.yml
+ 1105  kubectl  create deploy  test  --image=nginx --dry-run -o yaml > deploy.yml
+ 1106  vim deploy.yml
+ 1107  kubectl create -f deploy.yml
+ 1108  kubectl get pod  -o wide
+ 1109  \
+ 1110  kubectl get nodes -o wide
+ 1111  kubectl exec  -it test-85f58fbb4f-xdz7s  bash
+ 1112  curl 172.31.45.176:8080
+ 1113  kubectl delete deploy  --all
+ 1114  kubectl get service
+ 1115  kubectl delete service  my-service db  test
+ 1116  vim deploy.yml
+ 1117  kubectl create -f deploy.yml
+ 1118  kubectl expose deploy  test  --port=80 --target-port=80   --type=NodePort
+ 1119  kubectl expose deploy  test  --port=80 --target-port=80   --type=NodePort  --dry-run -o yaml
+ 1120  kubectl get service
+ 1121  netstat -tnlp | grep -w 31825
+ 1122  kubectl get pod -o wide
+ 1123  kubectl delete service test
+ 1124  kubectl expose deploy  test  --port=80 --target-port=80   --type=NodePort --dry-run -o yaml > service.yml
+ 1125  vim service.yml
+ 1126  kubectl create -f service.yml
+ 1127  kubectl get service
+ 1128  curl 10.109.158.22:30001
+ 1129  curl 10.109.158.22:8080
+ 1130  cat service.yml
+ 1131  kubectl get pod
+ 1132  kubectl exec -it test-764c85dd84-2gqzq  bash
+ 1133  curl www.danish.com
+ 1134  clear
+ 1135  kubectl delete pod --all
+ 1136  kubectl delete deploy --all
+ 1137  clear
+ 1138  kubectl run app --image=nginx
+ 1139  kubectl run db --image=nginx
+ 1140  kubectl run web --image=nginx
+ 1141  kubectl exec -it  db bash
+ 1142  kubectl get pod -o wide
+ 1143  kubectl exec -it web bash
+ 1144  clear
+ 1145  cat  > net.yml
+ 1146  vim net.yml
+ 1147  kubectl get pod --show-labels
+ 1148  vim net.yml
+ 1149  kubectl create -f net.yml
+ 1150  kubectl get networkpolicies
+ 1151  kubectl describe networkpolices  app-to-db
+ 1152  kubectl describe networkpolicies  app-to-db
+ 1153  kubectl get pod -owdie
+ 1154  kubectl get pod -owode
+ 1155  kubectl get pod -owide
+ 1156  kubectl exec -it  app bash
+ 1157  kubectl exec -it  web bash
+ 1158  kubectl delete -f net.yml
+ 1159  vim net.yml
+ 1160  kubectl create -f net.yml
+ 1161  kubectl create ns webprod
+ 1162  kubectl label ns  webprod  project=webprod
+ 1163  vim net.yml
+ 1164  kubectl create -f net.yml
+ 1165  kubectl delete -f  net.yml
+ 1166  vim net.yml
+ 1167  kubectl create -f  net.yml
+ 1168  kubectl run app  --image=nginx -n webprod
+ 1169  kubectl get pod
+ 1170  kubectl exec -it app bash
+ 1171  kubectl exec -it web bash
+ 1172  kubectl run xyz  --image=nginx -n webprod
+ 1173  kubectl exec -it  xyz  bash  -n webprod
+ 1174  kubectl get pod --show-lables -n webprod
+ 1175  kubectl get pod --show-labeles -n webprod
+ 1176  kubectl get pod  --show-labels  -n webprod
+ 1177  kubectl exec -it  xyz  bash -n webprod
+ 1178  kubectl exec -it app  bash -n webprod
+ 1179  kubectl delete -f net.yml
+ 1180  vim net.yml
+ 1181  kubectl create -f net.yml
+ 1182  kubectl exec -it app bash
+ 1183  kubectl get pod
+ 1184  kubectl exec -it  xyz  bash -n prod
+ 1185  kubectl exec -it  xyz  bash -n webprod
+ 1186  kubectl delete -f  net.yml
+ 1187  vim net.yml
+ 1188  kubectl create -f net.yml
+ 1189  kubectl exec -it xyz bash -n webprod
+ 1190  kubectl create ns demo
+ 1191  vim pod.yml
+ 1192  kubectl create -f  pod.yml  -n  demo
+ 1193  kubectl exec -it web bash
+ 1194  kubectl get pod --show-labels -n demo
+ 1195  kubectl exec -it shyam  bash  -n demo
+ 1196  vim net.yml
+ 1197  kubectl create  -f net.yml
+ 1198  kubectl create -f  pod.yml
+ 1199  kubectl exec -it shyam  bash
+ 1200  vim net.yml
+ 1201  kubectl create -f net.yml
+ 1202  kubectl delete -f net.yml
+ 1203  vim net.yml
+ 1204  kubectl create -f net.yml
+ 1205  kubectl exec -it shyam  bash  -n qa
+ 1206  kubectl exec -it shyam  bash  -n demo
+ 1207  cat net.yml
+ 1208  kubectl create ns my-app
+ 1209  vim net.yml
+ 1210  kubectl create -f net.yml
+ 1211  kubectl label ns  my-app project=my-app
+ 1212  vim net.yml
+ 1213  kubectl create ns internal
+ 1214  kubectl label ns internal  project=internal
+ 1215  kubectl delete -f net.yml
+ 1216  vim net.yml
+ 1217  kubectl create -f net.yml
+ 1218  history

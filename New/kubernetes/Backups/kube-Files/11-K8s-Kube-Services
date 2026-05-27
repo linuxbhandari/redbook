@@ -1,0 +1,145 @@
+NodePortNodePortNodePorthttps://stackoverflow.com/questions/51468491/how-kubectl-port-forward-works
+
+kubectl port-forward --address 0.0.0.0 pod/demo-664dc5dfd4-9cdbl 8080:80
+========================================================================
+
+Service IP
+Discovery IP : is line proxy ip which we can use to access application. it come on deployment basis
+
+kube proxy : it has alredy deployed on worder node during installation. so every node has it own proxy server.
+   It does two work
+    1. provide static ip to access pod.
+    2. it work like L3 switch with the help of iptables to forward traffice.
+   
+
+root@kube-master:~# kubectl get pod -A | grep kube-proxy
+kube-system   kube-proxy-2hn9l                           1/1     Running   0              12h
+kube-system   kube-proxy-2kwgz                           1/1     Running   0              12h
+kube-system   kube-proxy-5j5vl                           1/1     Running   0              12h
+
+root@kube-master:~# kubectl get ds -n kube-system
+NAME          DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+calico-node   3         3         3       3            3           kubernetes.io/os=linux   12h
+kube-proxy    3         3         3       3            3           kubernetes.io/os=linux   12h
+
+root@kube-master:~# kubectl get cm -n kube-system                		cm => configmap
+NAME                                                   DATA   AGE
+calico-config                                          4      12h
+coredns                                                1      12h
+extension-apiserver-authentication                     6      12h
+kube-apiserver-legacy-service-account-token-tracking   1      12h
+kube-proxy                                             2      12h
+kube-root-ca.crt                                       1      12h
+kubeadm-config                                         1      12h
+kubelet-config                                         1      12h
+
+
+root@kube-master:~# kubectl get cm -n kube-system kubeadm-config -o yaml
+apiVersion: v1
+data:
+  ClusterConfiguration: |
+    apiServer:
+      extraArgs:
+        authorization-mode: Node,RBAC
+      timeoutForControlPlane: 4m0s
+    apiVersion: kubeadm.k8s.io/v1beta3
+    certificatesDir: /etc/kubernetes/pki
+    clusterName: kubernetes
+    controllerManager: {}
+    dns: {}
+    etcd:
+      local:
+        dataDir: /var/lib/etcd
+    imageRepository: registry.k8s.io
+    kind: ClusterConfiguration
+    kubernetesVersion: v1.28.8
+    networking:
+      dnsDomain: cluster.local
+      serviceSubnet: 10.96.0.0/12               <<<<<<< Service ip pool
+    scheduler: {}
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-03-21T16:06:51Z"
+  name: kubeadm-config
+  namespace: kube-system
+  resourceVersion: "235"
+  uid: 28be98eb-6982-4af5-ae22-84e5259e5996
+
+k8s has 3 tools
+===============
+1. Node pool
+2. pod pool
+3. serviceip pool
+
+  Note: pool only you can change during installation time.
+  
+  
+
+root@kube-master:~# kubectl create deployment db --image=nginx
+deployment.apps/db created
+
+root@kube-master:~# kubectl get pod -o wide
+NAME                  READY   STATUS    RESTARTS   AGE   IP            NODE         NOMINATED NODE   READINESS GATES
+db-845c667cf5-jhclj   1/1     Running   0          11s   172.16.9.79   kube-node1   <none>           <none>
+
+
+root@kube-master:~# kubectl expose deployment db --port=80 
+service/db exposed
+
+root@kube-master:~# kubectl get service
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+db           ClusterIP   10.96.211.144   <none>        80/TCP           8s
+
+
+root@kube-master:~# kubectl get service --show-labels 
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE   LABELS
+db           ClusterIP   10.96.211.144   <none>        80/TCP           40s   app=db
+dep1         NodePort    10.96.140.101   <none>        8080:32599/TCP   11h   app=dep1
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          13h   component=apiserver,provider=kubernetes
+
+root@kube-master:~# kubectl get pod --show-labels 
+NAME                  READY   STATUS    RESTARTS   AGE     LABELS
+db-845c667cf5-jhclj   1/1     Running   0          2m32s   app=db,pod-template-hash=845c667cf5
+
+or 
+
+root@kube-master:~# kubectl expose deployment dep1 --port=8080 --target-port=80
+service/dep1 exposed
+
+root@kube-master:~# kubectl get service
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+db           ClusterIP   10.96.211.144   <none>        80/TCP     61m
+dep1         ClusterIP   10.109.56.181   <none>        8080/TCP   2s
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP    14h
+
+root@kube-master:~# curl 10.109.56.181:8080
+
+
+root@kube-master:~# iptables -t nat -L KUBE-SERVICES -n | column -t
+Chain                      KUBE-SERVICES  (2   references)
+target                     prot           opt  source       destination
+KUBE-SVC-NPX46M4PTMTKRN6Y  tcp            --   0.0.0.0/0    10.96.0.1      /*  default/kubernetes:https      cluster  IP          */     tcp   dpt:443
+KUBE-SVC-TCOU7JCQXEZGVUNU  udp            --   0.0.0.0/0    10.96.0.10     /*  kube-system/kube-dns:dns      cluster  IP          */     udp   dpt:53
+KUBE-SVC-ERIFXISQEP7F7OF4  tcp            --   0.0.0.0/0    10.96.0.10     /*  kube-system/kube-dns:dns-tcp  cluster  IP          */     tcp   dpt:53
+KUBE-SVC-JD5MR3NA4I4DYORP  tcp            --   0.0.0.0/0    10.96.0.10     /*  kube-system/kube-dns:metrics  cluster  IP          */     tcp   dpt:9153
+KUBE-SVC-2KHWPRMFJERXUJE3  tcp            --   0.0.0.0/0    10.96.211.144  /*  default/db                    cluster  IP          */     tcp   dpt:80
+KUBE-NODEPORTS             all            --   0.0.0.0/0    0.0.0.0/0      /*  kubernetes                    service  nodeports;  NOTE:  this  must      be  the  last  rule  in  this  chain  */  ADDRTYPE  match  dst-type  LOCAL
+
+root@kube-master:~# iptables -t nat -L KUBE-SVC-2KHWPRMFJERXUJE3 -n | column -t
+Chain                      KUBE-SVC-2KHWPRMFJERXUJE3  (1   references)
+target                     prot                       opt  source       destination
+KUBE-SEP-ZGAQQPOCAZEM6UJD  all                        --   0.0.0.0/0    0.0.0.0/0    /*  default/db  ->  172.16.233.208:80  */  statistic  mode  random  probability  0.50000000000
+KUBE-SEP-YX2SQU7AU4OLLO6U  all                        --   0.0.0.0/0    0.0.0.0/0    /*  default/db  ->  172.16.9.81:80     */
+
+
+Flow
+traffice => NetworkLayer => Iptables => pod
+
+Q) difference between calco and kube-proxy?
+  https://kodekloud.com/community/t/difference-between-kube-proxy-and-calico/377023
+  
+Note: Service ip will talk to pod based on the label.
+
+
+
+

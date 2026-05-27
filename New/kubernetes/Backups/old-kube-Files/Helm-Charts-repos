@@ -1,0 +1,98 @@
+root@kube-master:~# helm repo add bitnami https://charts.bitnami.com/bitnami
+"bitnami" has been added to your repositories
+root@kube-master:~# helm search repo bitnami
+
+root@kube-master:~# helm install apache bitnami/apache
+NAME: apache
+LAST DEPLOYED: Wed Mar 27 10:57:47 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+CHART NAME: apache
+CHART VERSION: 11.0.0
+APP VERSION: 2.4.58
+
+** Please be patient while the chart is being deployed **
+
+1. Get the Apache URL by running:
+
+** Please ensure an external IP is associated to the apache service before proceeding **
+** Watch the status using: kubectl get svc --namespace default -w apache **
+
+  export SERVICE_IP=$(kubectl get svc --namespace default apache --template "{{ range (index .status.loadBalancer.ingress 0) }}{{ . }}{{ end }}")
+  echo URL            : http://$SERVICE_IP/
+
+
+WARNING: You did not provide a custom web application. Apache will be deployed with a default page. Check the README section "Deploying your custom web application" in https://github.com/bitnami/charts/blob/main/bitnami/apache/README.md#deploying-a-custom-web-application.
+
+
+
+WARNING: There are "resources" sections in the chart not set. Using "resourcesPreset" is not recommended for production. For production installations, please set the following values according to your workload needs:
+  - resources
++info https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+
+
+Customized deployment
+=====================
+First method1
+
+root@kube-master:~# ls -l .cache/helm/repository/                             <<< where it pull all the charts
+total 13060
+-rw-r--r-- 1 root root    41137 Mar 27 10:57 apache-11.0.0.tgz
+-rw-r--r-- 1 root root     1277 Mar 27 10:56 bitnami-charts.txt
+-rw-r--r-- 1 root root 13089096 Mar 27 10:56 bitnami-index.yaml
+-rw-r--r-- 1 root root    76273 Mar 23 13:15 prometheus-25.17.0.tgz
+-rw-r--r-- 1 root root    76459 Mar 27 10:32 prometheus-25.18.0.tgz
+-rw-r--r-- 1 root root    77316 Mar 23 13:11 rook-ceph-v1.13.7.tgz
+
+
+root@kube-master:~/apache# rm -rf Chart.lock README.md files values.schema.json charts  <<< remove extra fieles
+root@kube-master:~/apache# ls -l
+total 48
+-rw-r--r-- 1 root root  1035 Mar 18 15:41 Chart.yaml
+drwxr-xr-x 2 root root  4096 Mar 27 11:11 templates     << manadatory folder
+-rw-r--r-- 1 root root 33709 Mar 18 15:41 values.yaml
+
+
+update values.yaml
+
+replicaCount : 4
+
+root@kube-master:~/apache# helm install apache bitnami/apache -f values.yaml           <<< do deploy again
+
+root@kube-master:~/apache# kubectl get pod
+NAME                      READY   STATUS     RESTARTS   AGE
+apache-6889ffc898-7j6lz   0/1     Init:0/1   0          21s
+apache-6889ffc898-8mfsw   0/1     Init:0/1   0          21s
+apache-6889ffc898-s8vg7   0/1     Running    0          21s
+apache-6889ffc898-z96rk   0/1     Init:0/1   0          21s
+
+Now second maethod
+===================
+root@kube-master:~/apache# vim values.yaml
+replicaCount : 4
+
+root@kube-master:~/apache# helm upgrade apache bitnami/apache -f values.yaml
+
+root@kube-master:~/apache# kubectl get pod
+NAME                      READY   STATUS    RESTARTS   AGE
+apache-6889ffc898-7j6lz   1/1     Running   0          2m12s
+apache-6889ffc898-s8vg7   1/1     Running   0          2m12s
+
+update LoadBalancer to NodePort
+===============================
+root@kube-master:~/apache# vim values.yaml
+   type: NodePort     <<< line no : 454
+
+
+
+
+
+
+
+
+
+
+

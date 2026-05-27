@@ -1,0 +1,71 @@
+Here are real, production-grade examples of CRDs used widely in companies.
+
+1.Cert-Manager CRDs (TLS Certificates Automation)
+  Used in almost every production cluster.
+  CRDs:
+    * Certificate
+    * Issuer
+    * ClusterIssuer
+    * CertificateRequest
+
+    Purpose:
+    Automatically request and renew TLS certificates (Let's Encrypt, Vault, CA, etc.)
+
+2. Prometheus Operator CRDs (Monitoring)
+   Used in Kubernetes monitoring setups in enterprises.
+   CRDs:
+    * Prometheus
+    * Alertmanager
+    * ServiceMonitor
+    * PodMonitor
+    * PrometheusRule
+
+    Purpose:
+    Monitor apps without modifying Prometheus configuration manually.
+
+3. ArgoCD CRDs (GitOps Automation)
+   CRDs:
+    * Application
+    * AppProject
+
+    Purpose:
+    Deploy applications automatically from Git to cluster.
+
+4. Velero CRDs (Backup & Restore)
+    CRDs:
+    * Backup
+    * Restore
+    * Schedule
+    * BackupStorageLocation
+    * VolumeSnapshotLocation
+
+5. Istio CRDs (Service Mesh)
+    CRDs:
+    * VirtualService
+    * DestinationRule
+    * Gateway
+    * PeerAuthentication
+
+
+
+
+2. Prometheus Operator CRDs (Monitoring)
+
+    Why these CRDs are used in production?
+    CRD	What production problem it solves
+    ServiceMonitor :    Automatically scrape new services when deployed 
+    PodMonitor	   :    Scrape pods without needing a Service
+    Prometheus	   :    Manage, scale, version, and configure Prometheus
+    Alertmanager   :	Manage Alertmanager clusters cleanly
+    PrometheusRule :	Clean, modular alert rules
+
+
+ServiceMonitor Flow
+Steps:
+    1. Deploy app
+    2. Expose Service
+    3. Create ServiceMonitor
+    3. Prometheus Operator discovers it automaticall
+
+
+

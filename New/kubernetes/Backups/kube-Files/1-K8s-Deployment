@@ -1,0 +1,300 @@
+---
+Replication controller:
+
+ - Replication controller like rc or rs not replicate data between pods. it only maintain containers state.
+    1. It maintain pod state.
+	   2. High Avaliable
+	   3. Scalability
+
+ 1. RC (ReplicationController) (Not Recommended)
+       => RC is the first controller introcued in k8s.
+       => ensures that a specific number of replicas of a pod are running at all times.
+       => If Pods exit or are deleted. it will create new replica.
+       => Provide pod replication, reliability, LoadBalancing and scalability.
+       => RC create by only file method.
+
+ 2. RS (ReplicaSet) :
+       => Next-generation Replication Controller.
+       => A ReplicaSet (RS) in Kubernetes ensures that a specific number of identical pod replicas are running at all times. 
+       => If a pod crashes or is deleted, the ReplicaSet automatically replaces it.
+
+
+   RS vs RC
+      => ReplicaSet supports set-based selector, while replication controller only supports equality-based selector.
+      => RC is supporting more deployment (rolling-update) strategies.
+      => RS create by only file method.
+
+ 3. Deployment (Recommended)
+      =>
+
+2️⃣ ReplicaSet vs Deployment
+Feature	     | ReplicaSet	                                             | Deployment
+Purpose      |	Maintains a fixed number of pod replicas	                | Manages rolling updates, rollbacks, and scaling
+Updates	     | Requires manual update	                                 | Supports rolling updates & rollbacks
+Best         | Use Case	When you only need replication without updates	| When you need rolling updates and version control
+Recommended?	| ❌ No (Deployments are preferred)	                      | ✅ Yes (Use Deployment instead)
+
+📌 Deployments internally use ReplicaSets, so using Deployments is the best practice!
+
+--- Example ---
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-replicaset
+spec:
+  replicas: 3  # Ensures 3 pods are always running
+  selector:
+    matchLabels:
+      app: my-app  # Matches pods with this label
+  template:
+    metadata:
+      labels:
+        app: my-app  # This must match the selector
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+---
+📌 Explanation:
+
+ - replicas: 3 → Ensures 3 pods are running at all times.
+ - selector.matchLabels.app: my-app → Selects pods labeled app: my-app.
+ - template → Defines how the pod should be created if needed.
+
+5️⃣ When Should You Use ReplicaSets?
+✅ When you need basic pod replication without updates.
+✅ When using a custom controller that requires ReplicaSet.
+✅ When managing pods without using Deployments (not recommended).
+
+🚀 However, in most cases, you should use Deployments instead of ReplicaSets!
+
+
+--- 
+Pod Selector :
+--------------
+ - A Pod Selector is a key concept in Kubernetes used to identify and manage groups of pods based on labels. 
+ - It is commonly used in Deployments, Services, Network Policies, Horizontal Pod Autoscalers (HPA), and other controllers to select specific pods dynamically.
+
+How Pod Selector Works?
+-----------------------
+
+A selector matches pods using labels.
+ - Labels are key-value pairs attached to Kubernetes objects (e.g., pods, deployments).
+ - Selectors use these labels to filter and operate on specific pods.
+
+When is Pod Selector Required?
+------------------------------
+✅ Required in:
+
+ - Deployments, ReplicaSets, StatefulSets, DaemonSets
+ - Services (to find target pods)
+ - Network Policies (to apply security rules)
+
+❌ Not required in:
+ - Jobs & CronJobs (since they create short-lived pods that don’t need selectors)
+
+
+# kubectl label pod rc-containers-qqlr8 app=nginx --overwrite
+# kubectl get pod -l app=nginx
+
+
+Types of Pod Scaling in Kubernetes
+==================================
+
+There are three main types of pod scaling:
+
+1️⃣ Manual Scaling – Scale up/down pods manually.
+2️⃣ Horizontal Scaling (HPA - Horizontal Pod Autoscaler) – Adjust the number of pods based on CPU/memory usage or custom metrics.
+3️⃣ Vertical Scaling (VPA - Vertical Pod Autoscaler) – Adjust CPU/memory resources of individual pods dynamically.
+
+
+Note: Two type of scalling in pod
+ 1) Horizental  ( all we have done this is horizenal scalling)
+ 2) Vertical    ( increase cpu, memeory this is call vertical scalling)
+
+
+Topic : Label and selector? (we use lables to identify the pods)
+=================================================================
+pratical-1
+==========
+root@kube-master:~# cat con1.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+     env: prod                <<== define multiple lables
+     tier: frontend
+     team: security2
+  name: con2
+spec:
+  containers:
+  - image: docker.io/nginx
+    name: con1
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+root@kube-master:~# kubectl get pod --show-labels               <<< show lables
+NAME   READY   STATUS    RESTARTS   AGE    LABELS
+con1   1/1     Running   0          109s   env=qa,team=security,tier=backend
+con2   1/1     Running   0          56s    env=prod,team=security2,tier=frontend
+
+root@kube-master:~# kubectl get pod -l env=qa                    <<< To check specific pod by label
+
+root@kube-master:~# kubectl get pod -l env!=qa                   <<< not equal to qa
+root@kube-master:~# kubectl delete pod -l color=green            <<< delete pod
+
+root@kube-master:~# kubectl label pod con1 color=red             <<< set label in run time
+root@kube-master:~# kubectl run app --image=nginx -l color=sky   <<< set label during creation time
+
+root@kube-master:~# kubectl label node kube-node1 color=redhat
+root@kube-master:~# kubectl get nodes -l color=redhat
+
+Q) Label it option or mendataty ?
+==================================
+  Ans : => For single port it is not necessary, but for deployment it is required.
+        => RC/RS/Deployment monitor the pod or match the label value on the bases of selector value
+
+Topic : labels in rc file
+=========================
+
+root@kube-master:~# kubectl get rc --show-labels
+NAME    DESIRED   CURRENT   READY   AGE   LABELS
+nginx   2         2         2       32s   env=qa,tier=backend
+
+   Note: Now, we have two label to rc file
+
+root@kube-master:~# cat rc.yml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: nginx
+  labels:                     <<<< This lable for rc
+      env: qa
+      tier: backend
+spec:
+  replicas: 2
+  selector:
+    app: nginx                <<<< selector
+  template:
+    metadata:
+      name: nginx
+      labels:                 <<<< this label for containers which is created under rc.
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+
+
+Now what is selecter in rc
+============================
+root@kube-master:~# kubectl run ram --image=nginx -l app=nginx
+root@kube-master:~# kubectl describe pod ram| grep -i controller
+Controlled By:  ReplicationController/nginx                    <<<<< adept by rc
+
+RC match the label value on the bases of selector value
+
+Note: if the selector and lable value different, then yaml file will not work. because parent and children are different
+
+
+root@kube-master:~# cat rc.yml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: nginx
+  labels:
+      env: qa
+      tier: backend
+      app: staging       <<< rc label and it could be different from selecter or pod labels.
+spec:
+  replicas: 3
+  selector:
+    app: ram             <<< selector
+  template:
+    metadata:
+      name: nginx
+      labels:
+        app: nginx       <<< containers labels
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+
+Note: If I remove the selector from the yaml file, it will still work, becase selecter is not compalsery on yml file
+=> in that case label automatically become selecter.
+
+
+Q) what happend if I not mention selector in file (in 35:00 min)
+=================================================================
+24-12-2022
+RS: Replica set: (new pod controller in marker) (RC is not use to much in these days)
+
+Problem with ReplicaSet
+=======================
+1. During version upgradation, RS delete and create all the pods in one go. (application will not accessible till new pods are running) (give downtime)
+
+2. No rollback.
+
+Benefit with Deployment
+	1. Deployment use rolling update strategy (delete and create pods one by one) (means application will always avalible to user). No downtime.
+	2. provide rollback.
+=================================================================================================================================
+
+root@kube-master:~# cat rs-set.yml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  # modify replicas according to your case
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: docker.io/nginx
+
+root@kube-master:~# kubectl create -f rs-set.yml
+
+root@kube-master:~# kubectl describe pod frontend-7pqlz | grep -i controll
+Controlled By:  ReplicaSet/frontend                           <<<<<
+
+root@kube-master:~# kubectl delete pod frontend-clz98   <<< if you delete pod it will create automatically.
+root@kube-master:~# kubectl scale --replicas=2 rs frontend
+
+Deployment Controller :
+=======================
+# kubectl create deployment dep1 --image=nginx --replicas=2
+# kubectl describe pod dep1-6cb9f9b75c-csq5s  | grep Controlled
+Controlled By:  ReplicaSet/dep1-6cb9f9b75c
+
+
+RC VS RS
+========
+
+RC : work on eqaliity based selecter
+RS : RC + Set based selector
+
+
+
+
+
+
+

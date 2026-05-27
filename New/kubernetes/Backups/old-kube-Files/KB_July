@@ -1,0 +1,160 @@
+Intro of kubernetes
+===================
+=> open-source orchestration and centrolized management tools for containers. (it's give the instruction to components to work together).
+=> Kubernetes was created by Google based on their experience from containers in production.
+=> you can upgrade, manager, configure, scaling of containers from central location.
+=> provide HA and scaling on demand.
+=> you should know docker before start k8s.
+
+Q) what is docker container and why you should use them?
+=> it helps system admin to deploy developer application on production, because every it on packaged on container.
+
+Virtual Machines
+================
+=> we can run application on vms as running on containers, but VMs need a lot of resources like momery, cpu, space.
+
+Using Docker containers
+=======================
+=> Docker utilizes the namespace feature of Linux kernel wherein the namespaces will make the processes that are running within one container are invisible for processors, or users running within another container
+=> With docker, developers would now package their application, dependent libraries, framework in a container to the testers or operation engineer.
+
+Virtual machines vs docker
+==========================
+=> VM requires an hypervisor which can be either installed on an OS or directly on the hardware. where a container can be deployed after installing docker.
+=> VM works like a seperate OS to deploy application, while docker containers share the host OS and that is why they are lightweight.
+=> boot-up time is very less as compare to VMs.
+
+Q) What is kubernetes and why you should use them?
+
+Fetaures
+Advantages
+Dis-Advantages.
+
+K8s Arch
+========
+=> k8s has master and client(worker) archtecture.
+=> Master is responsible for the actual orchestration of containers on the worker nodes. it's container all the information about cluster nodes, monitor each nodes and if a worker nodes
+   fails then it will move the workload from the failed node to another worker node.
+=> A node is a worker machine which can be physical and virtual on which K8s installed.
+=> Kubernetes does not deploy containers directly into the worker nodes, the containers are encapsulated into a Kubernetes object known as Pods
+=> A pod is a single instance of an application and they are the smallest deployable units of computing that you can create and manage in Kubernetes.
+=> You will deploy containers inside these pods where you will deploy your application
+
+
+There are three main components in the Kubernetes Cluster
+1) Master.
+2) Nodes
+3) Pods.
+
+
+Kubernetes Components (master)
+1) API Server
+2) etcd key store.
+3) Scheduller
+4) controller
+
+1) kubelet (worker)
+2) kube-proxy
+
+K8s installtion
+=> If you are using physical (bare-metal) servers or virtual machines (VMs), Kubeadm is a good fit.
+=> If you want to drop the burden of managing the Kubernetes control plane, almost all cloud providers have their Kubernetes managed services such as.
+   1) Google Kubernetes Engine (GKE)
+   2) Amazon Elastic Kubernetes Service (EKS)
+   3) Azure Kubernetes Service (AKS)
+   4) IBM Kubernetes Service (IKS).
+
+=> If you just want a playground to study Kubernetes , Minikube and Kind can help you spin up a Kubernetes cluster in minutes.
+
+Q) why it is mandatory to disable swap memory for kubelet.
+
+(master)
+Port range    Purpose
+6443	      These ports are used for Kubernetes API access.
+2379-2380     These ports are used for etcd server client API.
+10250	      This port is used for Kubelet API
+10251	      This port is used for kube-scheduler
+10252	      This port is used for kube-controller-manager
+
+(worker)
+Port range	Purpose
+10250	        This port is used for Kubelet API
+30000-32767	NodePort Services
+
+Install Kubernetes components
+=============================
+You will install these packages on all of your machines:
+=> kubeadm: the command to bootstrap the cluster.
+=> kubelet: the component that runs on all of the machines in your cluster and does things like starting pods and containers.
+=> kubectl: the command line util to talk to your cluster.
+
+Install Pod network add-on plugin 
+=================================
+You must deploy a Container Network Interface (CNI) based Pod network add-on so that your Pods can communicate with each other. 
+Cluster DNS (CoreDNS) will not start up before a network is installed.
+
+
+Namespace
+=> Linux namespace which are used to isolate system processes from each other.
+=> In a similar concept we have namespace in Kubernetes which can provide a scope for objects names.
+=> Kubernetes uses namespaces to organize objects in the cluster.
+=> You can think of each namespace as a folder that holds a set of objects.
+=> Resource limitation through quota can be implemented at a Namespace level also
+=> Use namespaces to separate customer environments within one Kubernetes cluster
+
+Four namespaces are defined when a cluster is created:
+default: this is where all the Kubernetes resources are created by default
+kube-node-lease: an administrative namespace where node lease information is stored - may be empty and/or non-existing
+kube-public: a namespace that is world-readable. Generic information can be stored here but it's often empty
+kube-system: contains all infrastructure pods
+
+Q) Why do we need namespaces?
+=> Using multiple namespaces allows you to split complex systems with numerous components into smaller distinct groups.
+=> This is useful in scenarios wherein you want to split and limit resources across different resources. 
+=> Resource names only need to be unique within a namespace and Two different namespaces can contain resources of the same name.
+
+Pods: A pod is the smallest unit that exists in Kubernetes. 
+====
+There are two approaches to create different kind of objects in Kubernetes Declarative and Imperative.
+=> The recommended way to work with kubectl is declarative way , by writing your manifest files and applying kubectl {apply|create} -f manufest.yml
+=> With YAML file you have more control over the different properties you can add to your container compared to imperative method
+
+=> With imperative you can just use kubectl command line to create different objects
+
+=> instead of deploying containers individually, you always deploy and operate on a pod of containers.
+=> We’re not implying that a pod always includes more than one container, it’s common for pods to contain only a single container.
+=> The key thing about pods is that when a pod does contain multiple containers, all of them are always run on a single worker node and it never spans multiple worker nodes
+
+Understanding the sidecar scenario
+==================================
+=> A sidecar container is providing additional functionality to the main container.
+=> The essence is that the main container and the sidecar container have access to shared resources to exchange information.
+=> Often, shared volumes are used for this purpose.
+
+Kubernetes RollingUpdate
+========================
+
+
+Label and selector
+==================
+Lables : 
+=> Labels are key-value pairs which are attached to pods, replication controller and services. 
+=> They are used as identifying attributes for objects such as pods and replication controller. 
+=> They can be added to an object at creation time and can be added or modified at the run time.
+
+Selectors:
+=> Labels do not provide uniqueness. In general, we can say many objects can carry the same labels.
+=> Selectors are used by the users to select a set of objects. The label selector is the core grouping primitive in Kubernetes. 
+=> Kubernetes API supports two types of selectors.
+  a) Equality-based selectors : This allows filtering by key and value, where matching objects should satisfy all the specified labels.
+  b) Set-based selectors : This allows filtering keys according to a set of values.
+
+
+ 
+
+
+
+
+
+
+

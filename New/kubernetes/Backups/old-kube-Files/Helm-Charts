@@ -1,0 +1,196 @@
+https://jhooq.com/getting-start-with-helm-chart/
+
+ Chapter-1 :- What is helm charts?
+ Chapter-2 :- First "Hello World" Helm charts
+ Chapter-3 :- Helm CLI command
+ Chapter-4 :- Python REST API App using Helm Chart
+ Chapter-5 :- Hemlfile
+ Chapter-6 :- Helm Repo
+ Chapter-7 :- Helm Hooks & Test
+
+Note: 
+ => Helm is a package manager for Kubernetes that configures and deploys applications and services on a Kubernetes cluster.
+ => It uses Helm charts to simplify the development and deployment process.
+ => Most Kubernetes deployments require multiple YAML files to configure the necessary resources. Helm charts package all the deployment information into a single chart to simplify the deployment.
+ => In short, helm reduce the installation time, upgradation time, deletation time in k8s to make easiler life of end-user.
+ => its a third party utility, it is not native product of k8s.
+
+ Helm : it is a kubernetes manifests package manager. like yum in linux which install depelopment automatically
+
+ Helm repo  : It just a folder which contain helm chart.
+ 	1) Internet based
+ 	2) Infra based
+
+ repository : it is collections of helm chart.
+
+
+ Helm chart : Its is a collections of required  manifests to deploy applications.
+    charts are two types
+    1) Community Based
+    2) Custom
+
+
+
+
+
+
+
+root@kube-master:~# helm repo list
+
+Video => 20:00 mis completed
+
+==========================
+ Chapter-1 
+ 1. What is helm charts? 	
+ 2. Why we need kubernetes?
+ 3. How Helm Chart will help us to manage K8s?
+ 4. How to install Helm Charts?
+    
+    # Install heml charts
+    root@kube-master:~# tar xvf helm-v3.13.3-linux-amd64.tar.gz
+    root@kube-master:~# cd linux-amd64/
+    root@kube-master:~/linux-amd64# cp helm /usr/bin/
+    root@kube-master:~# helm  version
+	version.BuildInfo{Version:"v3.13.3", GitCommit:"c8b948945e52abba22ff885446a1486cb5fd3474", GitTreeState:"clean", GoVersion:"go1.20.11"}
+
+Chapter-2
+ 1. Helm Chart Architecture?
+ 2. Helm Chart CLI?
+ 3. First "Hello World" Helm Chart
+
+root@kube-master:~# helm create helloworld
+Creating helloworld
+
+root@kube-master:~# tree helloworld/
+helloworld/
+├── charts
+├── Chart.yaml
+├── templates
+│   ├── deployment.yaml
+│   ├── _helpers.tpl
+│   ├── hpa.yaml
+│   ├── ingress.yaml
+│   ├── NOTES.txt
+│   ├── serviceaccount.yaml
+│   ├── service.yaml
+│   └── tests
+│       └── test-connection.yaml
+└── values.yaml
+
+3 directories, 10 files
+
+	Note : you can put any name like below.	
+
+root@kube-master:~# helm create manish
+
+
+https://jhooq.com/getting-start-with-helm-chart/  << more details
+
+root@kube-master:~# vim  helloworld/values.yaml
+service:
+  type: NodePort
+  port: 80
+
+wq!
+
+root@kube-master:~# helm install demo helloworld
+NAME: demo
+LAST DEPLOYED: Mon Jan  1 21:31:19 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get the application URL by running these commands:
+  export NODE_PORT=$(kubectl get --namespace default -o jsonpath="{.spec.ports[0].nodePort}" services demo-helloworld)
+  export NODE_IP=$(kubectl get nodes --namespace default -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+
+
+root@kube-master:~# kubectl get service
+NAME              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+demo-helloworld   NodePort    10.111.139.140   <none>        80:31117/TCP   18s
+kubernetes        ClusterIP   10.96.0.1        <none>        443/TCP        6d6h
+
+root@kube-master:~# curl localhost:31117
+
+root@kube-master:~# helm list
+NAME	NAMESPACE	REVISION	UPDATED                                	STATUS  	CHART           	APP VERSION
+demo	default  	1       	2024-01-01 21:31:19.833883928 +0530 IST	deployed	helloworld-0.1.0	1.16.0 
+
+root@kube-master:~# helm uninstall demo
+release "demo" uninstalled
+
+
+ Chapter-3 :- Helm CLI command
+ =============================
+
+ 1. helm create
+ 2. helm install
+ 3. helm upgrade
+ 4. helm rollback
+ 5. helm -debug --dry-run
+ 6. helm template
+ 7. helm lint
+ 8. helm uninstall
+
+
+
+helm upgrade
+============
+just update values.yaml and increase replicas
+
+root@kube-master:~# helm upgrade dep1 demo
+
+helm rollback
+root@kube-master:~# kubectl get pod
+NAME                         READY   STATUS    RESTARTS   AGE
+dep1-demo-7944cfd785-9krvk   1/1     Running   0          3m35s
+dep1-demo-7944cfd785-dql7l   1/1     Running   0          4s
+dep1-demo-7944cfd785-f597v   1/1     Running   0          4s
+dep1-demo-7944cfd785-tm4f6   1/1     Running   0          3m35s
+dep1-demo-7944cfd785-w47zl   1/1     Running   0          3m35s
+dep1-demo-7944cfd785-whc62   1/1     Running   0          4s
+
+root@kube-master:~# helm list
+NAME	NAMESPACE	REVISION	UPDATED                                	STATUS  	CHART     	APP VERSION
+dep1	default  	2       	2024-01-01 21:43:00.352191268 +0530 IST	deployed	demo-0.1.0	1.16.0     
+
+root@kube-master:~# helm rollback dep1 1
+Rollback was a success! Happy Helming!
+
+root@kube-master:~# helm list
+NAME	NAMESPACE	REVISION	UPDATED                                	STATUS  	CHART     	APP VERSION
+dep1	default  	3       	2024-01-01 21:45:04.008078778 +0530 IST	deployed	demo-0.1.0	1.16.0     
+
+root@kube-master:~# kubectl get pod
+NAME                         READY   STATUS    RESTARTS   AGE
+dep1-demo-7944cfd785-9krvk   1/1     Running   0          5m57s
+dep1-demo-7944cfd785-tm4f6   1/1     Running   0          5m57s
+dep1-demo-7944cfd785-w47zl   1/1     Running   0          5m57s
+
+
+root@kube-master:~# helm create demo
+Creating demo
+root@kube-master:~# helm install dep1 --debug --dry-run demo    <<== dry run
+
+root@kube-master:~# helm template demo    <<== generate the yml of demo template.
+
+
+root@kube-master:~# helm lint demo        <<== helm lint >> to fine any error or mis-configration.
+==> Linting demo
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+
+root@kube-master:~# helm uninstall dep1   <<= to remove chart
+
+
+Chapter-4 (create your own custome chart)
+	1. Python Application with REST API
+	2. Create Docker container.
+	3. Push Docker image to docker repository
+	4. create HelmChart for python REST API app
+	5. Install the Helm chart
+	6. Verify the Helm Chart after Installation.
+
+

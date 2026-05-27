@@ -1,0 +1,67 @@
+Interview Question:
+===================
+IQ) What are the services running on master node and worker node.
+IQ) why any service is not scheduled on master node?
+IQ) difference between local and hostpath?
+IQ) what backend volume you are using for pv?
+IQ) How scheduler deceide which node is healthy?
+   => Its depends on four things.
+        1. CPU pressure
+        2. Memory pressure
+        3. Numbers of containers
+        4. how many ports are avaliable on node that time.    You can check this via ==> # kubectl describe node kube-node1"
+IQ) Why we set three master node?    => the number should always odd.
+IQ) How many master node we can setup?
+IQ) How many pod controller in K8s?
+    1) RC => Replication controller
+    2) RS => ReplicaSet
+    3) Deployment
+IQ) What is Label and selector and is it manadatory to run pod? 
+IQ) Why RS came on the picture?
+IQ) What is stateless and statefull deployment ?
+IQ) if pod are showing pending stage what is the resion?
+    There are lots of reason, but may be the node are not present which you have define to run pod. (Pod scheduling failed)
+IQ) Can we deploy your application if scheduler not work or present?
+    Yes, we can. if that case only nodename based schduling works. reset scheduling methods are requrired (medantaty) for pod scheduling.
+    
+IQ) What is Nodegroup?
+        it just a grouping of nodes where you want to run application.
+IQ) What is the purpose of Node label and NodeSelector?
+IQ) what is annotation?
+IQ) What is static pod in kubenetes?
+IQ) Which one we need to create first. pv or pvc?
+IQ) What are pv stages are:
+
+Tasks:
+IQ) How to integrate ceph with kubernetes?
+IQ) How pvc pick pv with any name or what is default factor to choose pv?
+IQ) How to install CSI plugin?
+
+Important
+=========
+=> Namespace is like simple project or logical boundary to provide isolate envirnomemt to users. User cannot see containers of different users as they are seperated to each other.
+    1. default Namespace : is like public space, anyone can see your pods. 
+    2. kube-system Namespace : Store control plane components space.
+    3. kube-public : when you want to file public or avalible for everyone.
+    4. kube-node-lease :
+    
+
+=> Scheduler cannot control kube-apiserver,kube-scheduler, etcd,controller. these four services or components are hardcoded on the master node. and never moved on worker node. 
+=> Scheduler is not required if we scheduled pod manually.
+=> pod controller like rc or rs not replicate data between pods. it only maintain containers state.
+=> Two type of scalling in k8s.
+        1) Horizental : all we have done this is horizenal scalling
+        2) Vertical : Increase cpu, memeory this is call vertical scalling.
+=> run:<container name> label bydefaul created when you create new pod and if you not define any label.
+=> RC match the label value on the bases of selector value.
+=> rc and rs not provide live rollout and rollback that why deployment conteroller come in pitcure.
+=> If your application is not compatible with new version in that case kubernetes will not terminate containers after 25%. it will only deploy new containers once 25% is successfull
+
+
+===========================================
+Q) Difference between deploying applications on hosts and containers?
+Q) What are the features of Kubernetes?
+Q) Main components of Kubernetes architecture?
+Q) Explain the working of the master node in Kubernetes?
+Q) What is Statefulset vs Stateless Architecture?
+

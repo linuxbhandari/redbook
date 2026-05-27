@@ -1,0 +1,79 @@
+K8s resource and compute Quota?
+
+Q) How many nodes should be in k8s cluster and how much cpu and memory on there? How you can calculate this?
+ans : for that first need to ask application teams like how many micro services you will deplpy in application and how many replicas you need.
+      and each replica need like 5 GB ram or cpu etc.
+	  
+	  
+	  memory: 256 GB
+	  cpu : 128 cpu
+	  
+	  Quota type:
+	  1) compute quota: cpu/memory when you want to limit cpu/memory on containers.
+	  2) resource/objective quota: pod/deplpyment/rc/rs 
+	  
+	      use case: multiple team work on their projcect on pods and after completed his project they forge to delete pods or objects. 
+		             I mean they wasting resources and increase etcd data storage and maybe also impact etcd performance or query latency because of heavy data.
+					 
+					( generally it use in market prospestive to charge from customer as per usage)
+					
+	      Note: resource quota only apply on namespace.
+		  
+sroot@k8s:~# kubectl create ns mono
+namespace/mono created
+root@k8s:~# kubectl create quota test --hard=pods=10 -n mono 
+resourcequota/test created
+root@k8s:~# kubectl describe quota test -n mono
+Name:       test
+Namespace:  mono
+Resource    Used  Hard
+--------    ----  ----
+pods        0     10
+
+	
+	  Two way (scope) of compute quota
+	  1) Deployment scope
+	     where you mention pods can use like 2gb memory on this deployment.
+		   1) soft quota (actual used)
+		   2) hard quota (reserved value)
+		   
+		   alway metion in
+		   Mi and Gi
+		   
+		   CPU
+		   1 vcpu = 1000m
+		   
+		   (I will do later)
+		 
+		Q) what will happen if all resource full on node?
+			ans : in that case we will do scalling.
+				scalling have two types
+				1) horizental
+				2) vertical
+				
+			we have two ans on this	
+			ans 1) you can scale pods to distribute traffice.(horizental scalling)
+			    2) you can redeploy deployment with more pod resources like cpu, memroy.
+				
+			we can do add new workers nodes, but only when all resources has been finished.
+			
+			Note: we need downtime only on vertical scalling
+			
+			
+root@k8s:~# kubectl create quota cka --hard=cpu=100m,memory=200Mi (only admin we do this)
+resourcequota/cka created
+root@k8s:~# kubectl describe quota cka
+Name:       cka
+Namespace:  default
+Resource    Used  Hard
+--------    ----  ----
+cpu         0     100m
+memory      0     200Mi
+
+
+	  2) Namespace scope
+		 where you mention like 15 gb to this namespace.
+		 now it depend on him how team will use it from this 15 gb.
+		 
+		 
+		 

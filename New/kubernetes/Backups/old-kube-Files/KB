@@ -1,0 +1,142 @@
+Topics
+
+=> Application deployment
+=> Introduction
+=> pod scheduling
+=> Resource and compute
+=> networking
+=> volume
+=> security
+=> Monitoring
+
+==========================
+
+=> deployment and rollout and rollback
+=> file-method
+=> rc vs rs
+=> Nodename scheduling
+=> Node label and selector
+=> Taint and Toleration
+=> Affinoty and anti affinity
+=> volume, pv pvc
+=> Networking
+=> resource Quota
+
+Day1
+Introduction
+=============
+Kubernetes:
+1) it is an open-source orchestration and management tools for containers.
+
+	(Note: orchestration tools means centralize management.)
+
+IMQ) Before orchestration tool what was the challenges in containers.
+1) no centralize management.
+2) No clustering/fail-over
+3) Auto scalability
+
+Advantages :-
+==========
+1) Centralized management for container Host: 
+      a) now we are able to manage all docker machines/container host from single site/node)
+      b) we can create/delete/upgrade containers.
+                                      
+2) HighAvailability 
+We have two mode to run containers.
+   a) standalone. ( no clustering/no fail-over)
+   b) cluster mode.( more then two system work together, containers can migrate to other machines in fail-over)
+
+Cluster Arch:
+     a) if any docker machine goes down. all workload will be fail-over on another docker machine.
+     b) it maintain your containers/node state as well. ( if any single container has problem, then KB8 try to recover it or create new one and also can migrate on another docker host.
+
+3) scalability: increase/add the container to diatribe for existing running application.
+   scalability are two types
+   a) manually : 
+   b) automatically :
+ 
+   scalability are two type:
+   a) vertical (extend the resource like CPU, ram on existing running containers.) 
+   b) horizontal scaling ( add new containers in pool)
+
+4) rollout(means upgrade version) and rollback(downgrade version/in previous version without downtime) application.( in zero time we can upgrade appllication)
+
+==============================================
+Kubernetes arch-:
+
+Kubernetes cluster: 
+  a) Set of docker machines which are working together and managed by Kubernetes server it call one cluster.
+  They may be
+  1) physical:
+  2) virtualization 
+        1) kvm/vmware Microsoft
+        2) Cloud based
+
+1) Kubernetes master nodes:
+    => it an separate server which provide all management command for containers.
+    => from this machines we can manage all containers host.
+
+	Note: four services which away run on master node:
+
+2) worker node: => the server/machine there we are creating container using Kubernetes/orchestration node.
+                => the machine there we are running out application inside the containers.
+                => the machines which managed by Kubernetes server.
+
+Kubernetes master services:-
+===========================
+1) kube-api: 1) Any command which execute by administrator it goes to api first. 
+             2) it does validation(authentication and authorization, like check user and what right he has) for any instruction. 
+
+2) kube-etcd:1) it contains complete Kubernetes cluster information.
+             2) it store api related information.
+             3) it is yaml based database. it store data key: value format(yaml format)
+
+3) kube-scheduler:1) decide best worker node(or healthy node) for your application Pods(containers).
+                  
+4) kube-controller:
+          1) it maintain communication with worker node through api.
+          2) it provide api instruction to worker node. (it give handover api command to worker node)
+
+command flow
+
+command=> API => Etcd => scheduler => controller = worker node:
+
+worker node
+1) this is container machine which controller by Kubernetes server.
+2) docker machine has given his management to Kubernetes master.
+
+1) container socket : 
+	both socket developed by docker community based.
+	a) dockerd
+	b) containerd
+	
+	Redhat/IBM
+        c) cri-io
+
+2)  Kubelet: it is Kubernetes Agent which take command from  kube-controller.
+	1) it is agent of kubernetes master which need to run on each worker-node.
+	2) without kubelet kubernetes can not controller your container host.
+	3) it take instruction and executed which given by kube-controller.
+
+User--command--API---etcd--scheduler--controller---- (WorkerNode)--kubelet--containerd/dockerd/cri-io
+
+Note: dockerd now not in use too much
+
+
+3) kube-proxy: it manage your container traffice layer work.
+
+
+
+Kubernetes:
+1) user Managed
+2) cloud Managed
+	a) AWS : EKS ( automatally create kube cluster) everything managed by cloud.
+	b) google: GKE
+	c) Azure: AKS
+
+
+
+  
+
+
+

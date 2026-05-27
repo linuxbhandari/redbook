@@ -1,0 +1,42 @@
+DaemonSets:  It ensure, container should be create on every worker node.
+Example :
+root@kube-master:~/certs# kubectl get pod -A -o wide| grep kube-proxy
+kube-system   kube-proxy-dczcs                           1/1     Running   9 (3h38m ago)    5d19h   192.168.122.110   kube-node2    <none>           <none>
+kube-system   kube-proxy-jj2tt                           1/1     Running   7 (3h38m ago)    5d19h   192.168.122.241   kube-master   <none>           <none>
+kube-system   kube-proxy-t96lz                           1/1     Running   7 (3h38m ago)    5d19h   192.168.122.219   kube-node1    <none>           <none>
+
+    Note: single container running on every container through daemonset.
+          => daemonset created by file method only.
+    uses are:
+    1. running a cluster storage daemon on every node.
+    2. running a logs collection daemon on every node.
+    3. running a node monitoring daemon on every node.
+
+root@kube-master:~/deployments/k8s# kubectl create -f daemonsets.yml
+
+root@kube-master:~/deployments/k8s# kubectl get pod -n kube-system -o wide| grep flu
+fluentd-elasticsearch-8xrbz                1/1     Running   0                67s   172.17.9.78       kube-node1    <none>           <none>
+fluentd-elasticsearch-c95r2                1/1     Running   0                67s   172.17.119.148    kube-node3    <none>           <none>
+fluentd-elasticsearch-nsxsk                1/1     Running   0                67s   172.17.233.203    kube-node2    <none>           <none>
+fluentd-elasticsearch-qf4kl                1/1     Running   0                67s   172.17.221.206    kube-master   <none>           <none>
+
+
+
+
+StateFulSet
+===========
+Two types of applications are:
+   1. Stateless : Active-Active (Front applications like apache, tomcat,)
+                  each replicas can use same volume
+           Note: Deployment/RS/RC are the example of Stateless Controller.
+
+   2. StateFulSet : Active-Passive (DB cluster) Backend applications. MySQL, PosgreSQL.
+                    each replicas has it own volume.
+
+           Note: Controller is StateFulSet
+
+
+
+
+
+
