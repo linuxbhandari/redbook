@@ -1,0 +1,121 @@
+Q) What is Docker?
+	Docker is a containerization platform used to package applications and their dependencies into lightweight containers.
+
+Q) What is a Container?
+	A container is an isolated runtime environment that contains:
+		- application code
+		- libraries
+		- dependencies
+
+	Containers share the host OS kernel.
+
+Q) Difference between VM and Container
+	VM						Container
+	Full OS					Shares host kernel
+	Heavy					Lightweight
+	Slow startup			Fast startup
+	More resource usage		Less resource usage
+
+Q) What is Docker Image?
+	Docker image is a read-only template used to create containers.
+	Example:
+		- nginx image
+		- ubuntu image
+		
+Q) What is Dockerfile?
+	A Dockerfile is a text file containing instructions to build a Docker image.
+
+Q) What is Docker Hub?
+	Docker Hub is a public registry used to store and share Docker images.
+
+Q) What happens when you run docker run?
+	Docker:
+		Pulls image (if missing)
+		Creates container
+		Allocates filesystem/network
+		Starts container process
+
+Q) What is Docker Volume?
+
+Q) What is Docker Registry?
+	A registry stores Docker images.
+	Examples:
+		- Docker Hub
+		- GitHub Container Registry
+		- Red Hat Quay
+Q) What are Docker network types?
+	Network		Purpose
+	bridge		Default container network
+	host		Uses host network
+	none		No networking
+	overlay		Multi-host communication
+
+Q) What is Bridge Network?
+	Default Docker network allowing containers to communicate on same host.
+
+Q) What is Host Network?
+	Container shares host networking directly.
+
+Q) How do containers communicate?
+	Using:
+		- bridge network
+		- container DNS
+		- exposed ports
+
+Q) Difference between COPY and ADD
+
+Q) What is container isolation?
+	Containers use:
+		namespaces
+		cgroups
+	for process and resource isolation.
+
+Q) What are Linux namespaces?
+	Namespaces isolate:
+		- process IDs
+		- network
+		- filesystem
+		- hostname
+
+Q) What are cgroups?
+	Control Groups manage:
+		- CPU
+		- memory
+		- resource limits
+
+Q) Difference between Docker and Kubernetes
+Q) What is Docker Compose?
+	Docker Compose is used to manage multi-container applications using YAML.
+
+Q) How do you troubleshoot container networking?
+	docker network ls
+	docker inspect
+	docker logs
+
+Q) What is overlay network?
+	Overlay network enables communication between containers across multiple Docker hosts.
+
+Q) Explain Docker Architecture
+	Components:
+		- Docker Client
+		- Docker Daemon
+		- Docker Images
+		- Docker Containers
+		- Docker Registry
+
+Q) Explain this Dockerfile
+
+FROM nginx:latest
+COPY index.html /usr/share/nginx/html/index.html
+EXPOSE 80
+RUN apt update & apt install vim & touch /tmp/manish
+CMD ["nginx", "-g", "daemon off;"]
+
+
+
+	Explanation:
+	FROM → base image
+	COPY → copy file
+	EXPOSE → open port
+	CMD → start nginx
+	
