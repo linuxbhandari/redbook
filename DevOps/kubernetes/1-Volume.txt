@@ -96,8 +96,7 @@ spec:
 			Kubernetes automatically creates PV using StorageClass
 
 
-
-			Example:
+Example:
 
 Architecture
 
@@ -240,7 +239,7 @@ Q) Difference Between Static and Dynamic Provisioning
 	Hard to scale								Easy to scale
 	Less flexible								More flexible
 
-Q) 7. What is a Provisioner?
+Q) What is a Provisioner?
 	A plugin/component that creates storage automatically.
 	Examples
 		AWS EBS CSI
@@ -253,18 +252,18 @@ Q) What is CSI in Kubernetes?
 		Standard for integrating storage systems with Kubernetes
 
 Q) What is the role of StorageClass in Dynamic Provisioning?
-	Defines how storage should be dynamically created.
+		Defines how storage should be dynamically created.
 
 Q) How do you check available StorageClasses?
-	kubectl get storageclass
+		kubectl get storageclass
 
 Q) How do you know if Dynamic Provisioning worked?
-	kubectl get pv,pvc
-
-	PVC status should be: Bound
+		#kubectl get pv,pvc
+	
+		PVC status should be: Bound
 
 Q) What happens if no StorageClass is specified?
-	Default StorageClass is used (if configured)
+		Default StorageClass is used (if configured)
 
 Q) What is the default StorageClass?
 
@@ -289,34 +288,33 @@ Q) How do you troubleshoot Dynamic Provisioning failure?
 		Inspect CSI driver logs
 
 Q) Why are StatefulSets commonly used with Dynamic Provisioning?
-		Each Pod gets dedicated persistent storage automatically.
+		- Each Pod gets dedicated persistent storage automatically.
 
 Q) Can multiple Pods use the same dynamically provisioned volume?
 		Depends on access mode:
-		RWX → Yes
-		RWO → Limited
+			RWX → Yes
+			RWO → Limited
 
 Q) What is Volume Binding Mode?
-	Types
-		Immediate
-		WaitForFirstConsumer
+		Types
+			Immediate
+			WaitForFirstConsumer
 
 Q) Explain the Dynamic Provisioning workflow.
-
-PVC Created
-   ↓
-StorageClass Selected
-   ↓
-Provisioner Triggered
-   ↓
-PV Created
-   ↓
-PVC Bound
-   ↓
-Pod Uses Volume
+	PVC Created
+   	↓
+	StorageClass Selected
+   	↓
+	Provisioner Triggered
+   	↓
+	PV Created
+   	↓
+	PVC Bound
+   	↓
+	Pod Uses Volume
 
 Q) What happens to dynamically provisioned storage after PVC deletion?
-	Depends on reclaim policy:
-		Delete → Storage removed
-		Retain → Storage preserved
+		Depends on reclaim policy:
+			Delete → Storage removed
+			Retain → Storage preserved
 

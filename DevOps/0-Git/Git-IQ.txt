@@ -1,19 +1,101 @@
-Git 
+Git Basics
+==========
+Q) What is Git?
+	Git 
 	- Git is a distributed version control system used to track changes in code/files.
 	- allow work with other team safely
 	- restore older version if something breaks.
 
-Git workflow
+Q) Difference between Git and GitHub
+	Git						GitHub
+	Version control system	Cloud hosting platform
+	Tracks code changes		Stores Git repositories online
+	Installed locally		Web-based service
+	Command-line tool		Collaboration platform
+
+Q) What Does .git Store?
+	Git stores:
+		commits
+		branches
+		tags
+		logs
+		configuration
+		version history
+
+Q) Types of Repositories
+	1. Local Repository
+		- Exists on your machine.
+
+	2. Remote Repository
+		- Hosted online on platforms like:
+			GitHub
+			GitLab
+			Bitbucket
+
+Q) What is a repository?
+	A repository is a place where Git stores and manages your project.
+	It contains:
+		source code
+		files/folders
+		commit history
+		branches
+		Git configuration
+
+Q) What is a commit?
+	- A commit is a snapshot of your project at a specific point in time.
+	- Git saves the current staged changes into repository history.
+	- A commit is a saved snapshot of project changes.
+
+Q) What is HEAD?
+	- HEAD points to the current commit/branch.
+	- HEAD is a pointer that refers to the current commit or the current branch you are working on in Git.
+
+Q) Explain Git workflow
 	working Directory -> Staging Area -> Repository
 
-Branching:
+Q) Explain revert/reset/checkout
+	git reset   : moves HEAD to a previous commit and can rewrite history.
+	git revert  : undoes changes by creating a new commit without changing history.
+	git checkout:  is used to switch branches or restore files.
+
+Q) Explain Fetch vs Pull
+	git fetach : Downloads and but it does not merges remote changes into current branch.
+	git pull : Downloads latest changes from remote repository and merges the changes into current branch.
+
+Q) Explain git Cherry-pick
+	- Cherry-picking in Git means applying a specific commit from one branch into another branch.
+	- Instead of merging the entire branch, you select only the required commit.
+
+	Why Use Cherry-Pick?
+	Use it when:
+		- You need only one specific commit
+		- A bug fix from another branch is required
+		- You don't want to merge the whole branch
+
+Q) Explain git Stash
+	Git stash is used to temporarily save uncommitted changes without committing them.
+	It allows you to:
+		Switch branches safely
+		Pull latest code
+		Work on another task temporarily
+	
+	Later, you can restore the saved changes.
+
+Q) Explain git Hooks?
+	Git hooks are scripts that run automatically before or after specific Git events such as:
+		commit
+		push
+		merge
+		rebase
+	
+	They help automate tasks and enforce rules in a repository.
+	Common Use Cases
+		Run tests before commit
+		send notifications
+
+Q) What is detached HEAD?
 
 ===================================================
-	
-Q) Difference between git pull and git fetch?
-	git pull : Downloads latest changes from remote repository and merges the changes into current branch.
-	git fetach : Downloads and but it does not merges remote changes into current branch.
-
 Q) What is the staging area in Git?
 	The staging area (also called the index) is an intermediate area where Git stores changes before creating a commit.
 
@@ -27,15 +109,6 @@ Q) What is the difference between git merge and git rebase?
 Q) What is a merge conflict?
 	A merge conflict occurs when Git cannot automatically merge changes because the same file or line was modified differently in multiple branches. Developers must manually resolve the conflict and commit the final version.
 
-Q) What is HEAD in Git?
-	HEAD is a pointer that refers to the current commit or the current branch you are working on in Git.
-
-Q) What is the difference between git reset, git revert, and git checkout?
-	git reset   : moves HEAD to a previous commit and can rewrite history.
-	git revert  : undoes changes by creating a new commit without changing history.
-	git checkout:  is used to switch branches or restore files.
-
-
 Q) What is .gitignore?
 	.gitignore is a special file used to tell Git which files and folders should be ignored and not tracked in the repository.
 	It helps avoid committing:
@@ -44,39 +117,6 @@ Q) What is .gitignore?
 		Logs
 		Environment files
 		IDE/editor settings
-
-Q) What is the purpose of git stash?
-	git stash is used to temporarily save uncommitted changes without committing them.
-	
-	It allows you to:
-		Switch branches safely
-		Pull latest code
-		Work on another task temporarily
-	
-	Later, you can restore the saved changes.
-
-Q) What is cherry-picking in Git?
-	- Cherry-picking in Git means applying a specific commit from one branch into another branch.
-	- Instead of merging the entire branch, you select only the required commit.
-
-	Why Use Cherry-Pick?
-	Use it when:
-		- You need only one specific commit
-		- A bug fix from another branch is required
-		- You don't want to merge the whole branch
-
-
-Q) What are Git hooks?
-	Git hooks are scripts that run automatically before or after specific Git events such as:
-		commit
-		push
-		merge
-		rebase
-	
-	They help automate tasks and enforce rules in a repository.
-	Common Use Cases
-		Run tests before commit
-		send notifications
 
 Q) What is the difference between origin and upstream?
 Q) What is git reflog?

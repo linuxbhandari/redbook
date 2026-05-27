@@ -118,4 +118,52 @@ CMD ["nginx", "-g", "daemon off;"]
 	COPY → copy file
 	EXPOSE → open port
 	CMD → start nginx
+
+Q) Container Layer Architecture
 	
+	1. Read-Only Layers (Lower Layers)
+		- These are the layers created from the Docker image.
+		- They include the OS, dependencies, and application code.
+			They are immutable (cannot be changed)
+			Shared across multiple containers
+			Created from Dockerfile instructions (FROM, RUN, COPY)
+
+	2. Writable Layer (Upper Layer)
+		When a container is started, Docker adds a thin writable layer on top of the image layers.
+			Stores runtime changes like:
+				modified files
+				logs
+				temporary data
+				newly created files
+		Changes do NOT affect the original image
+
+	In short
+		A Docker container consists of multiple read-only image layers (lower layers) and a single writable layer (upper layer) where all runtime changes are stored.
+
+	Explain COW
+	Copy-on-Write means when a file from a read-only image layer is modified inside a container, Docker does not change the original file. Instead, it copies the file into the writable layer and applies changes there.
+
+	Correct understanding
+	When you write data:
+
+	1. Inside container filesystem (no volume)
+		Uses Copy-on-Write (CoW)
+		Data goes to writable layer
+		Container size increases
+
+	2. Inside volume
+		CoW is NOT used ❌
+		Writable layer is NOT used ❌
+		Data goes directly to external storage (volume)
+
+		Correct Mental Model
+			Without volume:
+			App → Writable Layer (CoW applies)
+
+			With volume:
+			App → Volume Storage (bypasses writable layer)
+
+		Docker volumes are important because they bypass the container writable layer and store data externally. This prevents container size growth and ensures data persistence even if the container is deleted.
+		
+Q) How to create and use volume?
+	docker run -v myvol:/app/data myimage

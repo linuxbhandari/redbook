@@ -1,0 +1,85 @@
+A Deployment ensures that a specified number of identical Pods are running at all times and provides features like rolling updates, rollback, and self-healing.
+
+	A Deployment ensures:
+		Desired number of replicas are running
+		Pods are recreated if they fail
+		Updates happen without downtime
+		Rollback is possible if something breaks
+
+
+Architecture Flow
+	Deployment
+    	↓
+	ReplicaSet
+    	↓
+	Pods
+
+Important Features
+1. Self-healing :
+	If a Pod dies:
+		👉 Deployment automatically recreates it
+
+2. Scaling
+	Increase or decrease replicas:
+	# kubectl scale deployment nginx-deployment --replicas=5
+
+3. Rolling Updates
+	When you update image:
+		kubectl set image deployment nginx-deployment nginx=nginx:1.26
+
+	Kubernetes:
+		updates pods gradually
+		avoids downtime
+
+4. Rollback
+	If update fails:
+		kubectl rollout undo deployment nginx-deployment
+
+=========
+Q) What is a Deployment in Kubernetes?
+Q) Why do we use Deployment instead of Pods directly?
+Q) What is the role of a Deployment?
+Q) What is ReplicaSet in Deployment?
+Q) Difference between Deployment and ReplicaSet?
+Q) How does Deployment ensure high availability?
+Q) What is rolling update in Deployment?
+Q) What is the default update strategy in Deployment?
+Q) How does scaling work in Deployment?
+
+Advanced Questions
+==================
+Q) What happens internally when a Deployment is created?
+Q) How does Deployment achieve zero downtime?
+Q) What is revision history in Deployment?
+Q) How does rollback work in Deployment?
+Q) What is maxSurge and maxUnavailable in rolling updates?
+
+
+Q) Explain the structure of Deployment YAML.
+Q) What is the purpose of spec.selector?
+Q) What is spec.template in Deployment?
+Q) What happens if labels don’t match selector?
+Q) What is replicas field used for?
+
+
+Real-Time Scenario Questions (VERY IMPORTANT)
+=============================================
+Q) Your Deployment is not creating Pods — how will you debug?
+Q) Deployment is stuck in “Progressing” state — what do you check?
+Q) Rollout failed — how do you rollback?
+Q) One Pod is restarting continuously in Deployment — what will you do?
+Q) Deployment is not updating new image — why?
+
+
+Rollout & Update Questions
+===========================
+Q) How do you check Deployment rollout status?
+	#kubectl rollout status deployment <name>
+
+Q) How do you undo a Deployment update?
+	#kubectl rollout undo deployment <name>
+
+Q) How do you pause/resume a rollout?
+	#kubectl rollout pause deployment <name>
+	#kubectl rollout resume deployment <name>
+
