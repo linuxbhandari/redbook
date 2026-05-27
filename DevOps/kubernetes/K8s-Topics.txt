@@ -275,4 +275,4 @@ Focus heavily on these:
 	Network policies
 	OpenShift Routes & SCC
 	ArgoCD GitOps
-	ETCD backup
+	ETCD backup (Velero is most famouse tool for backup)

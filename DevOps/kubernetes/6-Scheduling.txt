@@ -12,4 +12,3 @@
 	Example:
 		Dedicated infra nodes.
 
-		

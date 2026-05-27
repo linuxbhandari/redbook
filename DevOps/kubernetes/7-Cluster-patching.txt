@@ -6,3 +6,116 @@ Used before:
 	Patching
 	Upgrades
 
+
+=====================================
+Q) What is patching in OpenShift?
+	Patching means updating:
+		OpenShift cluster components
+		Nodes
+		OS packages
+		Kubernetes resources
+		Security fixes and bug fixes
+
+Q) What are the types of patching in OpenShift?
+	Type				Description
+	Cluster patching	Updating OpenShift version
+	Node patching		OS/kernel updates on nodes
+	Resource patching	Modifying Kubernetes/OpenShift objects
+	Security patching	Applying CVEs/security fixes
+
+Q) How do you upgrade OpenShift cluster?
+	oc adm upgrade
+	Check available upgrades:
+		# oc adm upgrade
+
+Q) What happens during OpenShift cluster upgrade?
+		Control plane upgraded
+		Machine Config Operator updates nodes
+		Nodes drained and rebooted sequentially
+		Workloads rescheduled
+
+Q) How does OpenShift patch worker nodes?
+		Node cordoned
+		Pods drained
+		OS update applied
+		Node rebooted
+		Node rejoined cluster
+
+Q) What precautions should be taken before patching?
+		Backup etcd
+		Check cluster health
+		Verify resource availability
+		Review upgrade path
+		Check operator compatibility
+
+Q) How do you check cluster health before patching?
+	# oc get co
+
+	All operators should be:
+		AVAILABLE=True
+		DEGRADED=False
+
+Q) How do you monitor upgrade progress?
+		
+		oc get clusterversion
+
+Q) What if a node becomes NotReady after patching?
+	Check:
+		kubelet status
+		MachineConfigPool
+		Node logs
+		Network connectivity
+		CRI-O/container runtime
+	Commands:
+		oc get nodes
+		oc describe node <node>
+		journalctl -u kubelet
+
+Q) What if upgrade gets stuck?
+	Check:
+		Cluster operators
+		MachineConfigPool
+		Pending CSRs
+		Disk space
+		Network issues
+	Commands:
+		oc get co
+		oc get mcp
+		oc get csr
+
+Q) . What is cordon and drain?
+	Cordon
+		Marks node unschedulable
+	Drain
+		Safely evicts workloads from node
+	Commands:
+		oc adm cordon <node>
+		oc adm drain <node> --ignore-daemonsets
+
+Q) Why is patching important?
+		Security fixes
+		Bug fixes
+		Stability
+		Compliance
+		Performance improvements
+
+Q) What is rolling patching?
+	Updating nodes one-by-one without downtime
+
+Q) Difference Between OpenShift Upgrade and Kubernetes Upgrade
+	OpenShift						Kubernetes
+	Automated via Operators			More manual
+	Includes platform components	Mainly Kubernetes components
+	MCO handles node updates		Separate tooling often required
+
+Q) How do you rollback an OpenShift patch/upgrade?
+	Limited rollback support
+	Usually restore from backup/snapshot
+	etcd backup critical
+
+Q) What is a MachineConfigPool (MCP)?
+	Groups nodes for configuration and patch management
+	
+	Examples:
+		master
+		worker

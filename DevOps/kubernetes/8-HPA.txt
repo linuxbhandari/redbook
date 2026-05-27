@@ -1,0 +1,209 @@
+
+HPA (Horizontal Pod Autoscaler) automatically scales the number of Pods in Kubernetes based on resource usage or custom metrics.
+
+Main Purpose
+	Automatically increase Pods during high traffic
+	Reduce Pods during low traffic
+	Improve performance and resource utilization
+
+How HPA Works
+
+Traffic Increases
+       ↓
+CPU/Memory Usage Increases
+       ↓
+HPA Monitors Metrics
+       ↓
+HPA Increases Replica Count
+       ↓
+More Pods Created
+
+
+HPA Scales Horizontally
+	Horizontal scaling = Increasing/decreasing number of Pods
+
+	Example: 2 Pods → 5 Pods
+
+Metrics Used by HPA
+	CPU utilization
+	Memory utilization
+	Custom metrics
+	External metrics
+
+Requirements for HPA
+	Metrics Server installed
+	Resource requests/limits configured
+
+
+Practice HPA
+=============
+
+Step 1: Setup metrics server Pod
+
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml (Install metrics service)
+
+kubectl get pods -n kube-system | grep metri
+metrics-server-64fc5f7866-lnj4h            0/1     Running   0          33s
+
+kubectl get deployments.apps -n kube-system 
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+calico-kube-controllers   1/1     1            1           4h55m
+coredns                   2/2     2            2           5h10m
+metrics-server            0/1     1            0           65s   <<<<
+
+
+Step 2: Edit Metrics Server Deployment
+
+kubectl edit deployment metrics-server -n kube-system
+
+Find this section:
+
+containers:
+- args:
+
+Add BOTH lines:
+
+- --kubelet-insecure-tls
+- --kubelet-preferred-address-types=InternalIP
+
+Example:
+
+spec:
+  containers:
+  - args:
+    - --cert-dir=/tmp
+    - --secure-port=10250
+    - --kubelet-insecure-tls
+    - --kubelet-preferred-address-types=InternalIP
+
+Save and exit.
+
+Step 3: Restart Metrics Server
+
+kubectl rollout restart deployment metrics-server -n kube-system
+
+Step 4: Wait 1 Minute
+
+Check pod:
+	kubectl get pods -n kube-system
+
+Ensure:	
+	metrics-server   Running
+
+
+Step 5: Test Metrics
+	kubectl top nodes
+
+Then:
+	kubectl top pods
+
+Now it should work.
+
+root@kube-master:~# kubectl top node
+NAME          CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
+kube-master   335m         16%      1184Mi          63%         
+kube-node1    101m         5%       1065Mi          27%         
+kube-node2    109m         5%       1365Mi          35%         
+root@kube-master:~# 
+root@kube-master:~# kubectl top pod
+NAME                         CPU(cores)   MEMORY(bytes)   
+emptydir-demo                0m           5Mi             
+hostpath-demo                0m           4Mi             
+load-generator               0m           0Mi             
+nginx-hpa-54dc79d6f5-79zqb   0m           3Mi             
+
+
+
+
+Let do HPA deployment
+=====================
+Now You Can Practice HPA
+Step 1: Create Deployment with CPU Limits
+cat > nginx-hpa
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-hpa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-hpa
+  template:
+    metadata:
+      labels:
+        app: nginx-hpa
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        resources:
+          requests:
+            cpu: 100m
+          limits:
+            cpu: 200m
+---
+
+kubectl apply -f nginx-hpa.yaml
+
+
+Step 2: Expose Deployment
+
+kubectl expose deployment nginx-hpa --port=80 --type=NodePort
+
+kubectl get service
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+kubernetes   ClusterIP   10.96.0.1      <none>        443/TCP        5h29m
+nginx-hpa    NodePort    10.98.13.140   <none>        80:32604/TCP   14m
+
+
+Step 3: Create HPA
+	# kubectl autoscale deployment nginx-hpa --cpu-percent=50 --min=1 --max=5
+
+
+Step 4: Verify HPA
+	# kubectl get hpa
+
+
+Step 5: Generate Load
+	Run load generator:
+		# kubectl run -it load-generator --image=busybox /bin/sh
+
+	Inside container:
+		# while true; do wget -q -O- http://nginx-hpa; done
+
+
+Step 6: Watch Autoscaling
+	Open another terminal:
+		# kubectl get hpa -w
+
+	AND:
+		# kubectl get pods -w
+	
+	You’ll see replicas increase automatically.
+
+
+	Expected Result
+	1 Pod → 2 Pods → 3 Pods
+
+	depending on CPU load.
+
+
+
+Important Interview Keywords
+	Mention these:
+		Metrics Server
+		Prometheus
+		Prometheus Adapter
+		Custom Metrics API
+		KEDA          : you can do this pratical with KEDA in pratical
+		CPU utilization
+		Queue-based autoscaling
+		Event-driven scaling
+
+
+
+
+
+
