@@ -1,7 +1,0 @@
-Ingress controller
-
-k8s provide two approitech to access k8s micro-service from outside.
-
-1) port fowarding 
-	
-	

@@ -44,7 +44,7 @@ total 8
 
 
 How to generate certificate for user.
-
+=====================================
 1. Generate private key for manish user. 
 root@kube-master:~/cert# openssl genrsa -out manish.key 2048
 

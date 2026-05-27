@@ -1,0 +1,44 @@
+1) Resource monitroing
+    1) prometheous (resource monitroing)
+	   => prometheous is metric tools, it does not have any GUI in advance.
+	   
+	2) Grafana
+	   => Only provide GUI vizilization.
+	   
+	3) Node exporter (prometheous monitroing agent)
+	
+	
+	
+2) Logs Monitoring
+    1) elastic search (use for logs monitroing)
+	2) kibana (GUI Dashboard)
+	
+	3) fluentd/logstach (logs agent)
+
+    EFK (elasticsearch fluentd kibana)
+	ELK (elasticsearch logstach kibana)
+
+
+===============
+Q) How to configure prometheous?
+=================================
+1) Fist setup nfs server for volume share.
+
+root@k8s:~# apt install nfs-server
+
+root@k8s:~# vim /etc/exports 
+/shared  *(rw,sync,no_root_squash,no_subtree_check)
+wq!
+
+root@k8s:~# exportfs -r
+root@k8s:~# exportfs -v
+/shared       	<world>(rw,wdelay,no_root_squash,no_subtree_check,sec=sys,rw,secure,no_root_squash,no_all_squash)
+
+==========================================
+
+2) Enable Dynamic provisining?
+
+3) HELM installation
+4) prometheous installation
+
+

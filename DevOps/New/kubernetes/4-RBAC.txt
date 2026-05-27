@@ -1,0 +1,200 @@
+RBAC = Role-Based Access Control
+Used to control:
+	Who can access the cluster
+	What actions they can perform
+	Which resources they can access
+
+RBAC Components
+	Role: 		 		Defines permissions inside a namespace.
+	RoleBinding: 		Assigns Role to a user/service account
+	ClusterRole: 		Defines permissions cluster-wide.
+	ClusterRoleBinding: Assigns ClusterRole cluster-wide.
+
+Best Practices
+	Follow least privilege principle
+	Avoid cluster-admin access
+	Use ServiceAccounts for apps
+	Separate dev/test/prod permissions
+	Audit RBAC regularly
+	Real Enterprise Example
+
+Usually:
+	Developers → namespace admin
+	DevOps → cluster-level access
+	Monitoring tools → read-only
+	CI/CD pipelines → ServiceAccount based access
+
+This is commonly used with:
+	Argo CD
+	Jenkins
+	Monitoring stacks
+	Operators
+
+Q) What happens if a user has no RBAC permission?
+	API server denies request:
+		Error: User is forbidden
+Q) What is the most dangerous permission in Kubernetes?
+	👉 * (wildcard)
+Q) 
+Q) Difference between Role and ClusterRole
+Q) Difference between RoleBinding and ClusterRoleBinding
+Q) What are apiGroups in RBAC?
+	pods,deployments,jobs
+	
+Q) What are verbs in RBAC?
+	get,list,watch,create,update,patch,delete
+
+Q) How do you give read-only access to pods?
+	resources: ["pods"]
+	verbs: ["get", "list", "watch"]
+	
+Q) How would you give a developer access only to one namespace?
+	Create Role
+	Create RoleBinding	
+	Bind user to namespace-specific role
+
+Q) Developer can create pods but not delete them. How?
+	verbs: ["get", "list", "create", "update"]
+	
+	👉 Exclude: delete
+
+Q) How do you restrict access to secrets only?
+	resources: ["secrets"]
+	verbs: ["get", "list"]
+
+Q) How do you check user permissions?
+	kubectl auth can-i create pods --as=manish -n dev
+	
+Q) How do applications authenticate in Kubernetes?
+	Using:
+		ServiceAccounts
+		Tokens
+		RBAC permissions
+
+Q) How do pods get permissions?
+	Pods use:
+		- ServiceAccount
+		- RoleBinding/ClusterRoleBinding
+		
+Q) Difference between ServiceAccount and User
+	ServiceAccount :
+		- For applications/pods
+		- Managed by Kubernetes
+	User:
+		- Human users
+		- External authentication
+
+Q) How do you troubleshoot RBAC issues?
+	kubectl auth can-i
+	kubectl describe role
+	kubectl describe rolebinding
+	kubectl get events
+
+Q) Explain RBAC flow in Kubernetes
+	Answer:
+		User sends request
+		Authentication verifies identity
+		RBAC authorization checks:
+		Role/ClusterRole
+		RoleBinding/ClusterRoleBinding
+		API server allows or denies request
+	
+
+Example: -1 Give Read-Only Access to Pods in one Namespace
+==========================================================
+Step:1 create namespace
+kubectl create ns dev
+
+Step:2 Create Role
+cat > role.yml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dev
+  name: pod-reader
+
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+
+Step:3 Create RoleBinding
+cat > rolebinding
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods-binding
+  namespace: dev
+
+subjects:
+- kind: User
+  name: manish
+  apiGroup: rbac.authorization.k8s.io
+
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+
+
+Step:4 apply
+
+kubectl apply -f role.yaml
+kubectl apply -f rolebinding.yaml
+
+
+Step:5 Verify
+
+kubectl auth can-i get pods --as=manish -n dev
+kubectl auth can-i list pods --as=manish -n dev
+kubectl auth can-i watch pods --as=manish -n dev
+
+
+Example 2 — Namespace Admin Access
+==================================
+Step:1 Create Role and RoleBinding
+cat > role.yml
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dev
+  name: namespace-admin
+
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+
+RoleBinding
+cat > rolebinding
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: namespace-admin-binding
+  namespace: dev
+
+subjects:
+- kind: User
+  name: developer1
+  apiGroup: rbac.authorization.k8s.io
+
+roleRef:
+  kind: Role
+  name: namespace-admin
+  apiGroup: rbac.authorization.k8s.io
+----  
+This user can manage everything only inside dev namespace.
+
+
+How to list roles
+	#kubectl get roles -n dev pod-reader  -o yaml
+	#kubectl describe roles -n dev pod-reader
+	#kubectl get clusterroles
+	#kubectl get rolebindings
+	#kubectl get clusterrolebindings
+	
