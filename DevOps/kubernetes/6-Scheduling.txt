@@ -1,3 +1,104 @@
+Q) What is Scheduling in Kubernetes?
+	- Scheduling is the process of deciding: Which node should run a Pod?
+	- The Kubernetes Scheduler watches for new Pods and assigns them to suitable nodes.
+
+
+Q) Basic Scheduling Flow
+
+Pod Created
+    ↓
+Scheduler Checks Resources
+    ↓
+Finds Suitable Node
+    ↓
+Assigns Pod to Node
+    ↓
+Kubelet Runs Pod 
+
+
+Q) Main Scheduling Factors
+	Scheduler checks:
+		CPU
+		Memory
+		Node labels
+		Taints/Tolerations
+		Affinity rules
+		Resource requests
+		Node health
+
+
+1. Default Scheduling
+
+	Flow : When a Pod is created: Pod Created -> Scheduler Checks Cluster -> Finds Best Available Node -> Assigns Pod to Node
+
+
+2. NodeName: nodeName is used to assign a Pod directly to a specific node.
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-nodename
+spec:
+  nodeName: kube-node1
+  containers:
+  - name: nginx
+    image: nginx
+---
+Mostly used for:
+	Testing
+	Manual scheduling
+
+
+2. NodeSelector : nodeSelector is a Kubernetes scheduling method used to schedule Pods onto nodes with matching labels.
+	
+	#kubectl label node kube-node1 disktype=ssd
+	#kubectl get nodes --show-labels
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-selector
+spec:
+  nodeSelector:
+    disktype: ssd
+  containers:
+  - name: nginx
+    image: nginx
+---
+	#kubectl apply -f pod.yaml
+
+
+	Q) What happens if labels do not match?
+	Pod stays in Pending state
+
+3. Taints and Tolerations
+	
+	Taints prevent Pods from being scheduled onto nodes, while tolerations allow Pods to run on tainted nodes.
+
+	kubectl taint node kube-node1 env=prod:NoSchedule
+	kubectl taint node kube-node1 env=prod:NoSchedule-
+
+
+	Q) Does toleration guarantee scheduling?
+		No. It only allows scheduling. Scheduler still checks resources and other constraints.
+	
+	Q) Difference Between NoSchedule and NoExecute?
+	NoSchedule:Prevents new Pods	
+	NoExecute: Evicts existing Pods too
+
+4. Node Affinity
+5. Pod Affinity
+6. Pod Anti-Affinity
+
+
+
+
+
+
+
+
+
 19. Node Selector
 	Schedule pod on specific node.
 
@@ -12,3 +113,13 @@
 	Example:
 		Dedicated infra nodes.
 
+===========
+Q) Why is Pod Pending?
+	Common reasons:
+		Insufficient CPU/memory
+		Taints	
+		Affinity mismatch
+		NodeSelector mismatch
+		PVC issues
+
+Q) 
