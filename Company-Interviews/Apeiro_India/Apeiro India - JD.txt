@@ -49,6 +49,8 @@ Q) What is RBAC
 Q) What you to do with service to access outside the network?
 Q) What you do to secure kubernetes cluster
 Q) Diff in docker and kubernetes?
+Q) Compute node CPU 100% what you will do?
+
 
 
 

@@ -1,15 +1,29 @@
-Q) What is the difference between git pull and git fetch?
-	git pull : Downloads latest changes from remote repository Downloads and merges remote changes into current branch
-	git fetach : Downloads and merges remote changes into current branch.
+Git 
+	- Git is a distributed version control system used to track changes in code/files.
+	- allow work with other team safely
+	- restore older version if something breaks.
+
+Git workflow
+	working Directory -> Staging Area -> Repository
+
+Branching:
+
+===================================================
+	
+Q) Difference between git pull and git fetch?
+	git pull : Downloads latest changes from remote repository and merges the changes into current branch.
+	git fetach : Downloads and but it does not merges remote changes into current branch.
 
 Q) What is the staging area in Git?
 	The staging area (also called the index) is an intermediate area where Git stores changes before creating a commit.
 
+Q) Explain Git rebase with an example.
 Q) What is the difference between git merge and git rebase?
 	git merge : git merge combines changes from one branch into another and creates a merge commit.
 				it preserving history and creating a merge commit.
-
+	
 	git rebase : 
+
 Q) What is a merge conflict?
 	A merge conflict occurs when Git cannot automatically merge changes because the same file or line was modified differently in multiple branches. Developers must manually resolve the conflict and commit the final version.
 
@@ -17,9 +31,9 @@ Q) What is HEAD in Git?
 	HEAD is a pointer that refers to the current commit or the current branch you are working on in Git.
 
 Q) What is the difference between git reset, git revert, and git checkout?
-	git reset moves HEAD to a previous commit and can rewrite history.
-	git revert undoes changes by creating a new commit without changing history.
-	git checkout is used to switch branches or restore files.
+	git reset   : moves HEAD to a previous commit and can rewrite history.
+	git revert  : undoes changes by creating a new commit without changing history.
+	git checkout:  is used to switch branches or restore files.
 
 
 Q) What is .gitignore?
@@ -51,7 +65,7 @@ Q) What is cherry-picking in Git?
 		- A bug fix from another branch is required
 		- You don't want to merge the whole branch
 
-Q) Explain Git rebase with an example.
+
 Q) What are Git hooks?
 	Git hooks are scripts that run automatically before or after specific Git events such as:
 		commit
@@ -65,10 +79,11 @@ Q) What are Git hooks?
 		send notifications
 
 Q) What is the difference between origin and upstream?
-Q) What is the purpose of git reflog?
+Q) What is git reflog?
 
 
 Scenario-Based Git Questions
+============================
 Q) You committed code to the wrong branch. How would you fix it?
 Q) How do you undo the last commit without losing changes?
 	git reset --soft HEAD~1

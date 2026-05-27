@@ -1,4 +1,5 @@
-    Users/Clients : Developers, admins, and end users interact with the cluster using UI, APIs, or oc CLI.
+
+Users/Clients : Developers, admins, and end users interact with the cluster using UI, APIs, or oc CLI.
       ↓
 Load Balancers : Distribute API and application traffic across multiple nodes for High Availability.
       ↓
