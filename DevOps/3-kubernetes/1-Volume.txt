@@ -1,19 +1,35 @@
 Volume: Store data that can be accessed by containers inside a Pod.
 
 Types of Storage in Kubernetes
-	1. Ephemeral Storage (Temporary)
-		- EmptyDir
-		- Data exists only during pod life
-	
-	2. Persistent Storage
-		- PersistentVolume (PV)
-		- PersistentVolumeClaim (PVC)
-		- Data survives pod deletion
+Focus heavily on:
+	1. emptyDir
+	2. hostPath
+	3. PV/PVC
+	4. StorageClass
+	5. CSI : Modern standard for storage plugins.
+	6. ConfigMap : Mount configuration files into containers.
+	7. Secret : Mount sensitive data securely.
+
+
+Real-world Examples
+====================
+Workload					Volume Type
+MySQL							PVC
+Redis cache				emptyDir
+NGINX config			ConfigMap
+TLS certs					Secret
+Shared files			NFS
+EKS storage				EBS CSI
+Monitoring agent	hostPath
+
 
 1. EmptyDir Volume (Temporary Storage)
+======================================
+		-	Temporary storage created when Pod starts.
+		- Data exists only during pod life and will deleted when Pod is removed
 
 cat >  emptydir.yaml
------
+---
 apiVersion: v1
 kind: Pod
 metadata:
@@ -29,11 +45,11 @@ spec:
   volumes:
   - name: temp-storage
     emptyDir: {}
------
+---
 
 	How it works
-		- Volume created when pod starts
-		- Deleted when pod is removed
+		- Volume created when pod starts.
+		- Deleted when pod is removed.
 
 	👉 Use cases:
 			- Cache
@@ -41,13 +57,19 @@ spec:
 			- Shared data between containers
 
 2. HostPath Volume (Node Storage)
-		- A HostPath volume mounts a directory from the worker node filesystem into a Pod.
-		👉 So the pod directly uses the node’s disk.
+=================================
+		- A HostPath volume mounts a directory from the worker node filesystem into a Pod. So the pod directly uses the node’s disk.
+		- Mostly for labs/debugging
+
 
 	Important Warning (Very Important)
 		- Works only on single node or testing environments
 		- NOT recommended for production
-		- Data is tied to the node
+		
+		Use cases:
+			- log collection
+			- node monitoring
+			- Docker socket access
 
 --------
 apiVersion: v1
@@ -68,13 +90,14 @@ spec:
       path: /data/webcontent
       type: DirectoryOrCreate
 --------
-3. PersistentVolume (PV)
-		- A PV is a storage resource used to store data permanently, even if Pods are deleted or restarted.
-		or 
-		- Persistent Volume (PV) is a cluster-wide storage resource in Kubernetes that provides persistent storage independent of Pod lifecycle.
 
-		PV Workflow
-			Pod → PVC → PV → Physical Storage
+3. PersistentVolume (PV)
+========================
+		- A PV is a cluster-wide storage resource used to store data permanently, even if Pods are deleted or restarted.
+		- provide Independent of Pod lifecycle
+		- Created by admin or dynamic provisioning
+
+		PV Workflow : Pod → PVC → PV → Physical Storage
 			- Pod requests storage using PVC
 			- PVC (PersistentVolumeClaim) binds to PV
 			- PV connects to actual storage
@@ -87,19 +110,18 @@ spec:
 			- Ceph
 			- Local Disk
 
-	Types of Provisioning
+		Types of Provisioning
 
-	1. Static Provisioning
-			Admin manually creates PV
+		1. Static Provisioning
+				Admin manually creates PV
 	
-	2. Dynamic Provisioning
-			Kubernetes automatically creates PV using StorageClass
-
+		2. Dynamic Provisioning
+				Kubernetes automatically creates PV using StorageClass
 
 Example:
 
 Architecture
-
+============
 Pod
  ↓
 PVC
@@ -159,18 +181,29 @@ spec:
     persistentVolumeClaim:
       claimName: test-pvc
 -------------
-4. PVC
 
 
-# kubectl get pv
-NAME      CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
-nfs-pv1   2Gi        RWX            Recycle          Bound    default/nfs-pvc1                  <unset>                          25m
+PersistentVolumeClaim (PVC)
+===============================
+		Request for storage by application.
+			- Pods use PVC
+			- PVC binds to PV
 
-# kubectl get pvc
-NAME       STATUS   VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
-nfs-pvc1   Bound    nfs-pv1   2Gi        RWX                           <unset>                 24m
+	Access Modes in PVC
+	===================
+		Access Mode						Meaning
+		ReadWriteOnce (RWO)		One node can mount read-write
+		ReadOnlyMany (ROX)		Many nodes read-only
+		ReadWriteMany (RWX)		Many nodes read-write
+		ReadWriteOncePod			Single Pod only
 
+	Q)What happens if PVC is deleted?
+		Depends on policy:
+			Retain → data remains
+			Delete → storage deleted
+			Recycle → cleaned
 
+-----
 cat > pvc-pod.yml
 apiVersion: v1
 kind: Pod
@@ -189,26 +222,131 @@ spec:
     persistentVolumeClaim:
       claimName: nfs-pvc1
 	  
+-----
 
+4. StorageClass
+		It enables dynamic provisioning of Persistent Volumes (PVs).
+		Instead of manually creating PVs, Kubernetes automatically creates them when a PVC requests storage.
 
-Q) What happens if PVC is deleted?
-	Depends on policy:
-		Retain → data remains
-		Delete → storage deleted
-		Recycle → cleaned
-	  
-Types of Access Modes
+		A StorageClass defines:
+			- how storage should be provisioned
+			- what type of storage to create
+			- which storage backend to use
+
+Without StorageClass:
 =====================
-Mode			Meaning
-ReadWriteOnce	One node read/write
-ReadOnlyMany	Many nodes read-only
-ReadWriteMany	Many nodes read/write
+Admin creates PV manually
+        ↓
+Application creates PVC
+        ↓
+PVC binds to matching PV
 
+
+
+With StorageClass:
+===================
+Application creates PVC
+        ↓
+StorageClass provisions PV automatically
+        ↓
+PVC binds dynamically
+
+
+What Happens Internally
+=======================
+Flow:
+
+PVC Created
+    ↓
+StorageClass Selected
+    ↓
+CSI Driver Called
+    ↓
+Disk Created
+    ↓
+PV Created Automatically
+    ↓
+PVC Bound
+    ↓
+Pod Uses Volume
+
+
+
+5. CSI stands for: Container Storage Interface
+		- It is a standard interface between Kubernetes and storage systems.
+		- CSI allows Kubernetes to work with any storage provider using a common API.
+
+
+6. ConfigMap : Mount configuration files into containers.
+		A ConfigMap stores:
+			- application configuration
+			- environment settings
+			- config files
+			- command-line arguments
+		
+		separately from container images.
+
+		It helps make applications configurable without rebuilding Docker images.
+
+		Why ConfigMap Exists
+				Without ConfigMap:
+					Configuration hardcoded inside container image
+
+
+	Q) Can ConfigMap updates reflect automatically?
+			Method								Auto Update
+			Environment variable	No
+			Mounted volume				Yes
+
+
+7. Secret : A Secret stores sensitive information securely in Kubernetes.
+			Examples:
+				passwords
+				API keys
+				SSH keys
+				TLS certificates
+				tokens
+				database credentials
+
+		Why Secrets Exist
+			Without Secrets:
+					Passwords hardcoded in YAML or Docker image
+
+		Problems:
+			insecure
+			exposed in Git
+			difficult to rotate credentials
+		
+		Secrets solve this by separating sensitive data from application code.
+
+		Kubernetes Secrets are: Base64 encoded. NOT encrypted by default.
+
+		Types of Secrets
+		Type																	Purpose
+		Opaque																Generic secrets	
+		kubernetes.io/tls											TLS certs
+		kubernetes.io/dockerconfigjson				Container registry auth
+		kubernetes.io/service-account-token		ServiceAccount token
+		kubernetes.io/ssh-auth								SSH keys
+
+		1. Generic Secret (Opaque)
+			Create Secret from CLI
+				# kubectl create secret generic db-secret --from-literal=username=admin --from-literal=password=mysecret
+
+			Encode Values
+				# echo -n 'mypassword' | base64
+
+			commands
+			kubectl get secret
+			kubectl describe secret db-secret
+			kubectl get secret db-secret -o yaml
+			echo 'bXlwYXNzd29yZA==' | base64 -d
 
 Interview Questions
 ===================
+
 Q) What is Dynamic Provisioning in Kubernetes?
-		Dynamic Provisioning automatically creates Persistent Volumes (PV) when a PersistentVolumeClaim (PVC) is requested.
+		Dynamic Provisioning automatically creates PVs when a PVC is requested.
 
 Q) Why is Dynamic Provisioning needed?
 		- Eliminates manual PV creation
@@ -217,14 +355,14 @@ Q) Why is Dynamic Provisioning needed?
 		- Reduces administrative overhead
 
 Q) What component enables Dynamic Provisioning?
-		StorageClass
+			StorageClass
 
 Q) What is a StorageClass? (pending)
-	Defines:
-		- Provisioner
-		- Storage type
-		- Reclaim policy
-		- Parameters for dynamic storage creation
+		Defines:
+			- Provisioner
+			- Storage type
+			- Reclaim policy
+			- Parameters for dynamic storage creation
 
 Q) What happens when a PVC is created?
 		- PVC request sent
@@ -233,23 +371,23 @@ Q) What happens when a PVC is created?
 		- PVC binds to PV
 
 Q) Difference Between Static and Dynamic Provisioning
-	Static Provisioning					Dynamic Provisioning
-	Admin manually creates PV		PV created automatically	
-	More manual work						Automated	
-	Hard to scale								Easy to scale
-	Less flexible								More flexible
+		Static Provisioning					Dynamic Provisioning
+		Admin manually creates PV		PV created automatically	
+		More manual work						Automated	
+		Hard to scale								Easy to scale
+		Less flexible								More flexible
 
 Q) What is a Provisioner?
-	A plugin/component that creates storage automatically.
-	Examples
-		AWS EBS CSI
-		NFS Provisioner
-		Ceph CSI
-		Azure Disk CSI
+		A plugin/component that creates storage automatically.
+		Examples
+			AWS EBS CSI
+			NFS Provisioner
+			Ceph CSI
+			Azure Disk CSI
 
 Q) What is CSI in Kubernetes?
-	Container Storage Interface
-		Standard for integrating storage systems with Kubernetes
+		Container Storage Interface
+			Standard for integrating storage systems with Kubernetes
 
 Q) What is the role of StorageClass in Dynamic Provisioning?
 		Defines how storage should be dynamically created.
@@ -312,9 +450,3 @@ Q) Explain the Dynamic Provisioning workflow.
 	PVC Bound
    	↓
 	Pod Uses Volume
-
-Q) What happens to dynamically provisioned storage after PVC deletion?
-		Depends on reclaim policy:
-			Delete → Storage removed
-			Retain → Storage preserved
-

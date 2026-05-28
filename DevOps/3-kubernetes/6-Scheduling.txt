@@ -1,3 +1,12 @@
+1. default Scheduling
+2. NodeName:
+3. NodeSelector:
+4. Taints and Tolerations
+5. Node Affinity
+6. Pod Affinity
+7. Pod Anti-Affinity
+
+==========
 Q) What is Scheduling in Kubernetes?
 	- Scheduling is the process of deciding: Which node should run a Pod?
 	- The Kubernetes Scheduler watches for new Pods and assigns them to suitable nodes.
@@ -29,7 +38,10 @@ Q) Main Scheduling Factors
 
 1. Default Scheduling
 
-	Flow : When a Pod is created: Pod Created -> Scheduler Checks Cluster -> Finds Best Available Node -> Assigns Pod to Node
+		Flow : When a Pod is created: Pod Created -> Scheduler Checks Cluster -> Finds Best Available Node -> Assigns Pod to Node
+
+		# kubectl create deployment demo-app1 --image=nginx --replicas=3 --dry-run=client -o yaml > default-scheduling
+		# kubectl create -f default-scheduling
 
 
 2. NodeName: nodeName is used to assign a Pod directly to a specific node.
@@ -44,9 +56,10 @@ spec:
   - name: nginx
     image: nginx
 ---
-Mostly used for:
-	Testing
-	Manual scheduling
+
+	Mostly used for:
+		- Testing
+		- Manual scheduling
 
 
 2. NodeSelector : nodeSelector is a Kubernetes scheduling method used to schedule Pods onto nodes with matching labels.
@@ -70,24 +83,118 @@ spec:
 
 
 	Q) What happens if labels do not match?
-	Pod stays in Pending state
+			Pod stays in Pending state
 
 3. Taints and Tolerations
 	
-	Taints prevent Pods from being scheduled onto nodes, while tolerations allow Pods to run on tainted nodes.
+		Taints prevent Pods from being scheduled onto nodes, while tolerations allow Pods to run on tainted nodes.
 
-	kubectl taint node kube-node1 env=prod:NoSchedule
-	kubectl taint node kube-node1 env=prod:NoSchedule-
+		They are used to:
+			- dedicate nodes for special workloads
+			- isolate workloads
+			- protect nodes
+			- prevent unwanted scheduling
 
+		# kubectl taint node kube-node1 env=prod:NoSchedule
+		# kubectl taint node kube-node1 env=prod:NoSchedule-
 
+		Real-world Example
+		==================
+		Suppose you have GPU nodes.
+			You do NOT want regular Pods running there. 
+			You taint the node:
+				Only GPU workloads allowed
+					Then only Pods with matching toleration can run there.
+
+		Important Concept
+		=================
+		Component		Applied To
+		Taint				Node
+		Toleration	Pod
+
+		Taint Syntax
+		# kubectl taint nodes worker1 disktype=ssd:NoSchedule
+
+		key=value:effect
+		
+		disktype=ssd:NoSchedule
+
+		Effects of Taints
+			There are 3 effects.
+			1. NoSchedule
+					- Pods without matching toleration: WILL NOT be scheduled
+					- Existing Pods continue running.
+
+			2. PreferNoSchedule (Soft rule)
+					- Scheduler tries to avoid node but may still place Pods there.
+						# kubectl taint nodes worker1 gpu=true:PreferNoSchedule
+			3. NoExecute (hard)
+					- blocks new Pods
+					- evicts existing Pods
+						# kubectl taint nodes worker1 maintenance=true:NoExecute
+
+		Operator Types
+			1. Equal: Matches exact key/value.
+							operator: "Equal"
+
+			2. Exists: Ignores value.
+
+	Q) What is a taint?
+				A restriction applied to nodes.
+	Q) What is a toleration?
+				Permission for Pod to run on tainted node.
+
+	Q) Difference between Node Affinity and Taints?
+	Q) 
 	Q) Does toleration guarantee scheduling?
-		No. It only allows scheduling. Scheduler still checks resources and other constraints.
+			No. It only allows scheduling. Scheduler still checks resources and other constraints.
 	
 	Q) Difference Between NoSchedule and NoExecute?
-	NoSchedule:Prevents new Pods	
-	NoExecute: Evicts existing Pods too
+			NoSchedule:	Prevents/block new Pods	
+			NoExecute:  Block + Evicts existing Pods too
+
+
+Complete Flow
+=============
+Node Tainted
+      ↓
+Scheduler Checks Pod
+      ↓
+Pod Has Matching Toleration?
+      ↓
+YES → Pod Allowed
+NO  → Pod Rejected
+
+
+
 
 4. Node Affinity
+
+	Real-world Example
+	===================
+	Suppose:
+		some nodes have SSD disks and database Pods should run only on SSD nodes
+	
+	You label nodes:
+		# kubectl label nodes worker1 disktype=ssd
+	
+	Then Pod uses Node Affinity to schedule there.
+
+	Node Affinity (Modern Flexible Method)
+	Supports:
+			AND conditions
+			OR conditions
+			soft preferences
+			operators
+	
+	Types of Node Affinity
+		There are 2 main types.
+			Type																						Meaning
+			requiredDuringSchedulingIgnoredDuringExecution	Hard requirement
+			preferredDuringSchedulingIgnoredDuringExecution	Soft preference
+
+
+
 5. Pod Affinity
 6. Pod Anti-Affinity
 
@@ -103,16 +210,15 @@ spec:
 	Schedule pod on specific node.
 
 20. Affinity & Anti-Affinity
-	Types
-	Node Affinity
-	Pod Affinity
-	Pod Anti-Affinity
+		Types
+			Node Affinity
+			Pod Affinity
+			Pod Anti-Affinity
 
 21. Taints & Tolerations
 	Control pod scheduling.
 	Example:
 		Dedicated infra nodes.
-
 ===========
 Q) Why is Pod Pending?
 	Common reasons:

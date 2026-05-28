@@ -10,6 +10,7 @@ Q) What is Deployment?
 Q) What is ReplicaSet?
 Q) Difference between Deployment and StatefulSet?
 
+
 Intermediate Level
 ==================
 Q) What is ConfigMap?
