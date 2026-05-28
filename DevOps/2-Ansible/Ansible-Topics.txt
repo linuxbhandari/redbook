@@ -1,0 +1,205 @@
+1. Ansible Basics (MUST KNOW)
+Topics:
+	What is Ansible?
+	Agentless architecture
+	SSH-based communication
+	Push model
+	YAML basics
+
+Common interview questions:
+	Why Ansible?
+	Difference between Ansible and Puppet/Chef?
+	What is inventory?
+
+2. Inventory Management
+
+Topics:
+	Static inventory
+	Dynamic inventory
+	INI vs YAML inventory
+	Grouping hosts
+
+Example:
+[web]
+server1
+server2
+
+[db]
+db1
+
+
+3. Ad-hoc Commands
+Topics:	
+	ping
+	copy
+	yum/apt
+	service restart
+
+Examples:
+	ansible all -m ping
+	ansible web -m shell -a "df -h"
+
+4. Playbooks (VERY IMPORTANT)
+Topics:
+	YAML structure
+	hosts
+	tasks
+	become
+	variables
+
+Example:
+
+- hosts: web
+  become: yes
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+
+5. Modules
+Must know modules:
+	copy
+	file
+	service
+	yum / apt
+	command
+	shell
+	user
+
+6. Variables
+Topics:
+	vars
+	vars_files
+	host_vars
+	group_vars
+	extra vars
+
+7. Handlers
+Used for:
+	restarting services only when changes occur
+Example:
+	notify: restart nginx
+
+8. Roles (VERY IMPORTANT FOR INTERVIEWS)
+Topics:
+	Role structure
+	tasks/
+	handlers/
+	templates/
+	defaults/
+
+Example:
+
+roles/
+ └── nginx/
+      ├── tasks/
+      ├── handlers/
+      ├── templates/
+
+9. Templates (Jinja2)
+	Dynamic config generation.
+	
+	Example:
+	
+	server_name {{ domain_name }}
+
+10. Conditionals & Loops
+Topics:
+	when
+	loop
+	with_items
+
+Example:
+	when: ansible_os_family == "Debian"
+
+
+11. Tags
+	Run specific tasks only.
+	
+	Example:
+		ansible-playbook site.yml --tags nginx
+
+
+12. Vault (SECURITY)
+	Encrypt secrets:
+		passwords
+		API keys
+Example:
+	ansible-vault create secret.yml
+
+
+13. Ansible Galaxy
+	Used to:
+		download reusable roles
+
+14. Dynamic Inventory (Advanced)
+	
+	Cloud integration:
+		AWS EC2
+		Azure
+		GCP
+	Auto-fetches servers dynamically.
+
+
+15. Real Production Use Cases (VERY IMPORTANT)
+
+Interviewers LOVE these.
+
+Common real uses:
+	server patching
+	user creation
+	Kubernetes node setup
+	app deployment
+	nginx/apache configuration
+	OpenShift automation
+	VM provisioning
+
+16. Ansible + Kubernetes/OpenShift
+	Very important for DevOps roles.
+	
+	Use cases:
+		automate kubeadm join
+		deploy YAMLs
+		patch worker nodes
+		scale infrastructure
+
+17. Advanced Topics (Senior Level)
+	Topics:
+		Ansible Tower / AWX
+		idempotency
+		strategy plugins
+		async tasks
+		callbacks
+		custom modules
+
+
+MOST ASKED INTERVIEW QUESTIONS
+1. What is idempotency in Ansible?
+	Running playbook multiple times gives same result without unwanted changes.
+
+2. Difference between command and shell module?
+	command → no shell processing
+	shell → supports pipes, redirects
+
+3. What are roles?
+	Reusable structured automation components.
+
+4. What is Ansible Vault?
+	Used to encrypt sensitive data.
+
+5. Why is Ansible agentless?
+	Uses SSH; no agent installation required.
+
+MOST IMPORTANT TOPICS TO FOCUS (80% interviews)
+	If short on time, focus on:
+		✔ Inventory
+		✔ Playbooks
+		✔ Roles
+		✔ Variables
+		✔ Handlers
+		✔ Templates
+		✔ Vault
+		✔ Real production use cases
+		✔ Idempotency
+

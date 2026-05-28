@@ -1,0 +1,157 @@
+Nagios Installation Architecture
+================================
+Nagios Server
+   ↓
+Plugins
+   ↓
+Monitored Linux Servers (NRPE)
+
+Service Archtecture
+====================
+Nagios Server
+   ├── Nagios
+   ├── check_nrpe plugin
+   └── nrpe service
+
+Remote Server
+   └── nrpe service
+
+
+
+Step 1: Update server
+   # apt update
+   # apt upgrade
+
+Step 2: Install required packages
+
+   #sudo apt install -y apache2 php gcc libapache2-mod-php build-essential libgd-dev unzip libssl-dev
+   #sudo apt install -y php libapache2-mod-php php-gd
+
+
+
+Step 3: Create Nagios user
+
+   #sudo useradd nagios
+   #sudo groupadd nagcmd
+   #sudo usermod -aG nagcmd nagios
+   #sudo usermod -aG nagcmd www-data
+
+Step 4: Download Nagios Core
+   
+   #cd /tmp
+   #wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.5.0.tar.gz
+
+Step 5: Extract package
+   #tar -xzf nagios-4.5.0.tar.gz
+   #cd nagios-4.5.0
+
+Step 6: Compile and install
+   #sudo ./configure --with-command-group=nagcmd
+   #sudo make all
+   #sudo make install         << Install binaries
+   #sudo make install-config  << Install config
+   #sudo make install-webconf << Install Apache config
+   #sudo make install-init    << create service
+
+Step 7: Install Nagios plugins
+   
+   #cd /tmp
+   #wget https://nagios-plugins.org/download/nagios-plugins-2.4.6.tar.gz  (download latest version)
+
+   Extract
+   #tar -xzf nagios-plugins-2.4.6.tar.gz
+   #cd nagios-plugins-2.4.6
+
+   Compile
+   # sudo ./configure --with-nagios-user=nagios --with-nagios-group=nagios
+
+   Install
+   # sudo make
+   # sudo make install
+
+Step 8: Create web login user
+   #sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+   set password
+
+Step 9: Enable Apache modules
+   #sudo a2enmod rewrite
+   #sudo a2enmod cgi
+
+   Restart Apache:
+   # sudo systemctl restart apache2
+
+Step 10: Start Nagios
+   #sudo systemctl start nagios
+   #sudo systemctl enable nagios
+
+
+Step 11: Open Nagios UI
+   Browser:
+      http://<server-ip>/nagios
+   
+   Login:
+      Username: nagiosadmin   
+      Password: <your-password>
+
+Step 12: Verify monitoring
+   Check status:
+      #sudo systemctl status nagios
+   Verify config:
+      # /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+
+
+
+Add remote host monitoring (NRPE)
+================================
+Install NRPE on target server:
+
+STEP 1: Install EPEL Repository
+   # sudo dnf install epel-release -y
+   # sudo dnf update -y
+
+STEP 2: Install NRPE and Plugins
+   # sudo dnf install nrpe nagios-plugins-all -y
+
+
+STEP 3: Configure NRPE
+   Open config:
+   # sudo vi /etc/nagios/nrpe.cfg
+
+Allow Nagios Server IP
+
+Find:
+   allowed_hosts=127.0.0.1
+
+Change:
+   allowed_hosts=127.0.0.1,<nagios-server-ip>
+
+Example:
+   allowed_hosts=127.0.0.1,192.168.1.10
+
+
+STEP 4: Enable NRPE Service
+   # sudo systemctl enable nrpe
+   # sudo systemctl restart nrpe
+   
+   Check status:
+   # sudo systemctl status nrpe
+
+STEP 5: Open Firewall Port
+   NRPE uses:
+      TCP 5666
+   
+   Allow it:
+   # sudo firewall-cmd --permanent --add-port=5666/tcp
+   # sudo firewall-cmd --reload
+   
+   Verify:
+   # sudo firewall-cmd --list-ports
+
+Not working
+
+[root@vm1 ~]# /usr/lib64/nagios/plugins/check_nrpe -H 192.168.122.1
+connect to address 192.168.122.1 port 5666: Connection refused
+connect to host 192.168.122.1 port 5666: Connection refused
+
+

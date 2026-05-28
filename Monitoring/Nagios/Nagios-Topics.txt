@@ -1,0 +1,172 @@
+1. Nagios Basics (MUST KNOW)
+Topics:
+	What is Nagios?
+	Infrastructure monitoring tool
+	Monitoring servers, applications, network devices
+	Alerting system
+
+Common questions:
+	Why Nagios?
+	What can Nagios monitor?
+	Difference between monitoring and alerting?
+
+2. Nagios Architecture
+	Components:
+		Nagios Server
+		Plugins
+		NRPE
+		Hosts
+		Services
+
+Important flow:
+Nagios Server
+   ↓
+Plugin execution
+   ↓
+Remote host check
+   ↓
+Status returned
+   ↓
+Alert generated
+
+
+3. Hosts and Services
+Host
+	A machine/device:
+		Linux server
+		Windows server
+		Switch/router
+Service
+	What you monitor on host:
+		CPU
+		Memory
+		Disk
+		HTTP
+		SSH
+
+4. Plugins (VERY IMPORTANT)
+	Nagios works using plugins.
+	
+	Examples:
+		check_ping
+		check_http
+		check_disk
+		check_cpu
+Interview question:
+	“How does Nagios perform monitoring?”
+	Answer:
+		Nagios uses plugins to execute checks and determine service or host status.
+
+5. NRPE (MOST ASKED)
+What is NRPE?
+	Nagios Remote Plugin Executor.
+
+	Used for:
+		executing checks on remote Linux servers
+
+Flow:
+Nagios Server
+   ↓
+NRPE Agent on remote host
+   ↓
+Runs local check
+   ↓
+Returns output
+
+6. Monitoring Types
+	
+	Active checks
+		Nagios initiates checks.
+	
+	Passive checks
+		External apps send results to Nagios.
+
+7. Alerting & Notifications
+	Topics:
+		Email alerts
+		Slack alerts
+		Escalation
+		Notification intervals
+
+
+8. States in Nagios
+Host states:
+	UP
+	DOWN
+	UNREACHABLE
+Service states:
+	OK
+	WARNING
+	CRITICAL
+	UNKNOWN
+
+
+9. Configuration Files
+Important configs:
+	nagios.cfg
+	hosts.cfg
+	services.cfg
+	commands.cfg
+	contacts.cfg
+
+10. Service Checks Examples
+	Disk monitoring
+		check_disk
+	HTTP monitoring
+		check_http
+	SSH monitoring
+		check_ssh
+
+
+11. Event Handlers
+	Automatically execute scripts when issue occurs.
+	
+	Example:
+		restart service automatically
+
+
+15. Real Production Use Cases
+
+Very important for interviews.
+
+Common monitoring:
+	CPU
+	Memory
+	Disk
+	Pods
+	Kubernetes nodes
+	SSL expiry
+	URL uptime
+	DB availability
+
+
+17. Troubleshooting Questions
+	NRPE not working
+	Check:
+		firewall
+		allowed_hosts
+		service status
+
+================
+Interview Questions
+
+1. What is NRPE?
+	Used to run remote checks on Linux systems.
+
+2. Difference between active and passive checks?
+	Active → Nagios initiates
+	Passive → External app sends result
+
+3. How does Nagios generate alerts?
+	Based on plugin return codes and thresholds.
+
+4. What are plugins?
+	Scripts/binaries used to perform checks.
+
+5. What is the difference between host and service?
+	Host = machine
+	Service = monitored component on machine
+
+
+Interview-ready answer
+	Nagios is an infrastructure monitoring tool used to monitor servers, network devices, and applications. It works using plugins that perform service and host checks. NRPE is used for executing remote checks on Linux servers. Nagios supports alerting, escalation, and both active and passive monitoring.

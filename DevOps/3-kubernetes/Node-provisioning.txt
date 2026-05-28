@@ -1,0 +1,169 @@
+Q) Add new node in kube cluster?
+
+Manual node joining using kubeadm join exists, but it is mainly used for testing, troubleshooting, or small environments. In production, we automate this process using Ansible/Terraform and cloud-init so that nodes join the cluster automatically during provisioning.
+
+
+Q) Add a New Node to Kubernetes
+================================
+1. Update system
+	# sudo apt update && sudo apt upgrade -y
+
+2. Install container runtime (containerd)
+	# sudo apt install -y containerd
+
+	Enable and start:
+	# sudo systemctl enable containerd
+	# sudo systemctl start containerd
+
+3. Install Kubernetes components
+	# sudo apt-get install -y apt-transport-https ca-certificates curl
+	# sudo apt update
+	# sudo apt install -y kubelet kubeadm
+	# sudo apt-mark hold kubelet kubeadm
+
+4. Disable swap (IMPORTANT)
+
+	# sudo swapoff -a
+	# vim /etc/fstab
+
+5. Get JOIN command from Master Node
+	
+	# kubeadm token create --print-join-command
+	# kubeadm join 192.168.1.100:6443 --token abc123.def456 --discovery-token-ca-cert-hash sha256:xxxxxxx
+
+	This will:
+		connect to master
+		download cluster certs
+		register kubelet
+		join node to cluster
+
+6. Verify node on master
+	
+	# kubectl get nodes
+
+	Expected output:
+		node-1   Ready
+		node-2   Ready
+		node-3   Ready
+
+
+Production Note (IMPORTANT)
+	In real companies:
+		this process is automated using Ansible/Terraform node join happens during VM provisioning manual join is only for debugging.
+
+
+	In short
+	To add a new node in Kubernetes, we first prepare the VM by installing container runtime and kubelet. Then we retrieve the kubeadm join command from the master node and execute it on the new worker node. After that, the node registers with the cluster and becomes Ready, which we verify using kubectl get nodes. In production, this process is usually automated using IaC tools like Terraform or Ansible.
+
+Remove a Kubernetes Node
+========================
+1. Cordon the node (stop new pods)
+	On the control plane:
+		#kubectl cordon <node-name>   # This prevents new pods from being scheduled.
+
+2. Drain the node (evict running pods)
+	
+	# kubectl drain <node-name> --ignore-daemonsets --delete-emptydir-data
+
+	What this does:
+		Evicts all pods safely
+		Keeps DaemonSets running (like logging/monitoring agents)
+		Ensures workloads are rescheduled elsewhere
+
+3. Delete node from cluster
+	# kubectl delete node <node-name>
+
+	👉 This removes the node from Kubernetes API.
+		At this point:
+			- Cluster no longer considers it part of the cluster
+			- Workloads are already moved
+
+4. Clean up on the worker node (IMPORTANT)
+	
+	SSH into the node you are removing:
+		
+		Reset Kubernetes state:
+		 # sudo kubeadm reset
+
+		Remove leftover configs (recommended):
+		 # sudo rm -rf /etc/kubernetes/
+		 # sudo rm -rf ~/.kube
+		 # sudo rm -rf /var/lib/kubelet/
+
+		Restart container runtime:
+		 # sudo systemctl restart containerd
+
+	🔥 Production Best Practice
+		In real companies:
+			✔ You always drain first
+			✔ Then delete node
+			✔ Then terminate VM (cloud)
+		
+		In cloud environments (EKS/GKE/AKS):
+			- node is removed automatically when instance is terminated
+			- autoscaler handles replacement
+
+		Optional: If node is stuck
+			Force delete:
+				# kubectl delete node <node-name> --force --grace-period=0
+
+
+	In short
+		To remove a node from a Kubernetes cluster, we first cordon the node to stop new workloads, then drain it to safely evict running pods. After that, we delete the node object from the cluster using kubectl delete node. Finally, on the worker machine, we reset Kubernetes using kubeadm reset and clean up leftover configuration files. In production, this process is often automated and tied to cloud instance termination or autoscaling groups.
+
+Interview Qustions
+==================
+Q) How do you add a node in Kubernetes?
+Q) How do you verify a node is added successfully?
+Q) What happens when a node joins the cluster?
+	- kubelet registers with API server
+	- node object is created in etcd
+	- scheduler can assign pods to it
+
+Q) What are the steps to safely remove a node?
+	We follow 3 steps:
+		- Cordon the node (stop scheduling)
+		- Drain the node (evict pods safely)
+		- Delete the node from cluster
+	
+	Then optionally reset kubeadm on the node.
+
+Q) What is cordon in Kubernetes?
+	It marks a node as unschedulable, so new pods are not placed on it.
+		# kubectl cordon <node>
+
+Q) What is drain in Kubernetes?
+	Drain evicts all running pods from the node safely before maintenance or removal.
+		# kubectl drain <node> --ignore-daemonsets
+
+Q) Why do we use drain before deleting a node?
+	To ensure:
+		- no workload downtime
+		- pods are rescheduled to other nodes
+		- graceful eviction
+
+Q) What happens if you directly delete a node without draining?
+	- pods may get terminated abruptly
+	- potential downtime
+	- stateful workloads may break
+
+Q) What happens internally when a node is added?
+	- kubelet bootstraps TLS identity
+	- node registers with API server
+	- node is added to etcd
+	- scheduler starts placing pods
+
+Q) What happens internally when a node is removed?
+	- node object is deleted from etcd
+	- scheduler stops assigning pods
+	- controllers reschedule pods elsewhere
+
+Q) What is kubelet’s role in node lifecycle?
+	- registers node
+	- reports health (heartbeat)
+	- manages pod lifecycle on node
+
+Q) What is the difference between deleting a node and terminating a VM?
+	deleting node → Kubernetes forgets it
+	terminating VM → infrastructure gone, but Kubernetes may still show node until timeout
+

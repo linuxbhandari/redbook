@@ -1,0 +1,66 @@
+Step-by-step user request flow in Kubernetes inside Kubernetes
+==============================================================
+User → DNS resolver → LoadBalancer → Ingress → Service → kube-proxy → CNI → Pod → App → Response back reverse path
+
+Plus:
+
+Endpoint controller updates pod IPs
+kube-proxy rewrites IP tables rules
+CNI handles cross-node VXLAN/BGP routing
+
+=====================
+Let’s assume:
+👉 User hits an application URL (e.g., http://myapp.com)
+
+Step 1: User sends request
+		User (https://myapp.com)
+		|
+		Browser ()
+		|
+		DNS resolution
+	
+Step 2: Ingress / Load Balancer receives request
+
+	Request enters cluster via:
+		Option A: Ingress Controller
+			NGINX Ingress / ALB Ingress
+
+		Option B: Service of type LoadBalancer
+			Cloud LB (AWS ELB / Azure LB)
+
+	👉 This is entry point into cluster
+
+Step 3: Service receives request
+
+	Inside cluster:
+		- Request reaches Kubernetes Service
+		- Service is virtual load balancer
+		
+		Types:
+			- ClusterIP (internal)
+			- NodePort
+			- LoadBalancer
+	
+	Service selects backend pods using labels
+
+Step 4: kube-proxy routes traffic
+		kube-proxy:
+		- maintains routing rules (iptables/IPVS)
+		- forwards request to correct Pod IP
+
+Step 5: Pod receives request
+	Now request reaches:
+	
+	👉 Application Pod (container)
+	
+	Pod runs your app (e.g., Node.js / Java / Python)
+
+Step 6: Container processes request
+	Inside container:
+		- application logic runs
+		- DB calls may happen
+		- external APIs may be called
+
+Step 7: Response generated
+		App sends response back to:
+		Pod → Service → Ingress/LB → User

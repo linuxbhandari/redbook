@@ -1,0 +1,220 @@
+Step 0: Pre-checks (VERY IMPORTANT)
+	Check current version
+		# kubectl version
+
+	Check nodes
+		# kubectl nodes
+
+	Check cluster health
+		# kubectl get pods -A
+
+			✔ Ensure:
+				all nodes Ready
+				no CrashLoopBackOff
+				etcd healthy
+
+
+Step 1.1: Upgrade Control Plane Node (Master)
+	
+		Update kubeadm package
+		# sudo apt-get update
+		# sudo apt-get install -y kubeadm=<target-version>
+
+		example : sudo apt-get install -y kubeadm=1.29.x
+
+
+	1.2 Plan upgrade
+		# sudo kubeadm upgrade plan
+
+		This shows:
+			current version
+			target version
+			compatibility issues
+
+	
+	1.3 Apply upgrade
+		# sudo kubeadm upgrade apply v1.29.x
+
+		👉 This upgrades:
+			API server
+			controller-manager
+			scheduler
+			etcd (if managed by kubeadm)
+
+	1.4 Upgrade kubelet on master
+		# sudo apt-get install -y kubelet=<target-version>
+		# sudo systemctl restart kubelet
+
+	1.5 Verify master upgrade
+		# kubectl get nodes
+
+Step 2: Upgrade Worker Nodes
+	
+	Do this one node at a time (zero downtime approach).
+
+
+	2.1 Drain node
+			# kubectl drain <node-name> --ignore-daemonsets
+
+	2.2 SSH into node & upgrade kubeadm
+			# sudo apt-get install -y kubeadm=<target-version>
+
+	2.3 Upgrade node config
+			# sudo kubeadm upgrade node
+
+	2.4 Upgrade kubelet
+			# sudo apt-get install -y kubelet=<target-version>
+			# sudo systemctl restart kubelet
+
+	2.5 Uncordon node
+			# kubectl uncordon <node-name>
+
+	2.6 Repeat for all worker nodes
+
+
+Step 3: Final Verification
+		# kubectl get nodes
+		# kubectl get pods -A
+		
+		✔ All nodes should be:
+			- Ready
+			- same version (or upgraded version)
+
+
+Upgrade Flow Diagram (Interview favorite)
+=========================================
+Control Plane Upgrade
+        ↓
+kubeadm upgrade apply
+        ↓
+Upgrade kubelet on master
+        ↓
+Drain Worker Node
+        ↓
+Upgrade worker node
+        ↓
+Uncordon node
+        ↓
+Repeat
+
+
+Important Production Rules
+✔ Always upgrade control plane first
+✔ Upgrade one worker at a time
+✔ Ensure version skew policy:
+
+kubelet can be 1 version behind control plane
+✔ Use maintenance window
+✔ Monitor workloads during upgrade
+
+Interview-ready answer
+	To upgrade a Kubernetes cluster, we first upgrade the control plane using kubeadm upgrade apply after updating kubeadm package. Then we upgrade kubelet on the master node. After that, we upgrade worker nodes one by one by draining them, upgrading kubeadm and kubelet, and then uncordoning them. This ensures zero downtime and follows Kubernetes version skew policy.
+
+================
+Interview Questions
+
+Q) What is Kubernetes upgrade?
+	Upgrade means moving cluster components (control plane + nodes) to a newer version to get new features, security fixes, and 
+	improvements.
+
+Q) What is patching in Kubernetes?
+	Patching means applying minor fixes (security or bug fixes) without changing major version.
+	Example:
+		1.28.1 → 1.28.2 (patch)
+		1.28 → 1.29 (upgrade)
+
+Q) Why do we upgrade Kubernetes clusters?
+	Security fixes
+	Bug fixes
+	New features
+	Performance improvements
+	Vendor support lifecycle
+
+Q) What is version skew policy?
+	Kubernetes allows limited version difference:
+		kubelet can be ±1 minor version from control plane
+		kubectl can be newer or older within limits
+
+Q) What are the components upgraded in a cluster?
+	API server
+	Controller manager
+	Scheduler
+	etcd (if managed by kubeadm)
+	kubelet on nodes
+	kubectl (client tool)
+
+Q) What is the correct upgrade order?
+	Control plane
+	Worker nodes
+	Client tools (kubectl)
+
+Q) What is the difference between upgrade and patch upgrade?
+	Upgrade → minor/major version change (1.28 → 1.29)	
+	Patch → bug/security fix (1.28.1 → 1.28.2)
+
+Q) What is kubeadm upgrade?
+	It is the tool used to upgrade self-managed Kubernetes clusters.
+
+Advanced Questions
+==================
+Q) How do you perform a Kubernetes upgrade in production?
+	Steps:
+		upgrade control plane using kubeadm
+		upgrade kubelet on master
+		drain worker nodes one by one
+		upgrade worker nodes
+		uncordon nodes
+Q) Why do we drain nodes before upgrading?
+	To:
+		safely evict pods
+		avoid downtime
+		allow rescheduling on other nodes
+
+Q) What happens if you don’t drain nodes during upgrade?
+	pod disruption
+	service downtime
+	broken workloads
+
+Q) What is rolling upgrade in Kubernetes?
+	Upgrading nodes one by one to ensure zero downtime.
+
+Q) Upgrade failed midway. What do you do?
+	check kubelet logs
+	rollback if possible
+	fix version mismatch
+	restart control plane components
+
+Q) Node shows NotReady after upgrade. Why?
+	kubelet version mismatch
+	CNI plugin issue
+	container runtime not compatible
+
+Q) How do you verify cluster is healthy before upgrade?
+	kubectl get nodes
+	kubectl get pods -A
+	kubectl version
+
+Q) How do you minimize downtime during upgrade?
+	rolling upgrade
+	drain nodes
+	pod disruption budgets (PDBs)
+	multiple replicas of apps
+
+Q) Can you downgrade Kubernetes cluster?
+	Not officially supported easily. Usually:
+		restore backup
+		recreate cluster
+		or rollback VM snapshot
+
+Q) What is patch upgrade strategy in production?
+	apply patches frequently (security-first)
+	test in staging first
+	then production rollout
+
+Q) How often should Kubernetes be upgraded?
+	every 3–6 months in production
+	avoid skipping multiple minor versions
+
+Interview short ans
+	Kubernetes upgrade involves updating cluster components to a newer version for security and feature improvements. In self-managed clusters, we first upgrade the control plane using kubeadm, then upgrade worker nodes one by one using a rolling upgrade approach. Nodes are drained before upgrading to avoid downtime. In managed services like EKS or GKE, upgrades are handled by the cloud provider.
+
