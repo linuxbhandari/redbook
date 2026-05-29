@@ -1,0 +1,142 @@
+In OpenShift (and Kubernetes), Ingress basics are about how external traffic reaches applications inside the cluster.
+
+In OpenShift, this is mainly handled by Routes, but the concept is based on Kubernetes Ingress.
+
+Q) What is Ingress?
+		- Ingress is a Kubernetes API object that manages external HTTP/HTTPS access to services inside the cluster.
+		- It acts like a smart traffic entry point.
+	
+Q) Why Ingress is needed?
+	Inside the cluster:
+		Pods have internal IPs
+		Services are internal only
+	So external users cannot directly access them.
+	
+	👉 Ingress solves this by exposing applications securely.
+
+	Basic Flow : User → Ingress → Service → Pod
+
+	Example Scenario
+	You have:
+	
+	nginx app running in cluster
+	Service: nginx-service
+
+	Without Ingress:
+		only internal access
+	With Ingress:
+		external URL access becomes possible
+
+	
+	Key Components of Ingress
+		1. Ingress Resource
+				Defines rules (host/path)
+		2. Ingress Controller
+				Actual component that implements rules
+				Example: NGINX Ingress Controller, HAProxy
+
+Q) In OpenShift (Important Difference)
+	
+	In OpenShift, Ingress is abstracted as:
+	👉 Routes (preferred in OpenShift)
+		
+		Instead of Ingress, you usually use:
+			# oc expose service nginx-service
+		
+		This creates a Route:
+			myapp.apps.cluster.com
+
+Q) Ingress vs Route
+	Feature		Ingress (Kubernetes)		Route (OpenShift)
+	Exposure	External traffic routing	Same
+	TLS			Supported					Advanced TLS options
+	Controller	Ingress Controller			OpenShift Router
+	Usage		Generic Kubernetes			OpenShift native
+
+
+Q) OpenShift Router Role
+	Traffic flow in OpenShift:
+		User → OpenShift Router → Service → Pod
+	
+	Router runs on infra nodes and handles:
+		HTTP routing
+		HTTPS termination
+		Load balancing
+
+Q) Types of Ingress Routing
+	1. Path-based routing
+		myapp.com/api → API service
+		myapp.com/web → Web service
+	
+	2. Host-based routing
+		api.myapp.com → API service
+		ui.myapp.com → UI service
+
+Q) Why Ingress is Important
+	Without it:
+		apps are internal only
+		no external access
+	
+	With it:
+		secure exposure of services
+		centralized routing
+		TLS termination
+
+
+Ingress
+=======
+Q) Is Ingress external in Kubernetes?
+	In Kubernetes, Ingress is not external software by itself.
+		👉 Ingress is just an API object (a set of rules).
+
+	“Ingress is a Kubernetes API resource, but it requires an Ingress Controller to work, which must be installed separately in Kubernetes clusters.”
+	
+Q) What is missing then?
+	To make Ingress work, you must install something called:
+	
+	Ingress Controller
+
+Q) Correct architecture in Kubernetes
+	User → Ingress Controller → Service → Pod
+	Key point:
+		Ingress = rules (YAML object)
+		Ingress Controller = actual traffic handler (real software)
+
+Q) Do we install Ingress in Kubernetes?
+	Yes — you must install the controller manually.
+	
+	Examples:
+		NGINX Ingress Controller
+		Traefik
+		HAProxy Ingress Controller
+		AWS ALB Ingress Controller (in EKS)
+
+Q) What about OpenShift?
+	In OpenShift:
+		👉 You do NOT install ingress controller manually.
+	
+	Because OpenShift already provides:
+	OpenShift Router (HAProxy-based)
+
+Q) OpenShift flow
+		User → OpenShift Router → Service → Pod
+	
+	So instead of Ingress Controller, OpenShift uses:
+		Router (built-in)
+		Routes (OpenShift object)
+
+Q) Simple comparison
+	Feature				Kubernetes			OpenShift
+	Ingress object		Yes					Yes
+	Controller			Install manually	Built-in Router
+	Default routing		No					Yes
+	Extra setup			Required			Not required
+	
+Q) Real-life analogy
+	Ingress = traffic rules (map directions)
+	Ingress Controller = driver (who actually drives)
+
+	In Kubernetes → you hire driver yourself
+	In OpenShift → driver is already provided (Router)
+
+Q) 

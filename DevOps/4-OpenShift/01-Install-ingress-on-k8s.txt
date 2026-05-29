@@ -1,0 +1,60 @@
+STEP 1: Install Ingress Controller
+	
+	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.2/deploy/static/provider/cloud/deploy.yaml
+
+STEP 2: Check namespace
+
+root@kube-master:~# kubectl get ns | grep ingress
+ingress-nginx     Active   38s
+
+
+STEP 3: Check pods
+
+root@kube-master:~# kubectl get pods -n ingress-nginx
+NAME                                       READY   STATUS      RESTARTS   AGE
+ingress-nginx-admission-create-h9xtd       0/1     Completed   0          93s
+ingress-nginx-admission-patch-4sgjk        0/1     Completed   2          93s
+ingress-nginx-controller-d498747d7-x4b6p   1/1     Running     0          93s
+
+STEP 4: Check service
+
+root@kube-master:~# kubectl get svc -n ingress-nginx
+NAME                                 TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             LoadBalancer   10.105.42.186   <pending>     80:30858/TCP,443:32618/TCP   2m11s
+ingress-nginx-controller-admission   ClusterIP      10.110.15.95    <none>        443/TCP                      2m11s
+
+
+root@kube-master:~# kubectl get svc -n ingress-nginx
+NAME                                 TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             LoadBalancer   10.105.42.186   <pending>     80:30858/TCP,443:32618/TCP   2m11s
+ingress-nginx-controller-admission   ClusterIP      10.110.15.95    <none>        443/TCP                      2m11s
+
+root@kube-master:~# kubectl patch svc ingress-nginx-controller -n ingress-nginx -p '{"spec":{"type":"NodePort"}}'
+service/ingress-nginx-controller patched
+
+root@kube-master:~# kubectl get svc -n ingress-nginx
+NAME                                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             NodePort    10.105.42.186   <none>        80:30858/TCP,443:32618/TCP   3m
+ingress-nginx-controller-admission   ClusterIP   10.110.15.95    <none>        443/TCP                      3m
+
+
+
+root@kube-master:~# cat demo-ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: demo.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: demo-svc
+            port:
+              number: 80
+

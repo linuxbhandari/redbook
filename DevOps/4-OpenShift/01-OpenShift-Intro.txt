@@ -2,8 +2,8 @@
 	What is Red Hat OpenShift
 	OpenShift vs Kubernetes
 	OpenShift architecture overview
-	Core components (API Server, Scheduler, Controller Manager, etc.)
-
+	Core components (API Server, etcd, Scheduler, Controller Manager, OAuth server etc.)
+=============================
 
 Q) What is Openshift
 	Kubernetes-based enterprise container platform
@@ -15,14 +15,13 @@ Q) OpenShift vs Kubernetes
 	Kubernetes = Core container orchestration engine
 	OpenShift = Kubernetes + enterprise platform features
 
-	Q) Key differences:
+	Q) Key differences: (IMP)
 		Built-in registry
 		Source-to-Image (S2I)
 		Routes (instead of only Ingress)
 		Strict security (SCC)
 		Integrated CI/CD tools
 		Web console + developer tools
-
 
 Q) OpenShift Architecture Overview
 	Master nodes (control plane)
@@ -32,11 +31,164 @@ Q) OpenShift Architecture Overview
 	API-driven system
 
 Q) Core Components
-	API Server
-	Scheduler
-	Controller Manager
-	etcd
-	Kubelet (on nodes)
-	OpenShift Router (Ingress controller)
-	Image Registry
-	OAuth server
+	a) API Server
+		- The API Server is the entry point of the cluster. Everything communicates through it.
+		Responsibilities
+			- Receives all oc and UI requests
+			- Validates requests
+			- Stores cluster data in etcd
+			- Communicates with scheduler and controllers
+		
+		Flow : oc CLI → API Server → etcd
+	
+	b) Scheduler 
+		- Scheduler decides: “Which worker node should run the pod?”
+			What Scheduler Checks
+				CPU availability
+				Memory availability
+				Node labels
+				Taints & tolerations
+				Affinity rules
+				Resource requests
+		
+		Flow: Pod Created → Scheduler checks nodes → Selects best worker node
+		
+		Example:
+			If Worker-1 has low CPU usage: Scheduler places pod there
+
+	c) Controller Manager
+		Controller Manager maintains the desired state of the cluster.
+		
+		Example
+			Desired:  3 replicas of nginx
+			
+			Actual: Only 2 running
+			
+			Controller Manager notices mismatch and creates another pod.
+		
+		
+		Types of Controllers
+			Deployment controller
+			Node controller
+			ReplicaSet controller
+			Job controller
+			Endpoint controller
+		
+		Main Purpose
+			Automatically heal and maintain cluster state.
+
+	d) etcd: 
+		etcd is the cluster database.
+			It stores:
+				pods, deployments, secrets, configmaps, node details, cluster configuration
+		
+		Important Characteristics
+			Distributed key-value store
+			Highly available
+			Very critical component
+		
+	Example
+		When deployment is created:
+		
+		Flow: API Server → stores deployment data in etcd
+
+	Important Note
+		If etcd is lost:
+			cluster state is lost
+		
+		That’s why etcd backup is very important.
+
+	e) Kubelet (on nodes)
+		Kubelet is the node agent.
+			It runs on:
+				workers	
+				masters/control plane
+
+		Responsibilities
+			Talks to API server	
+			Creates containers
+			Monitors pod health
+			Reports node status
+
+Flow
+
+Scheduler selects worker node
+        |
+API Server informs kubelet
+        |
+Kubelet starts container
+
+	
+	f) OpenShift Router (Ingress controller)
+		- Router exposes applications externally.
+		- Usually based on HAProxy.
+		
+		Responsibilities
+			Handles incoming traffic
+			Routes requests to services/pods
+			SSL termination
+			Load balancing
+	
+	Flow : User → Router → Service → Pod
+	
+	Usually Runs On
+		Infra nodes.
+
+	g) Image Registry
+		- Internal container image storage.
+		- OpenShift includes integrated registry.
+		
+		Responsibilities
+			Store container images
+			Pull/push images
+			Used by builds and deployments
+	
+		Benefits
+			Internal secure registry
+			Faster deployment
+			Integrated authentication
+
+	h) OAuth server
+		OAuth server handles authentication.
+		
+		Responsibilities
+			Login authentication
+			Token generation
+			Identity provider integration
+
+Login Flow
+===========
+User Login
+    |
+OAuth Server validates user
+    |
+Access token generated
+    |
+API access granted
+
+	In OpenShift, both the OAuth server and API Server are involved in security, but their responsibilities are different.
+	
+	Simple 			Difference
+	Component		Responsibility
+	OAuth Server	Authenticates user (Who are you?)
+	API Server		Authorizes and processes requests (What can you do?)
+
+Full OpenShift Request Flow
+============================
+User
+  |
+OpenShift Router
+  |
+API/Application Service
+  |
+Pod on Worker Node
+  |
+Kubelet manages pod
+  |
+API Server manages cluster state
+  |
+etcd stores configuration
+  |
+Scheduler places workloads
+  |
+Controller Manager maintains desired state

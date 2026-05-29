@@ -1,0 +1,151 @@
+Basic Cluster Layout
+====================
+                    Users / Applications
+                             |
+                      OpenShift Router
+                             |
+                    =================
+                    |              |
+               Ingress         API Access
+                    |
+          -----------------------
+          |         |          |
+       Infra      Infra      Infra
+        Node       Node       Node
+          |
+  -----------------------------------
+  |               |                 |
+Control Plane  Control Plane   Control Plane
+(Master-1)      (Master-2)      (Master-3)
+
+          |
+  -----------------------------------
+  |               |                 |
+Worker-1       Worker-2         Worker-3
+(App Pods)     (App Pods)       (App Pods)
+
+          |
+  -----------------------------------
+  |               |                 |
+Metrics-1      Metrics-2        Metrics-3
+Monitoring     Monitoring       Monitoring
+
+
+1. Control Plane Nodes (Controller / Master Nodes)
+	These are the brain of the cluster.
+	
+	Main Responsibilities
+	- API Server : Handles all cluster requests:
+	
+	- Scheduler : which pod goes to which worker node
+	
+	- Controller Manager : Maintains desired state:
+	
+	- etcd : Distributed key-value database storing:
+			cluster state, secrets, configs, node info
+			
+	
+	Q) Why 3 Controller Nodes?
+	
+	For High Availability.
+
+	OpenShift uses etcd quorum.
+		With 3 nodes:
+			- cluster survives failure of 1 master
+			- quorum remains available
+	Example:
+		2/3 healthy = cluster works
+		1/3 healthy = cluster issue
+	
+2. Infra Nodes
+	Infra nodes run platform-related workloads instead of user applications.
+	
+	Common Infra Workloads
+		Router / HAProxy ingress
+		Internal registry
+		Monitoring components
+		Logging stack
+		GitOps / ArgoCD
+		Service Mesh components
+
+	Why Separate Infra Nodes?
+	Benefits:
+		application workload isolation
+		better performance
+		security separation
+		avoids worker resource exhaustion
+	
+	Example: Labels
+		node-role.kubernetes.io/infra=""
+		
+
+3. Worker Nodes
+	These nodes run actual application workloads.
+	
+	Examples:
+		Java apps, APIs, Microservices, Databases, Batch jobs
+	Pods are scheduled here by default.
+	
+	Worker Responsibilities
+		run containers
+		kubelet communication
+		pod networking
+		storage mounting
+
+4. Metrics / Monitoring Nodes
+	Dedicated monitoring nodes are commonly used in enterprise environments.
+	
+	These run monitoring stack components like:	
+		Prometheus	
+		Grafana
+		Alertmanager
+		Thanos
+		Metrics collectors
+
+	Q) Why Separate Monitoring Nodes?
+		Monitoring consumes:
+			CPU
+			memory
+			storage
+		
+		Separating them avoids impact on application workloads.
+
+
+
+Node Communication Flow
+
+1) Example Pod Deployment Flow
+	
+User → API Server → Scheduler
+                     |
+               selects worker node
+                     |
+                kubelet creates pod
+                     |
+                 CNI assigns IP
+                     |
+               application becomes accessible
+			   
+2) Ingress Traffic Flow
+
+User Request
+     |
+ Load Balancer
+     |
+ Router Pod (Infra Node)
+     |
+ Service
+     |
+ Application Pod (Worker Node)
+ 
+ 
+3) Monitoring Flow
+
+Node / Pod Metrics
+        |
+    Prometheus
+        |
+    Alertmanager
+        |
+     Grafana
+

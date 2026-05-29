@@ -1,0 +1,176 @@
+1. Core Kubernetes (Must-Have Foundation)
+	OpenShift is built on Kubernetes, so this is non-negotiable.
+	Key topics:
+		Pods, Deployments, ReplicaSets
+		Services (ClusterIP, NodePort, LoadBalancer)
+		ConfigMap & Secret
+		Namespaces
+		Volumes (emptyDir, hostPath, PV/PVC, ConfigMap, Secrets)
+		Ingress basics
+		Labels & selectors
+	
+	Must be able to:
+		Write YAML from scratch
+		Debug pod issues
+		Explain pod lifecycle
+
+2. OpenShift-Specific Concepts (Very Important)
+	This is what makes you stand out in interviews.
+	
+	Must know:
+	
+	OAuth Authentication
+		OAuth server flow
+		Identity providers (LDAP, GitHub, OIDC)
+	
+	Routes
+		OpenShift equivalent of Ingress	
+		Edge, passthrough, re-encrypt routes
+	
+	Image Streams
+		OpenShift abstraction over container images
+		Automatic image tracking
+	
+	SCC (Security Context Constraints)
+		More strict than Kubernetes PSP
+		Controls container permissions
+	
+	BuildConfig
+		Source-to-image (S2I)
+		Image builds inside cluster
+
+3. Cluster Architecture (Very Frequently Asked)
+	You should understand roles:
+		Control Plane (API server, scheduler, controller, etcd)
+		Worker nodes
+		Infra nodes
+		Monitoring nodes
+	
+	And components like:
+		API Server
+		etcd
+		Scheduler
+		Controller Manager
+		Kubelet
+		Router
+		Image Registry
+		OAuth server
+
+	
+	👉 Be ready to explain “end-to-end request flow”.
+
+4. Networking (Very Important for Troubleshooting)
+	Topics:
+		Cluster networking (OVN-Kubernetes / SDN)
+		Service discovery
+		DNS inside cluster
+		Route vs Service
+		Ingress traffic flow
+
+	Common questions:
+		Why pod is not reachable?
+		Service not accessible?
+		DNS resolution issues?
+
+5. Storage (Very Common in Interviews)
+	Must know:
+		PersistentVolume (PV)
+		PersistentVolumeClaim (PVC)
+		StorageClass
+		Dynamic provisioning
+		Reclaim policies
+	Also:
+		Ceph / OpenShift Data Foundation basics
+
+6. Security (Highly Important)
+		RBAC (Role, ClusterRole, RoleBinding)
+		ServiceAccounts
+		OAuth authentication
+		SCC (very OpenShift-specific)
+		Token-based authentication
+
+7. Monitoring & Logging
+		Prometheus
+		Grafana
+		Alertmanager
+		Cluster logging (EFK / Loki stack)
+
+	Be able to:
+		check logs
+		troubleshoot failing pods
+		read events
+8. CLI Tools You Must Know
+	Core:
+		oc get pods
+		oc describe pod <name>
+		oc logs <pod>
+		oc exec -it <pod> -- bash
+		oc get nodes
+	Debugging:
+		oc get events
+		oc describe node
+		oc adm top nodes
+		oc adm top pods
+
+9. Networking + Troubleshooting Scenarios
+	
+	You should practice:
+		Pod CrashLoopBackOff
+		ImagePullBackOff
+		Service not reachable
+		Route not working
+		Node NotReady
+		PVC stuck pending
+
+10. Automation & DevOps Skills (Big Plus)
+
+	Since you already have experience, highlight:
+		Ansible (you already use it 👍)
+		CI/CD pipelines (Jenkins, GitOps)
+		ArgoCD / GitOps
+		Helm charts
+		YAML automation
+
+11. Real Production Knowledge (Differentiator)
+	
+	Interviewers love this:	
+		Rolling upgrades
+		Cluster patching process
+		Backup & restore (etcd backup)
+		Node draining:
+				oc adm drain <node>
+		Scaling applications
+
+12. Bonus Advanced Topics (For Senior Roles)
+		OpenShift upgrade process
+		Cluster operators (oc get co)
+		MachineConfig & MachineConfigPool
+		CRDs and Operators
+		CNI (OVN-Kubernetes)
+		NetworkPolicy
+
+What Interviewers Expect From You
+
+They don’t just ask definitions.
+
+They ask:
+	“Pod is not reachable—how will you debug?”
+	“Explain request flow in OpenShift”
+	“Difference between Route and Ingress?”
+	“What happens when a node fails?”
+	“How does OAuth work with API server?”
+
+Simple Interview Strategy
+
+Focus on 3 layers:
+	1. Concept
+		What is it?
+	
+	2. Flow
+		How does it work end-to-end?
+	
+	3. Troubleshooting
+		
+		How do you fix it in real life?
+		
+	

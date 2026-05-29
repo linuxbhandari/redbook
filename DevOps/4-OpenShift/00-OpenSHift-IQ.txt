@@ -22,6 +22,59 @@ Q) What are the key components of OpenShift control plane?
 	Scheduler
 	etcd
 	OAuth server
+		- OAuth server is the component responsible for authentication and login management.
+		- It verifies user identity and issues authentication tokens that allow users, applications, or CLI tools to access the cluster securely.
+		Simple Flow
+			- User tries to log in to OpenShift
+			- OAuth server checks the username/password or external identity provider
+			- If authentication is successful:
+				* OAuth server generates an access token
+				* User gets access based on RBAC permissions
+			
+			Where It Is Used
+			- Web Console Login
+				* When you open the OpenShift console URL, the OAuth server handles the login page and authentication.
+			- oc CLI Login
+				* The OAuth server validates credentials and returns a token.
+			
+			Authentication Sources (Identity Providers)
+				OpenShift OAuth server can integrate with:
+					LDAP / Active Directory
+					HTpasswd
+					GitHub
+					GitLab
+					Google
+					OpenID Connect (OIDC)
+					SAML providers
+
+			Common Troubleshooting
+				1. Login Page Not Opening
+					check : 
+						# oc get co authentication
+				
+				2. OAuth Pods Not Healthy
+						# oc get pods -n openshift-authentication
+						# oc logs <pod-name> -n openshift-authentication
+				
+				3. LDAP / IdP Failure
+					Check:
+						certificates
+						bind user
+						network connectivity
+						OAuth CR configuration
+				4. Token Issues
+					Try:
+						oc logout
+						oc login
+
+			Interview Answer(short)
+				OAuth server in OpenShift is the authentication component that validates users through configured identity providers and issues access tokens for API and console access. It integrates with LDAP, GitHub, OIDC, and other identity providers and works together with RBAC for authorization.”
+				
+Q) What is Labels and Selectors?
+	Labels are key-value pairs attached to Kubernetes objects for identification and grouping.
+	Selectors are used to filter or select objects based on labels.
+
+Q) 
 
 Q) What is oc command?
 	oc is the OpenShift CLI used to manage applications, clusters, and resources (similar to kubectl but more powerful in OpenShift).
