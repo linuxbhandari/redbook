@@ -1,0 +1,163 @@
+- A Node is a worker machine (VM or physical server) where Pods run.
+        The Node lifecycle describes:
+        - How nodes join the cluster
+        - Become ready
+        - run workloads
+        - become unhealthy
+        - recover or get removed
+------------------------------
+Q) What is a Node?
+        A Node contains:
+        - kubelet
+        - container runtime
+        - kube-proxy
+        - Pods
+      
+        Examples:
+        - EC2 VM
+        - Azure VM
+        - Bare-metal server
+
+Q: What happens when a node becomes NotReady?
+      Answer:
+        - kubelet heartbeats stop
+        - node marked NotReady
+        - Pods may be evicted
+        - scheduler recreates Pods on healthy nodes
+
+Q: Difference between cordon and drain?
+   Command Effect
+        cordon:  Stops new scheduling
+        drain: Evicts existing Pods
+
+---------------
+
+In Kubernetes, a worker node lifecycle describes how a node (machine) joins, operates, and leaves a cluster while running workloads (Pods).
+
+A worker node is the machine where your application containers actually run.
+
+1. Node Provisioning (Creation)
+        A machine is created first:
+        - VM or physical server (on-prem or cloud)
+        - OS installed (Linux usually)
+        - Container runtime installed (like containerd / Docker)
+
+        Then Kubernetes components are installed:
+        - kubelet
+        - kube-proxy
+        - container runtime
+
+        👉 At this stage, the node is not yet part of the cluster.
+
+2. Node Registration (Join Cluster)
+        The node joins the cluster by registering with the control plane:
+        - kubelet sends a request to the API server
+        - Node becomes visible in:
+                # kubectl get nodes
+
+        Now node state becomes: 
+        👉 NotReady → Ready (after validation)
+
+3. Node Initialization (Ready State)
+        Once registered successfully:
+        - Node passes health checks
+        - Control plane marks it as Ready
+        - Scheduler can now assign Pods to it
+        
+        👉 At this point:
+        ✔ Node is active
+        ✔ Can run workloads
+
+4. Workload Execution (Running Pods)
+        Now the node starts doing its main job:
+        - Scheduler assigns Pods to the node
+        - kubelet pulls images and runs containers
+        - kube-proxy manages networking
+        
+        Node continuously:
+        - Runs Pods
+        - Monitors health
+        - Restarts failed containers
+
+5. Node Health Monitoring
+        Kubernetes constantly checks node health using:
+        - Node heartbeat (every few seconds)
+        - kubelet status updates
+        
+        If issues occur:
+        - Disk pressure
+        - Memory pressure
+        - Network issues
+        
+        Node status changes:
+        - Ready
+        - NotReady
+        - SchedulingDisabled (cordoned)
+
+6. Node Failure or Drain
+        If a node fails or is removed:
+        
+        Two cases:
+        ❌ Node failure (unexpected)
+                - Node stops responding
+                - Kubernetes marks it NotReady
+                - After timeout → Pods are rescheduled elsewhere
+
+        🚧 Node drain (planned maintenance)
+                Admin manually removes node:
+                        #kubectl drain <node-name>
+                - Pods are safely evicted
+                - Workloads move to other nodes
+                - Node becomes unschedulable
+
+7. Node Termination / Removal
+        Finally:
+        - Node is removed from cluster
+        - kubelet stops
+        - Resources cleaned up
+        - Node disappears from cluster
+
+Full Lifecycle Flow
+===================
+Provisioning
+   ↓
+Registration
+   ↓
+Ready State
+   ↓
+Workload Execution
+   ↓
+Health Monitoring
+   ↓
+Failure / Drain
+   ↓
+Termination
+
+
+Key Kubernetes Concepts Involved
+=================================
+Kubernetes → manages the entire lifecycle
+kubelet → node agent that talks to control plane
+kube-proxy → handles networking
+scheduler → assigns Pods to nodes
+API server → central communication point
+
+
+Interview ans
+=============
+A worker node in Kubernetes goes through several stages during its lifecycle.
+
+First, the node is provisioned, meaning a VM or physical machine is created and required components like kubelet, kube-proxy, and a container runtime are installed.
+
+Next, the node registers with the Kubernetes control plane through kubelet, and it becomes visible in the cluster.
+
+After registration, the node enters the Ready state, where the control plane marks it as healthy and eligible to run workloads.
+
+Then, the node starts running Pods, where the scheduler assigns Pods to it, and kubelet pulls images and runs containers.
+
+During runtime, Kubernetes continuously performs health monitoring using node heartbeats and kubelet status updates. If issues like memory or disk pressure occur, the node status may change.
+
+If a node fails or is manually removed using a drain operation, Kubernetes evicts Pods and reschedules them on other healthy nodes.
+
+Finally, the node is either recovered, replaced, or terminated, depending on the situation.
+

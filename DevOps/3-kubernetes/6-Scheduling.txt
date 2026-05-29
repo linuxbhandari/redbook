@@ -1,3 +1,7 @@
+Q) Explain StatefulSets?
+Q) Diff between Deployment and StatefulSets?
+===================================
+
 1. default Scheduling
 2. NodeName:
 3. NodeSelector:
@@ -6,7 +10,7 @@
 6. Pod Affinity
 7. Pod Anti-Affinity
 
-==========
+=============================================
 Q) What is Scheduling in Kubernetes?
 	- Scheduling is the process of deciding: Which node should run a Pod?
 	- The Kubernetes Scheduler watches for new Pods and assigns them to suitable nodes.
@@ -228,4 +232,5 @@ Q) Why is Pod Pending?
 		NodeSelector mismatch
 		PVC issues
 
-Q) 
+
+Q) What are Taints and Tolerations?

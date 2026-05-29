@@ -198,3 +198,19 @@ How to list roles
 	#kubectl get rolebindings
 	#kubectl get clusterrolebindings
 	
+=========
+Q) How do you secure Kubernetes clusters?
+	RBAC
+	Network Policies
+	Pod Security Standards
+	Secrets management
+	TLS everywhere
+	Image scanning
+
+Q) Explain RBAC in Kubernetes.
+	Role-Based Access Control defines permissions for users/services.
+	Components:
+		Role
+		ClusterRole
+		RoleBinding
+		ClusterRoleBinding

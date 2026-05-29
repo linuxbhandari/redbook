@@ -1,0 +1,26 @@
+Q) Explain Kubernetes networking model.
+	Every Pod gets unique IP
+	Pods communicate directly
+	No NAT required between Pods
+	CNI plugins handle networking
+
+	Examples:
+		Calico
+		Flannel
+		Cilium
+
+Q) What is CNI?
+	Container Network Interface standard for networking plugins.
+
+Very important in interviews.
+
+Understand:
+  * Pod networking
+  * Service flow
+  * ClusterIP
+  * NodePort
+  * LoadBalancer
+  * Routes vs Ingress
+  * DNS flow
+  * OVN-Kubernetes basics
+  

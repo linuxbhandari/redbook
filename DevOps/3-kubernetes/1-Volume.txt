@@ -450,3 +450,25 @@ Q) Explain the Dynamic Provisioning workflow.
 	PVC Bound
    	↓
 	Pod Uses Volume
+
+
+========
+Q) What are access modes in Kubernetes storage?
+	Access Mode	Meaning
+		ReadWriteOnce (RWO)	Mounted by single node
+		ReadOnlyMany (ROX)	Read-only by many nodes
+		ReadWriteMany (RWX)	Read-write by many nodes
+Q) What is reclaim policy?
+	Defines what happens after PVC deletion.
+	Types:
+		Retain
+		Delete
+		Recycle (deprecated)
+
+Q) What are common storage issues in Kubernetes?	
+	PVC pending
+	Mount failures
+	Permission denied
+	Disk pressure
+	StorageClass mismatch
+	CSI driver failure

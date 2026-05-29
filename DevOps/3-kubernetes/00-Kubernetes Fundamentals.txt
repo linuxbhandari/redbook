@@ -1,0 +1,314 @@
+Q) kubernetes 
+	- Kubernetes is an open-source container orchestration platform used to automate deployment, scaling, networking, and management of containerized applications.
+
+Q) Main components of Kubernetes architecture?
+	Control Plane Components
+		API Server
+		Scheduler
+		Controller Manager
+		etcd
+	
+	Worker Node Components
+		Kubelet : Kubelet is an agent running on each node that ensures containers are running as expected.
+		Kube Proxy
+		Container Runtime (Docker/containerd)
+
+Q) What is a Pod?	
+	- A Pod is the smallest deployable unit in Kubernetes. 
+	- It can contain one or more containers sharing:
+			Network namespace
+			Storage volumes
+			IP address (same IP address)
+	
+	Important note: In real production environments, you usually do not create Pods directly.
+      Instead, you create:
+          - Deployments
+          - StatefulSets
+          - DaemonSets
+          - Jobs
+        These controllers manage Pods automatically.
+
+Q) Explain Pod lifecycle?
+	A Pod in Kubernetes goes through different phases during its lifecycle. These phases tell you what is happening with the Pod and its containers.
+
+	A Pod can be in states like:
+	- Pending:
+		What happens in this phase?
+            Kubernetes is preparing the Pod:
+              - Finding a node
+              - Pulling container images
+              - Creating networking
+              - Mounting volumes
+
+         Common reasons for staying in Pending
+              - No available node resources (CPU/RAM)
+              - Image pull delays
+              - Persistent Volume not available
+              - Scheduling constraints
+
+          To troubleshoot:
+              # oc get pod
+              # oc describe pod < pod name>
+            
+            Look for:
+                - FailedScheduling
+                - ImagePullBackOff
+                - volume errors
+
+	- Running : The Pod is successfully running on a node.
+		
+		Important : Running does NOT always mean the application is healthy.
+            The app may still:
+            	- crash internally
+            	- reject requests
+            	- fail readiness probes
+  
+          	That’s why Kubernetes also uses:
+            	- readiness probes
+            	- liveness probes
+
+    - Succeeded : The Pod completed its work successfully and stopped.
+        Usually seen with:
+            	- Jobs
+            	- Batch processing
+            	- One-time tasks
+           	
+           	Example : 
+                echo "backup complete"
+                  Then exits with status code 0.
+
+                NAME          READY   STATUS      AGE
+                backup-job    0/1     Completed   1m
+
+                (Completed is the user-facing display for Succeeded.)
+
+    - Failed : The Pod stopped because one or more containers exited with an error.
+          	Causes : 
+            	- Application crash
+            	- Wrong command
+            	- Missing files
+            	- Permission issues
+
+    - CrashLoopBackOff : This is one of the most common and important states.
+          	It means:
+            	- Container starts
+            	- Crashes
+            	- Kubernetes restarts it
+            	- It crashes again
+            	- Kubernetes waits longer before retrying
+
+            This repeated restart cycle is called a crash loop.
+            
+            Common reasons for CrashLoopBackOff
+              - Application errors
+                	Example:
+                  	- bad configuration
+                  	- syntax error
+                  	- missing environment variables
+              
+              - Wrong startup command
+                  	- command: ["wrong-command"]
+              
+              - Database connection failures
+                  	- App crashes because DB is unreachable.
+      
+              - Port conflicts
+              - Missing secrets/configmaps
+              - Permission/security problems
+              - Especially common in OpenShift because of stricter security policies.
+
+Q) How to troubleshoot CrashLoopBackOff
+       	1. Check logs       					 # oc logs myapp
+       	2. Describe the Pod 					 # oc describe pod myapp
+       	3. Check previous crashed container logs # kubectl logs myapp --previous
+
+Q) Types of pods?
+	1) Multi-container Pod
+			Sidecar container
+
+	2) Init Container Pod
+
+	3) Static Pod:
+	4) DaemonSet : 
+
+Q) What is a Kubernetes Deployment?
+	A Deployment ensures that a specified number of identical application instances (called Pods) are running at all times.
+	
+	It also helps you:
+		- Deploy new versions of an app
+		- Scale applications up or down
+		- Roll back to previous versions if something breaks
+		- Perform updates without downtime
+
+	Main Responsibilities of Deployments
+        1. Desired state management: 
+        	- Maintain desired number of Pods
+        2. Rolling Updates : 
+            - You can update application versions without downtime.
+            - Deployment gradually replaces old Pods with new Pods.
+        3. Rollback
+            - If the new version is broken:
+            - Deployment restores the previous working version.
+                # kubectl rollout undo deployment/myapp
+        4. Scaling
+            - Increase or decrease number of Pods easily.
+                # kubectl scale deployment myapp --replicas=5
+
+Q What is ReplicaSet?
+	ReplicaSet ensures the specified number of Pod replicas are running.
+
+Q)Difference between Deployment and StatefulSet?
+	Feature				Deployment			StatefulSet
+	Application type	Stateless			Stateful
+	Pod identity		Random				Stable (fixed names)
+	Storage				Shared / ephemeral	Persistent per Pod
+	Scaling	Parallel	Ordered
+	Pod replacement		New identity		Same identity
+	Use case			APIs, web apps		Databases, clusters
+
+Q) What is a Service in Kubernetes?
+	A Service exposes Pods internally or externally.
+	Types:
+		ClusterIP
+		NodePort
+		LoadBalancer
+		ExternalName
+
+Q) What is Services?
+      - A Service is an abstraction that provides a stable network endpoint to access a set of Pods.
+      - Since Pods are temporary and can change anytime, Services solve the problem of how to reliably 
+      connect to them.
+
+      What a Service does
+      	A Service:
+        	- Groups Pods using labels
+        	- Gives them a stable virtual IP (ClusterIP)
+        	- Load balances traffic across Pods
+
+      Simple architecture 
+        Client => services(Stable IP/ DNS) => pods
+
+      
+      Key Features of Services
+        1. Stable Access Point : Even if Pods change, Service stays the same.
+      
+        2. Load Balancing
+           - Service distributes traffic across Pods:
+              Request 1 → Pod A
+              Request 2 → Pod B
+              Request 3 → Pod C
+      
+        3. Loose Coupling
+           - Clients don’t need to know Pod details.
+           They only talk to:
+            - Service name
+            - DNS
+
+      Types of Services
+       1. ClusterIP (default)
+          - Internal only
+          - Used for communication inside cluster
+
+       2. NodePort
+          - Exposes service on each Node’s IP + port
+          - External access possible
+       3. LoadBalancer
+          - Cloud provider creates external load balancer
+          - Used in AWS, Azure, GCP
+
+
+
+
+
+Q) What is a Node?
+Q) What is Namespaces
+	- a Namespace is a logical partition inside a cluster used to organize and isolate resources.
+
+	Why Namespaces are needed
+		1. Resource Isolation
+			- Resources inside one namespace are logically separated from others.
+		
+		2. Access Control (RBAC)
+        	- Permissions can be namespace-specific.
+        	
+        	Example:
+            	- Dev team accesses only dev
+            	- QA team accesses only qa
+
+        3. Resource Quotas
+          You can limit:
+            - CPU
+            - memory
+            - storage
+            - Pod count
+          
+          	per namespace.
+
+        4. Environment Separation/multi-team environments
+          	Very commonly used for:
+            	- development
+            	- testing
+            	- staging
+            	- production
+
+        Imagine one Kubernetes cluster used by:
+        - Dev team
+        - QA team
+        - Production team
+
+      	 Without namespaces:
+        - resource names may conflict
+        - hard to manage permissions
+        - difficult to separate environments
+
+        Namespaces solve this.
+
+     Example:
+        You can have:
+          - dev namespace
+          - prod namespace
+          - testing namespace
+
+     Each can contain:
+          - Pods
+          - Services
+          - Deployments
+          - ConfigMaps
+          - Secrets
+            
+          independently.
+
+Q) What is ConfigMap?
+Q) What is Secret?
+Q) What is Ingress?
+	Ingress manages external HTTP/HTTPS access to services with routing rules.
+
+Q) Difference between Ingress and LoadBalancer?
+Q) Difference between Router and ingress?
+Q) What are Labels and Selectors?
+
+Q) What is a DaemonSet?
+Q) What is a Job and CronJob?
+	Job → Runs a task once
+	CronJob → Runs tasks on schedule
+
+Q) What happens during kubectl apply?
+	YAML sent to API server
+	Object stored in etcd
+	Scheduler assigns node
+	Kubelet creates Pod
+	Desired state maintained
+
+Q) Explain rolling updates in Kubernetes.
+	Rolling updates gradually replace old Pods with new Pods without downtime.
+	
+Q) What monitoring tools are commonly used with Kubernetes?
+	Prometheus
+	Grafana
+	ELK Stack
+	Datadog
+
+Q) What logging strategies are used in Kubernetes?
+Q) Explain liveness and readiness probes.
+
+
