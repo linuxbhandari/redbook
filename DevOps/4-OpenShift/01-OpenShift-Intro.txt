@@ -1,0 +1,42 @@
+1. Introduction to OpenShift
+	What is Red Hat OpenShift
+	OpenShift vs Kubernetes
+	OpenShift architecture overview
+	Core components (API Server, Scheduler, Controller Manager, etc.)
+
+
+Q) What is Openshift
+	Kubernetes-based enterprise container platform
+	Provides developer + operations tooling on top of Kubernetes-based
+	Built-in CI/CD, security, and observability features
+	Designed for hybrid and multi-cloud environments
+
+Q) OpenShift vs Kubernetes
+	Kubernetes = Core container orchestration engine
+	OpenShift = Kubernetes + enterprise platform features
+
+	Q) Key differences:
+		Built-in registry
+		Source-to-Image (S2I)
+		Routes (instead of only Ingress)
+		Strict security (SCC)
+		Integrated CI/CD tools
+		Web console + developer tools
+
+
+Q) OpenShift Architecture Overview
+	Master nodes (control plane)
+	Worker nodes (application workloads)
+	Cluster networking layer (OVN-Kubernetes / SDN)
+	etcd distributed key-value store
+	API-driven system
+
+Q) Core Components
+	API Server
+	Scheduler
+	Controller Manager
+	etcd
+	Kubelet (on nodes)
+	OpenShift Router (Ingress controller)
+	Image Registry
+	OAuth server

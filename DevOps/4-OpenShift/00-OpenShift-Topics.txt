@@ -1,0 +1,88 @@
+1. Introduction to OpenShift
+	What is Red Hat OpenShift
+	OpenShift vs Kubernetes
+	OpenShift architecture overview
+	Core components (API Server, Scheduler, Controller Manager, etc.)
+
+2. OpenShift Architecture
+	Master and Node architecture
+	Control plane vs worker nodes
+	etcd in OpenShift
+	OpenShift SDN / OVN-Kubernetes networking model
+
+3. Core Workloads
+	Pods
+	ReplicaSets
+	Deployments
+	DeploymentConfig (OpenShift-specific)
+	StatefulSets and DaemonSets
+
+4. Build & Deployment
+	BuildConfigs
+	Source-to-Image (S2I)
+	ImageStreams
+	Rolling updates and rollbacks
+	Blue-green and canary deployments
+
+5. Networking in OpenShift
+	Services (ClusterIP, NodePort, LoadBalancer)
+	Routes (OpenShift-specific concept)
+	Ingress vs Route
+	DNS in OpenShift cluster
+	Network policies
+
+6. Security in OpenShift
+	Security Context Constraints (SCC)
+	Service Accounts
+	Role-Based Access Control (RBAC)
+	OAuth in OpenShift
+	Pod security policies (conceptual understanding)
+
+7. Storage
+	Persistent Volumes (PV)
+	Persistent Volume Claims (PVC)
+	StorageClasses
+	Dynamic provisioning
+
+8. OpenShift CI/CD & GitOps
+	OpenShift Pipelines (Tekton)
+	Jenkins integration
+	GitOps with Argo CD
+	Image-based deployments
+
+9. Image Management
+	Container images in OpenShift
+	ImageStreams
+	Internal registry
+	Image policies and triggers
+
+10. CLI & Web Console
+	oc command-line tool
+	Web console usage
+	Project/namespace management
+	Debugging tools
+
+11. Monitoring & Logging
+	Prometheus integration
+	Grafana dashboards
+	EFK/ELK logging stack
+	Cluster metrics
+
+12. Upgrades & Maintenance
+	Cluster upgrades
+	Node draining
+	Health checks
+	Operators lifecycle management
+
+13. Operators in OpenShift
+	What are Operators
+	Operator Lifecycle Manager (OLM)
+	Custom Resource Definitions (CRDs)
+	Installing and managing operators
+
+14. Troubleshooting
+	Pod debugging
+	Events and logs
+	Image pull errors
+	CrashLoopBackOff issues
+	Network debugging

@@ -1,0 +1,137 @@
+Q) What is OpenShift?
+	OpenShift is a Kubernetes-based container platform by Red Hat OpenShift that adds developer tools, security, CI/CD, and enterprise features on top of Kubernetes.
+
+Q) How is OpenShift different from Kubernetes?
+	Key differences:
+		OpenShift is more opinionated and secure by default
+		Built-in CI/CD (BuildConfigs, S2I)
+		Integrated image registry
+		Routes instead of only Ingress
+		Strong security via SCC (Security Context Constraints)
+		Operator framework
+
+Q) What is OpenShift architecture?
+	OpenShift is built on Kubernetes with additional components like OAuth, Routes, BuildConfigs, ImageStreams, and Operator Lifecycle Manager.
+
+Q) What is a Project in OpenShift?
+	A Project is a Kubernetes namespace with additional OpenShift-specific security and access controls.
+
+Q) What are the key components of OpenShift control plane?
+	API Server
+	Controller Manager
+	Scheduler
+	etcd
+	OAuth server
+
+Q) What is oc command?
+	oc is the OpenShift CLI used to manage applications, clusters, and resources (similar to kubectl but more powerful in OpenShift).
+
+Q) What is a Route in OpenShift?
+	A Route exposes services externally (like Ingress in Kubernetes) with host-based access.
+
+Q) What are BuildConfigs?
+	BuildConfig defines how source code is built into a container image in OpenShift.
+
+Q) What is Source-to-Image (S2I)?
+	S2I is a tool that builds reproducible container images directly from source code without writing a Dockerfile.
+
+Q) What is ImageStream?
+	ImageStream tracks and manages different versions of container images inside OpenShift.
+
+Q) What is DeploymentConfig?
+	OpenShift-specific resource used to manage application deployments (similar to Kubernetes Deployment but with extra features like triggers).
+
+Q) Difference between Deployment and DeploymentConfig?
+	Deployment → Kubernetes native
+	DeploymentConfig → OpenShift specific (supports image triggers, hooks)
+
+Q) What are SCC (Security Context Constraints)?
+	SCC controls what permissions pods have (e.g., running as root, accessing host resources).
+
+Q) What is a Service in OpenShift?
+	A Service exposes a set of pods internally within the cluster.
+
+Q) What is a rollout strategy in OpenShift?
+	Rolling	
+	Recreate
+	Blue-green (custom)
+	Canary (via routes/Argo CD)
+
+Q) How do you check rollout status?
+	oc rollout status deployment/<name>
+
+Q) How do you pause a rollout?
+	oc rollout pause deployment/<name>
+
+Q) How do you resume rollout?
+	oc rollout resume deployment/<name>
+
+Q) Route vs Ingress?
+	Route → OpenShift-specific	
+	Ingress → Kubernetes standard
+
+
+Advanced Questions
+==================
+Q) How does OpenShift handle security differently?
+	Runs containers as non-root by default
+	SCC enforces strict permissions
+	Integrated OAuth authentication
+	Strong RBAC model
+
+Q) What is Operator in OpenShift?
+	Operators are Kubernetes controllers that manage complex applications automatically (install, upgrade, backup).
+
+Q) What is Operator Lifecycle Manager (OLM)?
+	OLM manages installation and updates of Operators in OpenShift.
+
+Q) How does OpenShift CI/CD work?
+	BuildConfigs
+	Pipelines (Tekton)
+	Jenkins integration
+	GitOps via Argo CD
+
+Q) How does OpenShift networking work?
+	SDN / OVN-Kubernetes networking
+	Services for internal communication
+	Routes for external access
+	NetworkPolicies for traffic control
+
+Q) What happens during a rollout in OpenShift?
+	New pods are created gradually
+	Old pods are terminated gradually
+	Supports rollback if failure occurs
+
+Q) How do you debug a failing pod in OpenShift?
+	oc logs
+	oc describe pod
+	Check events
+	Inspect ImagePull errors
+	Use oc debug pod
+
+Q) What are persistent volumes in OpenShift?
+	Storage resources that persist data beyond pod lifecycle (PV, PVC, StorageClass).
+
+Scenario-Based Questions (Very Important)
+=========================================
+Q) Application is not accessible via Route. How do you debug?
+	Check service
+	Check route host
+	Check pod status
+	Verify labels and selectors
+	Check DNS resolution
+
+Q) Pod is stuck in ImagePullBackOff. What will you do?
+	Check image name/tag
+	Verify ImageStream
+	Check registry credentials
+	Check network access
+
+Q) How do you perform a rollback in OpenShift?
+	Use DeploymentConfig rollback or
+	oc rollout undo
+
+Q) How does scaling work in OpenShift?
+	Manual scaling via oc scale
+	HPA (Horizontal Pod Autoscaler)
+
