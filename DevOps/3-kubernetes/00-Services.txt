@@ -1,0 +1,456 @@
+Q) What is a Service in Kubernetes?
+    - A Service is a Kubernetes resource that provides a stable network endpoint for accessing Pods.
+    - It enables communication between Pods and external clients.
+    - Services use labels and selectors to route traffic to the appropriate Pods.
+    - Since Pods are ephemeral and their IP addresses can change, a Service provides a permanent way to access them.
+    - It also provides load balancing across multiple Pod replicas.
+
+    Types of Services
+    1. ClusterIP (Default)
+        - Exposes the application internally within the cluster.
+        - Accessible only by Pods and services inside the cluster.
+        - Cannot be accessed from outside the cluster.
+        
+        Use Case:
+        - Backend APIs
+        - Internal microservices
+        - Databases
+
+    2. NodePort
+        - Exposes the application on a static port on each worker node.
+        - Accessible using:
+                <NodeIP>:<NodePort>
+        - Kubernetes allocates a port from the range 30000–32767 by default.
+        
+        Use Case:
+        - Testing and development environments.
+        - External access without a load balancer.
+
+    3. LoadBalancer
+        - Exposes the application externally using a cloud provider's load balancer.
+        - Automatically creates an external IP address.
+        - Routes traffic to backend Pods through a Service.
+        
+        Use Case:
+        - Production web applications.
+        - Public-facing APIs.
+
+    4. ExternalName
+        - Maps a Kubernetes Service to an external DNS name.
+        - Does not create a proxy or load balancer.
+        - Returns a DNS CNAME record.
+        
+        Use Case:
+        - Accessing external databases or third-party services.
+        
+        Example:
+            externalName: api.example.com
+
+    Service Flow
+    ------------
+        Client
+        ↓
+        Service
+        ↓
+        Pod-1
+        Pod-2
+        Pod-3
+    
+    The Service automatically load balances traffic across available Pods.
+
+    Interview One-Liner
+        A Service is a Kubernetes resource that provides a stable endpoint for accessing Pods and enables service discovery and load balancing. The main Service types are ClusterIP, NodePort, LoadBalancer, and ExternalName.
+
+Q) What is CoreDNS?
+    - CoreDNS is the default DNS server in Kubernetes.
+    - It provides service discovery by translating Service names into IP addresses.
+    - Allows Pods and applications to communicate using Service names instead of IP addresses.
+    - Runs as Pods in the kube-system namespace.
+    - Watches the Kubernetes API and automatically updates DNS records when Services are created or deleted.
+
+    Why is CoreDNS Needed?
+        Without CoreDNS, applications would need to communicate using IP addresses:
+            10.96.1.20
+    
+        Since Service and Pod IPs can change, this is difficult to manage.
+        
+
+        With CoreDNS:
+            mysql.default.svc.cluster.local
+        
+        Applications can communicate using DNS names instead of IP addresses.
+
+    Example
+        Suppose you have a Service named:
+            name: mysql
+            namespace: default
+        
+        CoreDNS automatically creates a DNS record:
+            mysql.default.svc.cluster.local
+        
+        A Pod can connect to the database using:
+            mysql.default.svc.cluster.local
+        
+        instead of using an IP address.
+
+    How CoreDNS Works
+        Application Pod
+        ↓
+        DNS Query
+        ↓
+        CoreDNS
+        ↓
+        Service IP
+        ↓
+        Target Pod
+
+    Interview One-Liner
+        CoreDNS is the default DNS server in Kubernetes that provides service discovery by resolving Service names to IP addresses, enabling communication between applications using DNS names instead of IP addresses.
+
+
+Q) What is Ingress?
+    - Ingress is a Kubernetes resource that manages external HTTP and HTTPS access to services within a cluster.
+    - It provides routing rules to direct incoming traffic to the appropriate Service based on the host name or URL path.
+    - Allows multiple services to be exposed through a single IP address or load balancer.
+    - Supports features such as SSL/TLS termination, path-based routing, and host-based routing.
+
+    Why Use Ingress?
+        Without Ingress:
+        - Each Service typically requires its own LoadBalancer or NodePort.
+        - Managing multiple external endpoints becomes complex.
+        
+        With Ingress:
+        - A single entry point can expose multiple services.
+        - Centralized management of routing rules.
+
+    Common Routing Types
+    1. Host-Based Routing
+        Routes traffic based on the domain name.
+        
+        Example:
+            api.example.com    → api-service
+            app.example.com    → web-service
+
+    2. Path-Based Routing
+        Routes traffic based on the URL path.
+        
+        Example:
+            example.com/api     → api-service
+            example.com/admin   → admin-service
+            example.com/shop    → shop-service
+
+    How Ingress Works
+        Internet
+            ↓
+        Ingress Controller
+            ↓
+        Ingress
+            ↓
+        Service
+            ↓
+        Pods
+
+    Note: An Ingress resource requires an Ingress Controller (such as NGINX Ingress Controller) to process and enforce the routing rules.
+
+    Benefits
+    - Single external entry point.
+    - Host-based and path-based routing.
+    - SSL/TLS termination.
+    - Reduced number of LoadBalancers.
+    - Centralized traffic management.
+
+    Interview One-Liner
+        Ingress is a Kubernetes resource that manages external HTTP/HTTPS traffic and routes requests to the appropriate services using host-based or path-based routing rules. An Ingress Controller is required to implement these rules.
+
+
+Q) What is the difference between Ingress and LoadBalancer?
+    Feature                 LoadBalancer                            Ingress
+    Purpose                 Exposes a single Service externally     Routes external traffic to multiple Services
+    Layer                   Layer 4 (TCP/UDP)                       Layer 7 (HTTP/HTTPS)
+    Routing                 No routing rules                        Supports host-based and path-based routing
+    External IP             Usually one IP per Service              One IP can serve multiple Services
+    SSL/TLS Termination     Limited support                         Built-in support
+    Cost                    Higher (multiple load balancers)        Lower (single load balancer for multiple services)
+    Use Case                Expose a single application             Expose multiple applications through one entry point
+
+    LoadBalancer
+        - A Service type that exposes an application externally.
+        - Creates a cloud load balancer and external IP.
+        - Typically used for a single Service.
+        - Works at the TCP/UDP level.
+
+    Example:
+        Internet
+            ↓
+        LoadBalancer
+            ↓
+        Service
+            ↓
+        Pods
+
+    Ingress
+        - Manages HTTP/HTTPS traffic for multiple Services.
+        - Uses routing rules based on hostnames or URL paths.
+        - Requires an Ingress Controller (e.g., NGINX Ingress Controller).
+
+    Example:
+        app.example.com    → web-service
+        api.example.com    → api-service
+    
+    or
+        example.com/app    → web-service
+        example.com/api    → api-service
+
+    Flow
+    -----
+        Internet
+            ↓
+        Ingress Controller
+            ↓
+        Ingress
+            ↓
+        Multiple Services
+            ↓
+        Pods
+
+    Real-World Example
+    ------------------
+    Without Ingress:
+        web-service    → LoadBalancer → Public IP 1
+        api-service    → LoadBalancer → Public IP 2
+        admin-service  → LoadBalancer → Public IP 3
+    
+    With Ingress:
+        web.example.com    → web-service
+        api.example.com    → api-service
+        admin.example.com  → admin-service
+    
+    All services share a single external IP.
+
+    Interview One-Liner
+        A LoadBalancer exposes a single Service externally at Layer 4, whereas Ingress provides Layer 7 HTTP/HTTPS routing and can expose multiple Services through a single entry point using host-based and path-based rules.
+
+
+Q) What are Labels and Selectors?
+    Labels
+        - Labels are key-value pairs attached to Kubernetes resources such as Pods, Services, Deployments, and Nodes.
+        - They are used to identify, organize, and categorize resources.
+        - Labels help Kubernetes group related resources together.
+
+        Example:
+            labels:
+                app: nginx
+                env: production
+                tier: frontend
+
+    Selectors
+        - Selectors are used to filter and select resources based on labels.
+        - Kubernetes controllers and Services use selectors to identify the resources they should manage.
+        
+        Example:
+            selector:
+                app: nginx
+    
+    This selector matches all resources with:
+            labels:
+                app: nginx
+
+
+    Q) Why are Labels and Selectors Needed?
+        1. Service-to-Pod Mapping
+            - Services use selectors to route traffic to the correct Pods.
+        
+        2. Deployment-to-Pod Mapping    
+            - Deployments and ReplicaSets use selectors to manage Pods.
+        
+        3. Resource Organization
+            - Helps group resources by application, environment, version, or team.
+
+    Interview One-Liner
+        Labels are key-value pairs used to identify and organize Kubernetes resources, while Selectors use those labels to filter and select resources. Services, Deployments, and ReplicaSets use selectors to manage and route traffic to the correct Pods.
+
+
+Q) What are Job and CronJob in Kubernetes?
+    Job
+        - A Job is a Kubernetes controller used to run a task one time and ensure it completes successfully.
+        - It creates one or more Pods to perform the task.
+        - The Job is considered complete when the Pod exits successfully (exit code 0).
+        - Commonly used for batch processing and one-time tasks.
+    
+    Examples:
+        - Database migration
+        - Data import/export
+        - Backup tasks
+        - Report generation
+
+    CronJob
+        - A CronJob is a Kubernetes controller that runs Jobs on a scheduled basis.
+        - Uses cron syntax to define the schedule.
+        - Automatically creates Jobs at the specified time.
+    
+    Examples:
+        - Daily backups
+        - Log cleanup
+        - Scheduled report generation
+        - Periodic data synchronization
+    
+        Example Schedule:
+            schedule: "0 2 * * *"
+    
+    Runs every day at 2:00 AM.
+
+    Q) Difference Between Job and CronJob
+    Feature     Job                                     CronJob
+    Purpose     Run a task once                         Run tasks on a schedule
+    Execution   One-time execution                      Recurring execution
+    Scheduling  No schedule                             Uses cron schedule
+    Use Case    Database migration, batch processing    Backups, cleanup, scheduled tasks
+
+    Interview One-Liner
+        A Job is used to run a task once and ensure it completes successfully, whereas a CronJob is used to run Jobs 
+        automatically on a defined schedule using cron expressions.
+
+
+Q) Explain Rolling Updates in Kubernetes.
+    - A Rolling Update is a deployment strategy that gradually replaces old Pods with new Pods without causing application downtime.
+    - Kubernetes updates Pods in small batches instead of stopping all Pods at once.
+    - This ensures the application remains available during the update process.
+    - Rolling updates are managed by Deployments.
+
+    How Rolling Updates Work
+    - A new version of the application is deployed.
+    - Kubernetes creates new Pods with the updated version.
+    - Once the new Pods become healthy, old Pods are terminated.
+    - This process continues until all old Pods are replaced.
+
+    Controlling Rolling Updates
+        Two parameters control the rollout:
+        1. maxSurge: Maximum number of extra Pods that can be created during the update.
+        2. maxUnavailable: Maximum number of Pods that can be unavailable during the update.
+    
+    Example:
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 1
+            maxUnavailable: 1
+
+    Benefits
+        - Zero or minimal downtime.
+        - Gradual rollout of new versions.
+        - Easy rollback if issues occur.
+        - Maintains application availability.
+
+    Useful Commands
+        Check rollout progress.
+            # kubectl rollout status deployment/myapp  
+
+        View rollout history.
+            # kubectl rollout history deployment/myapp 
+
+        Rollback to the previous version.
+            # kubectl rollout undo deployment/myapp
+
+    Interview One-Liner
+        Rolling Updates gradually replace old Pods with new Pods while keeping the application available, allowing deployments to occur with little or no downtime. Kubernetes controls the process using maxSurge and maxUnavailable.
+
+
+Q) What monitoring and logging tools are commonly used with Kubernetes?
+    1. Prometheus
+        - The most widely used monitoring tool for Kubernetes.
+        - Collects and stores metrics from Kubernetes components, nodes, Pods, and applications.
+        - Supports alerting through Alertmanager.
+        - Commonly used for monitoring CPU, memory, network, and application metrics.
+
+    2. Grafana
+        - Visualization and dashboard tool.
+        - Integrates with Prometheus and other data sources.
+        - Used to create real-time monitoring dashboards.
+        - Provides alerts and performance insights.
+
+    3. ELK Stack
+        ELK = Elasticsearch + Logstash + Kibana
+        - Used for centralized logging and log analysis.
+        - Elasticsearch stores and indexes logs.
+        - Logstash collects and processes logs.
+        - Kibana provides visualization and search capabilities.
+        - Helps troubleshoot application and infrastructure issues.
+
+    4. Datadog
+        - A cloud-based monitoring and observability platform.
+        - Provides infrastructure, application, log, and security monitoring.
+        - Offers Kubernetes integrations out of the box.
+        - Supports dashboards, alerting, and distributed tracing.
+
+Q) Explain liveness and readiness probes.
+    Kubernetes uses probes to check the health and availability of containers.
+    1. Liveness Probe
+        - Checks whether the application inside the container is still running and healthy.
+        - If the liveness probe fails, Kubernetes restarts the container.
+        - Helps recover from application hangs, deadlocks, or crashes.
+        
+        Purpose:
+        - Detect unhealthy containers.
+        - Automatically restart failed applications.
+        
+        Example:
+
+        Application Running
+            ↓
+        Liveness Probe Fails
+            ↓
+        Kubernetes Restarts Container
+
+    2. Readiness Probe
+        - Checks whether the application is ready to receive traffic.
+        - If the readiness probe fails, Kubernetes removes the Pod from the Service endpoints.
+        - The container continues running, but no traffic is sent to it.
+        
+        Purpose:
+        - Prevent traffic from reaching an unready application.
+        - Useful during application startup, maintenance, or dependency failures.
+        
+        Example:
+        
+        Application Starting
+            ↓
+        Readiness Probe Fails
+            ↓
+        Pod Not Added to Service
+            ↓
+        No Traffic Sent
+
+
+        Key Difference
+        Feature             Liveness Probe                      Readiness Probe
+        Purpose             Checks if the application is alive  Checks if the application is ready to serve traffic
+        On Failure          Container is restarted              Pod is removed from Service endpoints
+        Traffic Impact      Indirect                            Traffic stops immediately
+        Container Status    Restarted                           Continues running
+
+    Real-World Example
+        Suppose a Spring Boot application:
+        - Takes 30 seconds to start.
+        - Requires a database connection before serving requests.
+        
+        Readiness Probe
+        - Fails during startup.
+        - Kubernetes waits before sending traffic.
+        
+        Liveness Probe
+        - Detects if the application becomes stuck after startup.
+        - Kubernetes restarts the container if necessary.
+
+        Optional: Startup Probe
+        - Used for slow-starting applications.
+        - Gives the application extra startup time before liveness and readiness checks begin.
+        - Prevents unnecessary container restarts during startup.
+
+    Interview One-Liner
+        A Liveness Probe checks whether an application is healthy and restarts the container if it fails, while a Readiness Probe checks whether the application is ready to receive traffic and removes the Pod from Service endpoints if it is not ready.
+
+
+Q) What logging strategies are used in Kubernetes? (Confustion)
+
+
+

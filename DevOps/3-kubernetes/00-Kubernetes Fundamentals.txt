@@ -1,314 +1,920 @@
 Q) kubernetes 
-	- Kubernetes is an open-source container orchestration platform used to automate deployment, scaling, networking, and management of containerized applications.
+	- Kubernetes (K8s) is an open-source container orchestration platform that helps manage containerized applications by automating deployment, scaling, load balancing, networking, and self-healing across a cluster of machines.
 
-Q) Main components of Kubernetes architecture?
-	Control Plane Components
+Q) What are the main components of Kubernetes architecture?
+    Kubernetes architecture consists of two main parts:
+    1. Control Plane Components : The control plane manages the overall state of the Kubernetes cluster.
 		API Server
-		Scheduler
-		Controller Manager
-		etcd
-	
-	Worker Node Components
-		Kubelet : Kubelet is an agent running on each node that ensures containers are running as expected.
-		Kube Proxy
-		Container Runtime (Docker/containerd)
+            - The entry point for all Kubernetes operations. 
+            - Handles communication between all Kubernetes components.
+            - Performs authentication and authorization.
+            - Exposes the Kubernetes API to users and cluster components.
+            - Validates API requests.
+            - Validates and processes resource definitions (YAML/JSON manifests).
+            - Persists cluster state information in etcd.
 
-Q) What is a Pod?	
-	- A Pod is the smallest deployable unit in Kubernetes. 
-	- It can contain one or more containers sharing:
-			Network namespace
-			Storage volumes
-			IP address (same IP address)
-	
-	Important note: In real production environments, you usually do not create Pods directly.
-      Instead, you create:
-          - Deployments
-          - StatefulSets
-          - DaemonSets
-          - Jobs
-        These controllers manage Pods automatically.
+		Scheduler
+            - Responsible for assigning Pods to worker nodes.
+            - Monitors newly created Pods without an assigned node.
+            - Selects the most suitable node based on resource availability and scheduling policies.
+            - Considers factors such as CPU, memory, affinity/anti-affinity, taints, and tolerations.
+
+		Controller Manager
+            - Runs various Kubernetes controllers.
+            - Continuously monitors the cluster's current state.
+            - Compares the current state with the desired state.
+            - Takes corrective actions to maintain the desired state.
+
+		etcd
+            - A distributed and highly available key-value store.
+            - Stores all cluster configuration and state information.
+            - Acts as the single source of truth for the Kubernetes cluster.
+            - Used by the API Server to read and write cluster data.
+
+	Worker Node Components : Worker nodes run the application workloads.
+
+		Kubelet
+            - Runs as an agent on every worker node and ensures Pods are running according to the pod specfications.
+            - Registers the node with the API Server.
+            - Monitors the health and status of the node and reports it to the API Server.
+            - Communicates with the container runtime to manage containers. like (create, start, stop and delete containers)
+            - Performs liveness, readiness, and startup probes on containers.
+            - Restarts failed containers according to the Pod's restart policy.
+            - Mounts and manages volumes for pods.
+            - Ensures the actual state of Pods matches the desired state.
+            - Collects resource usage information and node metrics.
+
+
+		Kube Proxy
+            - Manages network rules for Pod and Service communication.
+            - Performs load balancing across backend Pods.
+            - Routes traffic to the appropriate Pods.
+            - Watches Service and Endpoint changes from the API Server.
+
+            
+		Container Runtime (containerd, CRI-O, etc.) 
+            – Responsible for pulling container images from registries and running containers on the node.
+            - Creates, starts, stops, and removes containers.
+            - Manages the container lifecycle.
+
+
+Q) What is a Pod?
+    - A Pod is the smallest deployable unit in Kubernetes.
+    - A Pod can contain one or more containers that run together.
+        Containers within a Pod share:
+            - Network namespace
+            - Storage volumes
+            - Same Ip address
+            - Same hostname
+
+	- Containers in the same Pod can communicate with each other using localhost.
+    - Pods are ephemeral, meaning they can be created, deleted, or replaced at any time.
+
+    Important Note:
+    In production environments, Pods are usually not created directly. Instead, they are managed by controllers such as:
+        - Deployment
+        - StatefulSet
+        - DaemonSet
+        - Job 
+        - CronJab
+
+    These controllers automatically create, manage, scale, and recover Pods to maintain the desired state.
+
+Q) What is the difference between a Pod and a Deployment?
+    Pod
+        - A Pod is the smallest deployable unit in Kubernetes.
+        - Contains one or more containers.
+        - Provides shared networking and storage for containers.
+        - If a Pod is deleted, Kubernetes will not recreate it unless it is managed by a controller.
+    Example:
+        Pod
+        └── Nginx Container
+
+    Deployment
+        - A Deployment is a Kubernetes controller that manages Pods.
+        - Ensures the desired number of Pod replicas are running.
+        - Automatically replaces failed Pods.
+        - Supports rolling updates and rollbacks.
+        - Used for deploying stateless applications.
+    Example:
+        Deployment
+        ├── Pod-1
+        ├── Pod-2
+        └── Pod-3
+
+    Interview One-Liner
+        A Pod is the smallest deployable unit that runs one or more containers, whereas a Deployment is a controller that manages Pods by providing replica management, self-healing, scaling, rolling updates, and rollbacks.
+
+
+Q) What is the difference between ReplicaSet and Deployment?
+    Interview Answer
+        A ReplicaSet is responsible for maintaining the desired number of Pod replicas, whereas a Deployment is a higher-level controller that manages ReplicaSets and provides additional features such as rolling updates, rollbacks, and version management. In production environments, Deployments are typically used instead of ReplicaSets directly.
+
 
 Q) Explain Pod lifecycle?
-	A Pod in Kubernetes goes through different phases during its lifecycle. These phases tell you what is happening with the Pod and its containers.
+    A Pod goes through different phases during its lifecycle. These phases indicate the current state of the Pod and its containers.
 
-	A Pod can be in states like:
-	- Pending:
-		What happens in this phase?
-            Kubernetes is preparing the Pod:
-              - Finding a node
-              - Pulling container images
-              - Creating networking
-              - Mounting volumes
+    1. Pending
+        The Pod has been accepted by Kubernetes but is not yet running.
+            What happens in this phase?
+            - Kubernetes is finding a suitable node.
+            - Pulling container images.
+            - Setting up networking.
+            - Mounting volumes.
 
-         Common reasons for staying in Pending
-              - No available node resources (CPU/RAM)
-              - Image pull delays
-              - Persistent Volume not available
-              - Scheduling constraints
+            Common reasons for staying in Pending
+            - Insufficient CPU or memory on nodes.
+            - Image pull delays.
+            - Persistent Volume not available.
+            - Scheduling constraints (taints, node selectors, affinity rules).
 
-          To troubleshoot:
-              # oc get pod
-              # oc describe pod < pod name>
+            Troubleshooting
+                # kubectl get pod
+                # kubectl describe pod <pod-name>
             
             Look for:
-                - FailedScheduling
-                - ImagePullBackOff
-                - volume errors
+            - FailedScheduling
+            - ImagePullBackOff
+            - Volume mount errors
 
-	- Running : The Pod is successfully running on a node.
-		
-		Important : Running does NOT always mean the application is healthy.
-            The app may still:
-            	- crash internally
-            	- reject requests
-            	- fail readiness probes
-  
-          	That’s why Kubernetes also uses:
-            	- readiness probes
-            	- liveness probes
+    2. Running
+        The Pod has been scheduled to a node, and its containers are running.
+        
+        Important:
+            Running does not always mean the application is healthy.
+        
+        The application may still:
+            - Crash internally.
+            - Reject requests.
+            - Fail readiness checks.
+        
+        To verify application health, Kubernetes uses:
+            - Readiness Probes
+            - Liveness Probes
+            - Startup Probes
 
-    - Succeeded : The Pod completed its work successfully and stopped.
-        Usually seen with:
-            	- Jobs
-            	- Batch processing
-            	- One-time tasks
-           	
-           	Example : 
-                echo "backup complete"
-                  Then exits with status code 0.
+	3. Succeeded
+        All containers in the Pod completed successfully and exited with status code 0.
+        
+        Commonly used with:
+            - Jobs
+            - Batch processing
+            - One-time tasks
+        
+        Example
+            A backup job finishes successfully and exits.
 
-                NAME          READY   STATUS      AGE
-                backup-job    0/1     Completed   1m
+                NAME         READY   STATUS      AGE
+                backup-job   0/1     Completed   1m
 
-                (Completed is the user-facing display for Succeeded.)
+        
+        Completed is the user-facing status shown by Kubernetes for the Succeeded phase.
 
-    - Failed : The Pod stopped because one or more containers exited with an error.
-          	Causes : 
-            	- Application crash
-            	- Wrong command
-            	- Missing files
-            	- Permission issues
 
-    - CrashLoopBackOff : This is one of the most common and important states.
-          	It means:
-            	- Container starts
-            	- Crashes
-            	- Kubernetes restarts it
-            	- It crashes again
-            	- Kubernetes waits longer before retrying
+    4. Failed
+        The Pod has terminated because one or more containers exited with a non-zero status code.
+        
+        Common causes
+            - Application crash.
+            - Incorrect startup command.
+            - Missing files or dependencies.
+            - Permission issues.
+            - Configuration errors.
 
-            This repeated restart cycle is called a crash loop.
-            
-            Common reasons for CrashLoopBackOff
-              - Application errors
-                	Example:
-                  	- bad configuration
-                  	- syntax error
-                  	- missing environment variables
-              
-              - Wrong startup command
-                  	- command: ["wrong-command"]
-              
-              - Database connection failures
-                  	- App crashes because DB is unreachable.
-      
-              - Port conflicts
-              - Missing secrets/configmaps
-              - Permission/security problems
-              - Especially common in OpenShift because of stricter security policies.
 
-Q) How to troubleshoot CrashLoopBackOff
-       	1. Check logs       					 # oc logs myapp
-       	2. Describe the Pod 					 # oc describe pod myapp
-       	3. Check previous crashed container logs # kubectl logs myapp --previous
+    5. CrashLoopBackOff
+        This is one of the most common Pod issues.
+        
+        What it means
+            - Container starts.
+            - Container crashes.
+            - Kubernetes restarts it.
+            - It crashes again.
+            - Kubernetes waits longer before each retry (backoff).
+        
+        This repeated restart cycle is called a Crash Loop.
 
-Q) Types of pods?
-	1) Multi-container Pod
-			Sidecar container
+        Common causes
+            - Application errors.
+                - Invalid configuration.
+                - Missing environment variables.
+                - Syntax errors.
+            - Incorrect startup command.
+            - Database or external service connectivity issues.
+            - Missing Secrets or ConfigMaps.
+            - Port conflicts.
+            - Permission or security restrictions.
+            - In OpenShift, Security Context Constraints (SCC) violations are a common cause.
 
-	2) Init Container Pod
+        Troubleshooting
+                # kubectl logs <pod-name>
+                # kubectl describe pod <pod-name
 
-	3) Static Pod:
-	4) DaemonSet : 
+        Look for:
+            - Look for application errors, exceptions, or configuration issues.
+            - Container exit codes.
+            - Error messages in logs.
+            - Failed events.
+            - Probe failures.
+            - Volume mount issues
+            - Image pull errors
+            - Resource constraints (OOMKilled (Out Of Memory), CPU throttling)
+            - Ensure all required ConfigMaps and Secrets exist.
+
+    Interview One-Liner:
+        A Pod lifecycle represents the different phases a Pod goes through, such as Pending, Running, Succeeded, and Failed. CrashLoopBackOff is a common error state where a container repeatedly crashes and Kubernetes keeps restarting it.
+
+
+Q) How to troubleshoot CrashLoopBackOff?
+    Interview One-Liner
+        To troubleshoot a CrashLoopBackOff, I first check the container logs, then describe the Pod to review events and exit codes. Next, I check previous container logs, validate ConfigMaps and Secrets, verify resource limits, and ensure all external dependencies such as databases and APIs are reachable.
+
+
+Q) What are the different types of Pods in Kubernetes?
+    
+    1. Single-Container Pod
+        - Contains only one container.
+        - Most common Pod type in Kubernetes.
+        - Follows the "one container per responsibility" principle.
+        
+        Example:
+        - A Pod running a single Nginx container.
+
+    2. Multi-Container Pod
+        A Pod that contains more than one container running together.
+        - Containers share the same network namespace, IP address, and storage volumes.
+        - Used when containers need to work closely together.
+        - Common pattern: Sidecar Container
+        
+        Example:
+        - Main application container
+        - Log collector sidecar (Fluentd)
+        - Monitoring sidecar
+
+    3. Init Container Pod
+        A Pod that contains one or more Init Containers.
+        - Init containers run before the main application containers start.
+        - They execute sequentially.
+        - Used for setup and initialization tasks.
+        - Must complete successfully before the application container starts.
+        
+        Examples:
+        - Download configuration files.
+        - Wait for a database to become available.
+        - Create directories or initialize application data.
+
+    4. Static Pod
+        - Managed directly by the Kubelet.
+        - Defined using manifest files on the node.
+        - Not managed by the API Server, Deployment, or ReplicaSet.
+        - Commonly used for Kubernetes control plane components.
+        
+        Examples:
+        - kube-apiserver
+        - kube-scheduler
+        - etcd
+
+        Note: Deployment, StatefulSet, DaemonSet, Job, and CronJob are not Pod types. They are controllers that create and manage Pods.
+
+Q) Difference between pod and container?
+    Container                                               Pod
+    Smallest executable unit that runs an application.      Smallest deployable unit in Kubernetes.
+    Packages application code and dependencies.             Wraps one or more containers.
+    Runs a single application/process.                      Provides a shared environment for containers.
+    Has its own filesystem and process space.               Provides shared networking and storage to containers.
+    Created from a container image.                         Created and managed by Kubernetes.
+    Cannot directly leverage Kubernetes features by itself. Kubernetes schedules and manages Pods.
+
+    Interview one-liner
+        A container is a lightweight package that runs an application and its dependencies, whereas a Pod is the smallest deployable unit in Kubernetes that contains one or more containers and provides shared networking and storage for them. Kubernetes schedules and manages Pods, not individual containers.
+
+Q) What is a Sidecar Container?
+    - A Sidecar Container is a secondary container that runs alongside the main application container in the same Pod.
+    - It extends or supports the functionality of the main container.
+    - Both containers share:
+        - Same network namespace
+        - Same IP address
+        - Shared volumes (if configured)
+
+    Why Use a Sidecar Container?
+        Instead of adding extra functionality to the application, you can offload supporting tasks to a sidecar container.
+        
+        Common use cases:
+        - Log collection
+        - Monitoring
+        - Proxying traffic
+        - Configuration synchronization
+        - Security and service mesh features
+
+    Interview One-Liner
+        A Sidecar Container is a helper container that runs alongside the main application container in the same Pod and provides supporting functionality such as logging, monitoring, proxying, or configuration management while sharing the Pod's network and storage resources.
+
+
+Q) What happens when a Pod is created?
+    When a Pod is created, Kubernetes follows a series of steps to schedule and run it.
+    
+    1. Request Sent to API Server
+        - The Pod YAML is submitted using kubectl or a controller (Deployment, Job, etc.).
+        - The API Server authenticates, authorizes, and validates the request.
+    
+    2. Pod Information Stored in etcd
+        - The Pod definition is stored in etcd.
+        - The Pod is created with a Pending status.
+
+    3. Scheduler Selects a Node
+        - The Scheduler finds a suitable worker node based on:
+            - CPU and memory availability
+            - Node selectors
+            - Taints and tolerations
+            - Affinity and anti-affinity rules
+    
+    4. Kubelet Receives the Pod Assignment
+        - The Kubelet on the selected node detects that a Pod has been assigned to it.
+        - It starts the Pod creation process.
+
+    5. Container Runtime Creates Containers
+        - The container runtime (containerd/CRI-O):
+            - Pulls the container image (if needed)
+            - Creates containers
+            - Sets up storage volumes
+    
+    6. Networking is Configured
+        - The CNI plugin assigns an IP address to the Pod.
+        - Network rules are configured.
+
+    7. Containers Start Running
+        - Application containers start.
+        - Liveness, Readiness, and Startup probes begin (if configured).
+
+    8. Pod Becomes Running
+        - Once containers start successfully, the Pod status changes from Pending to Running.
+        - If a readiness probe is configured and passes, the Pod is added to Service endpoints and starts receiving traffic.
+
+    Interview One-Liner
+        When a Pod is created, the API Server validates and stores it in etcd, the Scheduler assigns it to a worker node, the Kubelet instructs the container runtime to create the containers, networking is configured, and the Pod transitions to the Running state.
+
+Q) What happens if a container crashes inside a Pod?
+    When a container crashes, Kubernetes' behavior depends on the Pod's restart policy.
+    1. Kubelet Detects the Container Failure
+        - The Kubelet continuously monitors containers running on the node.
+        - When a container exits unexpectedly, Kubelet detects the failure.
+
+    2. Restart Policy is Checked
+        The Pod's restart policy determines what happens next:
+            restartPolicy: Always
+        
+        Possible values:
+        - Always (default) → Container is restarted.
+        - OnFailure → Container is restarted only if it exits with a non-zero exit code.
+        - Never → Container is not restarted.
+
+    3. Container is Restarted
+        - Kubelet instructs the container runtime to restart the failed container.
+        - The Pod itself is not recreated.
+        - Only the failed container is restarted.
+
+    4. Repeated Crashes → CrashLoopBackOff
+        - If the container keeps crashing:
+        - Kubernetes gradually increases the delay between restart attempts.
+        The Pod status becomes:
+            CrashLoopBackOff
+    
+    Interview One-Liner
+        If a container crashes inside a Pod, the Kubelet detects the failure and restarts the container based on the Pod's restart policy. If the container repeatedly crashes, the Pod enters a CrashLoopBackOff state. The Pod itself is not recreated unless a controller such as a Deployment replaces it.
+
+
 
 Q) What is a Kubernetes Deployment?
-	A Deployment ensures that a specified number of identical application instances (called Pods) are running at all times.
-	
-	It also helps you:
-		- Deploy new versions of an app
-		- Scale applications up or down
-		- Roll back to previous versions if something breaks
-		- Perform updates without downtime
+    - A Deployment is a Kubernetes controller that manages Pods and ensures the desired number of application instances are running at all times.
+    - It provides declarative updates for Pods and ReplicaSets.
+    - Deployments are commonly used to deploy stateless applications.
 
-	Main Responsibilities of Deployments
-        1. Desired state management: 
-        	- Maintain desired number of Pods
-        2. Rolling Updates : 
-            - You can update application versions without downtime.
-            - Deployment gradually replaces old Pods with new Pods.
-        3. Rollback
-            - If the new version is broken:
-            - Deployment restores the previous working version.
-                # kubectl rollout undo deployment/myapp
-        4. Scaling
-            - Increase or decrease number of Pods easily.
-                # kubectl scale deployment myapp --replicas=5
+    A Deployment helps you:
+    - Deploy new versions of an application.
+    - Scale applications up or down.
+    - Roll back to previous versions if an update fails.
+    - Perform updates with minimal or no downtime.
+    - Automatically replace failed Pods.
 
-Q What is ReplicaSet?
-	ReplicaSet ensures the specified number of Pod replicas are running.
+    Main Responsibilities of a Deployment
+    1. Desired State Management
+        - Maintains the desired number of Pod replicas.
+        - Continuously compares the current state with the desired state.
+        - Automatically creates or removes Pods as needed.
+        example:
+            replicas: 3
+        If one Pod fails, the Deployment automatically creates a new Pod to maintain 3 replicas.
 
-Q)Difference between Deployment and StatefulSet?
-	Feature				Deployment			StatefulSet
-	Application type	Stateless			Stateful
-	Pod identity		Random				Stable (fixed names)
-	Storage				Shared / ephemeral	Persistent per Pod
-	Scaling	Parallel	Ordered
-	Pod replacement		New identity		Same identity
-	Use case			APIs, web apps		Databases, clusters
+    2. Rolling Updates
+        - Updates applications without downtime.
+        - Gradually replaces old Pods with new Pods.
+        - Ensures application availability during upgrades.
+        - Controlled using maxSurge and maxUnavailable.
+        
+        Example:
+            # kubectl set image deployment/myapp app=nginx:1.26
 
-Q) What is a Service in Kubernetes?
-	A Service exposes Pods internally or externally.
-	Types:
-		ClusterIP
-		NodePort
-		LoadBalancer
-		ExternalName
+    3. Rollback
+        - Restores the previous version if a deployment fails.
+        - Helps recover quickly from bad releases.
+        
+        Command:
+            # kubectl rollout undo deployment/myapp
+        
+        View rollout history:
+            # kubectl rollout history deployment/myapp
 
-Q) What is Services?
-      - A Service is an abstraction that provides a stable network endpoint to access a set of Pods.
-      - Since Pods are temporary and can change anytime, Services solve the problem of how to reliably 
-      connect to them.
+    4. Scaling
+        - Increases or decreases the number of Pods.
+        - Supports both manual and automatic scaling.
+        
+        Manual scaling:
+            # kubectl scale deployment myapp --replicas=5
 
-      What a Service does
-      	A Service:
-        	- Groups Pods using labels
-        	- Gives them a stable virtual IP (ClusterIP)
-        	- Load balances traffic across Pods
+        Autoscaling (HPA):
+            Automatically scales Pods based on CPU, memory, or custom metrics.
 
-      Simple architecture 
-        Client => services(Stable IP/ DNS) => pods
-
-      
-      Key Features of Services
-        1. Stable Access Point : Even if Pods change, Service stays the same.
-      
-        2. Load Balancing
-           - Service distributes traffic across Pods:
-              Request 1 → Pod A
-              Request 2 → Pod B
-              Request 3 → Pod C
-      
-        3. Loose Coupling
-           - Clients don’t need to know Pod details.
-           They only talk to:
-            - Service name
-            - DNS
-
-      Types of Services
-       1. ClusterIP (default)
-          - Internal only
-          - Used for communication inside cluster
-
-       2. NodePort
-          - Exposes service on each Node’s IP + port
-          - External access possible
-       3. LoadBalancer
-          - Cloud provider creates external load balancer
-          - Used in AWS, Azure, GCP
+    Interview One-Liner
+        A Deployment is a Kubernetes controller that manages Pods and ReplicaSets, ensuring the desired number of replicas are running while providing features such as scaling, self-healing, rolling updates, and rollbacks.
 
 
+Q) What is a ReplicaSet?
+    - A ReplicaSet is a Kubernetes controller that ensures a specified number of Pod replicas are running at all times.
+    - It continuously monitors Pods and maintains the desired number of replicas.
+    - If a Pod fails or is deleted, the ReplicaSet automatically creates a new Pod.
+    - If there are more Pods than desired, the ReplicaSet terminates the extra Pods.
+    - ReplicaSets use labels and selectors to identify and manage Pods.
+
+    Main Responsibilities of a ReplicaSet
+    1. Maintain Desired Number of Pods
+    2. Self-Healing
+        - Detects failed or deleted Pods.
+        - Automatically recreates Pods to maintain the desired state.
+    3. Pod Selection Using Labels
+        Uses label selectors to determine which Pods it manages.
+
+    Important Note
+        - In real-world environments, you usually do not create ReplicaSets directly.
+        - Deployments automatically create and manage ReplicaSets.
+        - When you update a Deployment, Kubernetes creates a new ReplicaSet and gradually shifts traffic to the new Pods.
+    
+    Deployment
+    ↓
+    ReplicaSet
+    ↓
+    Pods
+
+    Interview One-Liner
+        A ReplicaSet is a Kubernetes controller that ensures a specified number of identical Pod replicas are running at all times by automatically creating or deleting Pods as needed.
 
 
-
-Q) What is a Node?
-Q) What is Namespaces
-	- a Namespace is a logical partition inside a cluster used to organize and isolate resources.
-
-	Why Namespaces are needed
-		1. Resource Isolation
-			- Resources inside one namespace are logically separated from others.
-		
-		2. Access Control (RBAC)
-        	- Permissions can be namespace-specific.
-        	
-        	Example:
-            	- Dev team accesses only dev
-            	- QA team accesses only qa
-
-        3. Resource Quotas
-          You can limit:
-            - CPU
-            - memory
-            - storage
-            - Pod count
-          
-          	per namespace.
-
-        4. Environment Separation/multi-team environments
-          	Very commonly used for:
-            	- development
-            	- testing
-            	- staging
-            	- production
-
-        Imagine one Kubernetes cluster used by:
-        - Dev team
-        - QA team
-        - Production team
-
-      	 Without namespaces:
-        - resource names may conflict
-        - hard to manage permissions
-        - difficult to separate environments
-
-        Namespaces solve this.
-
-     Example:
-        You can have:
-          - dev namespace
-          - prod namespace
-          - testing namespace
-
-     Each can contain:
-          - Pods
-          - Services
-          - Deployments
-          - ConfigMaps
-          - Secrets
-            
-          independently.
-
-Q) What is ConfigMap?
-Q) What is Secret?
-Q) What is Ingress?
-	Ingress manages external HTTP/HTTPS access to services with routing rules.
-
-Q) Difference between Ingress and LoadBalancer?
-Q) Difference between Router and ingress?
-Q) What are Labels and Selectors?
+Q) What is the difference between Deployment and StatefulSet?
+    Feature              Deployment                              StatefulSet
+    Application Type     Stateless applications                  Stateful applications
+    Pod Identity         Pods get random names and identities    Pods have stable and unique identities
+    Pod Naming           myapp-7f8c9d5f4-xk2lm                   mysql-0, mysql-1, mysql-2
+    Storage              Usually ephemeral or shared storage     Dedicated persistent storage for each Pod
+    Volume Management    Pods can share volumes                  Each Pod gets its own Persistent Volume
+    Scaling              Pods scale in parallel                  Pods scale in a specific order
+    Pod Creation         Created simultaneously                  Created sequentially (0 → 1 → 2)
+    Pod Deletion         Deleted in any order                    Deleted in reverse order (2 → 1 → 0)
+    Pod Replacement      New Pod gets a new identity             New Pod retains the same identity and storage
+    Network Identity     No stable hostname                      Stable hostname and network identity
+    Use Cases            Web applications, APIs, microservices   Databases, Kafka, Elasticsearch, Zookeeper, MongoDB
 
 Q) What is a DaemonSet?
-Q) What is a Job and CronJob?
-	Job → Runs a task once
-	CronJob → Runs tasks on schedule
+    - A DaemonSet is a Kubernetes controller that ensures a copy of a Pod runs on every node (or selected nodes) in the cluster.
+    - When a new node joins the cluster, the DaemonSet automatically creates a Pod on that node.
+    - When a node is removed, the corresponding Pod is automatically removed.
+    - Commonly used for node-level services that must run on all nodes.
 
-Q) What happens during kubectl apply?
-	YAML sent to API server
-	Object stored in etcd
-	Scheduler assigns node
-	Kubelet creates Pod
-	Desired state maintained
+    Main Responsibilities of a DaemonSet
+    1. Run a Pod on Every Node
+        - Ensures one Pod runs on each worker node.
+        - Automatically manages Pods as nodes are added or removed.
 
-Q) Explain rolling updates in Kubernetes.
-	Rolling updates gradually replace old Pods with new Pods without downtime.
-	
-Q) What monitoring tools are commonly used with Kubernetes?
-	Prometheus
-	Grafana
-	ELK Stack
-	Datadog
+    2. Node-Level Operations
+        Used for services that need access to the node itself.
+        
+        Examples:
+        - Log collection
+        - Monitoring
+        - Security scanning
+        - Networking plugins
 
-Q) What logging strategies are used in Kubernetes?
-Q) Explain liveness and readiness probes.
+    3. Automatic Node Coverage
+        - New nodes automatically receive the DaemonSet Pod.
+        - No manual deployment required.
 
+    Common Use Cases
+        - Monitoring
+            - Prometheus Node Exporter
+            - Datadog Agent
+        - Networking
+            - Calico
+            - Flannel
+        - Security
+            - Falco
+            - Security monitoring agents 
+
+    Interview One-Liner
+        A DaemonSet is a Kubernetes controller that ensures a copy of a Pod runs on every node in the cluster and is commonly used for logging, monitoring, security, and networking agents.
+
+
+Q) What happens when you run kubectl apply?
+    When you execute:
+        # kubectl apply -f deployment.yaml
+    
+    the following steps occur:
+    
+    1. YAML is Sent to the API Server
+        - kubectl sends the resource definition (YAML) to the Kubernetes API Server.
+        - The API Server authenticates, authorizes, and validates the request.
+
+    2. Object is Stored in etcd
+        - After validation, the resource definition is stored in etcd.
+        - etcd becomes the source of truth for the cluster state.
+
+    3. Controller Detects the Desired State
+        - The Deployment Controller notices that new Pods need to be created.
+        - It creates a ReplicaSet, which in turn creates the required Pods.
+
+    4. Scheduler Assigns a Node
+        - The Scheduler finds a suitable worker node for each Pod based on available resources and scheduling rules.
+        - The selected node is assigned to the Pod.
+
+    5. Kubelet Creates the Pod
+        - The Kubelet on the assigned node receives the Pod specification.
+        - It instructs the container runtime to:
+            - Pull the container image.
+            - Create and start the containers.
+            - Set up networking and storage.
+    
+    6. Pod Starts Running
+        - Containers start running on the worker node.
+        - Pod status changes to Running (if successful).
+
+    7. Desired State is Maintained
+        - Kubernetes continuously monitors the resource.
+        - If a Pod fails or is deleted, the controller automatically creates a replacement Pod to maintain the desired state.
+
+Flow Diagram
+============
+kubectl apply
+       ↓
+   API Server
+       ↓
+      etcd
+       ↓
+Deployment Controller
+       ↓
+   ReplicaSet
+       ↓
+      Pod
+       ↓
+   Scheduler
+       ↓
+ Worker Node
+       ↓
+    Kubelet
+       ↓
+Container Runtime
+       ↓
+ Pod Running
+
+
+Interview One-Liner
+    When kubectl apply is executed, the YAML is sent to the API Server, stored in etcd, controllers create the required resources, the Scheduler assigns a node, the Kubelet starts the Pod on that node, and Kubernetes continuously maintains the desired state.
+
+
+Q) What is the difference between kubectl create and kubectl apply?
+    1. kubectl create
+        - Used to create a new Kubernetes resource.
+        - Creates the resource only if it does not already exist.
+        - If the resource already exists, the command fails with an error.
+        - Primarily used for initial resource creation.
+        
+        Example:
+            kubectl create -f deployment.yaml
+
+    2. kubectl apply
+        - Used to create or update Kubernetes resources.
+        - Works in a declarative manner.
+        - Can be executed multiple times safely.
+        - Updates existing resources when changes are detected in the YAML file.
+        - Maintains the desired state defined in the manifest.
+        - Tracks the last applied configuration.
+    
+        Example:
+            kubectl apply -f deployment.yaml
+
+
+    Interview One-Liner
+        kubectl create is used only to create new resources and fails if they already exist, whereas kubectl apply is declarative and can both create and update resources while maintaining the desired state defined in the YAML file.
+
+
+Q) What are Namespaces in Kubernetes?
+    - A Namespace is a logical partition within a Kubernetes cluster used to organize and isolate resources.
+    - Namespaces allow multiple teams, applications, or environments to share the same cluster while keeping resources separated.
+    - Resource names must be unique within a namespace, but the same name can exist in different namespaces.
+
+    Why are Namespaces Needed?
+    1. Resource Isolation
+        - Resources in one namespace are logically isolated from resources in other namespaces.
+        - Helps organize applications and teams within the same cluster.
+        
+        Example:
+            - dev namespace
+            - qa namespace
+            - prod namespace
+
+    2. Access Control (RBAC)
+        - Permissions can be assigned at the namespace level.
+        - Restricts users to only the resources they need to access.
+        
+        Example:
+        - Developers can access only the dev namespace.
+        - QA team can access only the qa namespace.
+        - Production access can be restricted to administrators.
+
+    3. Resource Quotas
+        - Resource usage can be limited per namespace.
+        - Helps prevent one team or application from consuming all cluster resources.
+        
+        You can limit:
+            - CPU
+            - Memory
+            - Storage
+            - Number of Pods
+            - Number of Services
+
+    4. Environment Separation
+        Commonly used to separate environments within the same cluster.
+        
+        Examples:
+            - Development
+            - Testing
+            - Staging
+            - Production
+        
+        This helps avoid conflicts and simplifies management.
+
+        Example Scenario
+            Suppose a single Kubernetes cluster is shared by:
+                - Development Team
+                - QA Team
+                - Production Team
+            
+            Without namespaces:
+                - Resource names may conflict.
+                - Managing permissions becomes difficult.
+                - Environment separation becomes challenging.
+        
+        Namespaces solve these problems by providing logical isolation.
+
+        Solution:
+            With Namespace:
+                Each namespace can contain its own:
+                - Pods
+                - Services
+                - Deployments
+                - ConfigMaps
+                - Secrets
+                - PersistentVolumeClaims
+            
+            independently of other namespaces.
+
+        Common Built-in Namespaces
+            default – Default namespace for user workloads.
+            kube-system – Kubernetes system components.
+            kube-public – Publicly readable resources.
+            kube-node-lease – Node heartbeat information.
+
+
+    Interview One-Liner
+        A Namespace is a logical partition within a Kubernetes cluster that provides resource isolation, access control, resource quotas, and environment separation for applications and teams.
+
+
+
+Q) Explain the Deployment Lifecycle in Kubernetes.
+    or What happen internally when a deployment created?
+
+    A Deployment goes through several stages from creation to updates and deletion.
+
+    1. Deployment Creation
+        - User creates a Deployment using a YAML file.
+            # kubectl apply -f deployment.yaml
+        - The Deployment object is created and stored in etcd.
+
+    2. ReplicaSet Creation
+        - The Deployment Controller creates a ReplicaSet based on the Deployment specification.
+
+    3. Pod Creation
+        - The ReplicaSet creates the required number of Pods.
+
+    4. Scheduling and Running
+        - Scheduler assigns Pods to worker nodes.
+        - Kubelet starts the containers.
+        - Pods move to the Running state.
+    
+    5. Desired State Maintenance (Self-Healing)
+        - Deployment continuously ensures the desired number of replicas are running.
+        - If a Pod crashes or is deleted, the ReplicaSet creates a replacement Pod.
+
+    6. Scaling
+        - The number of replicas can be increased or decreased.
+            # kubectl scale deployment myapp --replicas=5
+        - ReplicaSet creates or removes Pods accordingly.
+
+    7. Rolling Update
+        - When the Deployment configuration changes (e.g., new image version):
+        - Deployment creates a new ReplicaSet.
+        - Gradually replaces old Pods with new Pods.
+        - Ensures minimal or no downtime.
+
+    8. Rollback (If Needed)
+        - If the new version has issues:
+        - Deployment can revert to the previous version.
+
+    9. Deployment Deletion
+        - When the Deployment is deleted:
+        - ReplicaSet is deleted.
+        - Pods managed by the ReplicaSet are deleted.
+
+
+Deployment Lifecycle Flow
+=========================
+Deployment Created
+         ↓
+ReplicaSet Created
+         ↓
+Pods Created
+         ↓
+Pods Scheduled & Running
+         ↓
+Desired State Maintained
+         ↓
+Scale Up / Scale Down
+         ↓
+Rolling Updates
+         ↓
+Rollback (if required)
+         ↓
+Deployment Deleted
+    
+    Interview One-Liner
+        The Deployment lifecycle starts with Deployment creation, followed by ReplicaSet and Pod creation. The Deployment then maintains the desired state, supports scaling, performs rolling updates and rollbacks, and finally removes all managed resources when deleted.
+
+
+Q) What are Deployment Strategies in Kubernetes?
+    A Deployment Strategy defines how application updates are performed when a new version is deployed.
+
+    1. Rolling Update (Default)
+        - Gradually replaces old Pods with new Pods.
+        - Ensures minimal or no downtime.
+        - Controlled using:
+            maxSurge
+            maxUnavailable
+
+        Example:
+
+        Before:
+        v1 v1 v1 v1
+
+        During Update:
+        v2 v1 v1 v1 
+        v2 v2 v1 v1
+        v2 v2 v2 v1
+
+        After:
+        v2 v2 v2 v2
+
+        Advantages:
+        - Zero/minimal downtime.
+        - Safer deployments.
+        - Supports rollback.
+
+    2. Recreate
+        - Terminates all existing Pods first.
+        - Then creates new Pods with the updated version.
+
+        Example:
+            Before:
+            v1 v1 v1 v1
+                |
+            Update:
+            All Pods Deleted
+                ↓
+            v2 v2 v2 v2
+
+        Advantages:
+            - Simple strategy.
+            - No version mixing.
+
+        Disadvantages:
+            - Causes downtime.
+
+        YAML:
+        strategy:
+            type: Recreate
+
+    Real-World Usage
+        Rolling Update
+        - Web applications
+        - APIs
+        - Microservices
+        
+        Recreate
+        - Applications that cannot run multiple versions simultaneously
+        - Certain database-related applications
+        - Legacy applications
+
+    Interview One-Liner
+        Kubernetes supports two deployment strategies: RollingUpdate and Recreate. RollingUpdate gradually replaces old Pods with new ones with little or no downtime, while Recreate deletes all existing Pods before creating new Pods, causing downtime. RollingUpdate is the default strategy.
+
+
+    Blue-Green and Canary are advanced deployment patterns implemented using:
+        - Services
+        - Ingress
+        - Service Meshes (e.g. Istio)
+        - GitOps tools like Argo Rollouts
+
+    1. Blue-Green Deployment
+        Two identical environments exist:
+        
+        Blue = Current production version
+        Green = New version
+
+Flow
+
+Blue Environment (v1)
+        ↓
+     Users
+
+Deploy new version:
+
+Blue (v1)
+Green (v2)
+
+After testing Green:
+
+Users
+  ↓
+Green (v2)
+
+Traffic is switched from Blue to Green.
+
+    Advantages
+        - Near-zero downtime.
+        - Quick rollback.
+        - Easy testing before release.
+    
+    Disadvantages
+        - Requires double infrastructure.
+        - Higher resource cost.
+
+
+    2. Canary Deployment
+        - Deploy the new version to a small percentage of users first.
+
+Example
+90% Traffic → v1
+10% Traffic → v2
+
+If healthy:
+
+70% Traffic → v1
+30% Traffic → v2
+
+Then:
+
+100% Traffic → v2
+
+    Advantages
+        - Lower deployment risk.
+        - Real user testing.
+        - Easier issue detection.
+    
+    Disadvantages
+        - More complex setup.
+        - Requires traffic splitting.
+
+
+    Deployment Strategy Interview Answer
+        Basic Answer
+        Kubernetes Deployments natively support:
+        - RollingUpdate
+        - Recreate
+    
+    Advanced Answer
+        In production, organizations also use:
+        - Rolling Update
+        - Recreate
+        - Blue-Green Deployment
+        - Canary Deployment
+    
+    Blue-Green and Canary are not native Deployment strategies; they are deployment patterns typically implemented using Ingress Controllers, Service Meshes, or tools such as Argo Rollouts.
+
+    Interview One-Liner
+        Kubernetes supports RollingUpdate and Recreate natively. Blue-Green and Canary are advanced deployment patterns used for safer releases and are usually implemented using Services, Ingress, Service Meshes, or progressive delivery tools like Argo Rollouts.
 

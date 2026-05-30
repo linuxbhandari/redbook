@@ -1,5 +1,5 @@
 Basic
-=====
+=======
 Q) What is kubernetes?
 Q) What are the main components of Kubernetes architecture?
 Q) What is a Pod?
@@ -37,7 +37,6 @@ Q) What is Helm and Helm Charts?
 Q) Explain rolling updates in Kubernetes.
 
 
-
 DevOps / Production Questions
 ==============================
 Q) What monitoring tools are commonly used with Kubernetes?
@@ -59,6 +58,7 @@ Q) How are Secrets secured in Kubernetes?
 Q) How to enable encryption for Secrets?
 Q) What is secret rotation?
 	Updating Secrets periodically without downtime.
+
 Q) Pod not picking ConfigMap values. Why?
 	ConfigMap name mismatch
 	Wrong key reference
@@ -112,6 +112,7 @@ Networking
 Q) How does Pod-to-Pod communication work?
 Q) What is CoreDNS?
 Q) What is Network Policy?
+
 Q) What happens if no Network Policy exists?
 Q) What is egress and ingress traffic?
 Q) What is Service Discovery?
@@ -120,6 +121,7 @@ Q) What is External IP in Kubernetes Service?
 Q) What is Endpoint in Kubernetes?
 Q) How does Service load balancing work?
 Q) What is Ingress Controller?
+
 Q) What is TLS termination in Kubernetes?
 Q) What is Multi-cluster networking?
 Q) 
@@ -138,6 +140,7 @@ Q) What is CSI in Kubernetes?
 Q) What storage backends have you worked with?
 Q) What is the difference between block storage and file storage?
 Q) What is RWX storage and where is it used?
+
 Q) What happens if no PV matches PVC?
 Q) Explain StatefulSet storage behavior.
 Q) What is local persistent volume?
@@ -147,6 +150,7 @@ Q) What is VolumeSnapshot?
 Q) What are common storage issues in Kubernetes?
 Q) What is disk pressure in Kubernetes?
 
+(Below questions pending to note on paper)
 
 Troubleshooring Questions
 ==========================

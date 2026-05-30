@@ -161,3 +161,104 @@ If a node fails or is manually removed using a drain operation, Kubernetes evict
 
 Finally, the node is either recovered, replaced, or terminated, depending on the situation.
 
+
+------
+Q) What are the main components of a worker node?
+        👉 Answer:
+        kubelet (node agent)
+        kube-proxy (networking)
+        container runtime (containerd/Docker)
+        Pods (application workloads)
+
+Q) What is the role of kubelet?
+        👉 Answer:
+        kubelet is responsible for:
+        - Registering node with control plane
+        - Running and monitoring Pods
+        - Reporting node health to API server
+
+Q) Explain the worker node lifecycle in Kubernetes.
+        👉 Answer (short structured):
+        A worker node goes through:
+        - Provisioning (VM creation + kubelet installation)
+        - Registration with Kubernetes API server
+        - Ready state (node becomes schedulable)
+        - Running workloads (Pods assigned by scheduler)
+        - Continuous health monitoring
+        - Failure or drain (Pods evicted or rescheduled)
+        - Termination or replacement
+
+Q) What happens when a node becomes NotReady?
+        👉 Answer:
+        kubelet stops sending heartbeats
+        Node marked NotReady by control plane
+        Scheduler stops assigning new Pods
+        Existing Pods are eventually rescheduled on healthy nodes
+
+Q) What is node registration in Kubernetes?
+        👉 Answer:
+        Node registration is the process where kubelet registers the node with the API server so it becomes 
+        part of the cluster.
+
+Q) How does Kubernetes monitor node health?
+        👉 Answer:
+        Node heartbeat (kubelet → API server)
+        Node conditions (Ready, MemoryPressure, DiskPressure)
+        Controller manager checks status periodically
+
+Advanced Questions (Important for interviews)
+=============================================
+Q) What happens when a node fails unexpectedly?
+        👉 Answer:
+        Node stops sending heartbeats
+        Status changes to NotReady
+        After a timeout, Pods are marked for eviction
+        Pods are rescheduled on other nodes
+
+Q) What is kubectl drain and when is it used?
+        👉 Answer:
+        kubectl drain is used for planned maintenance:
+        Marks node unschedulable
+        Evicts all Pods safely
+        Pods are rescheduled elsewhere
+
+Q) Difference between node failure and node drain?
+        👉 Answer:
+        Node Failure                    Node Drain
+        Unexpected                      Planned
+        No control over shutdown        Admin controlled
+        Pods may be lost temporarily    Pods safely evicted
+        Recovery is automatic           Manual operation
+
+Q) What is the difference between Ready and NotReady node states?
+        👉 Answer:
+        Ready → Node can accept Pods
+        NotReady → Node is unhealthy and cannot schedule Pods
+
+Q) What happens inside kubelet during node lifecycle?
+        👉 Answer:
+        Registers node with API server
+        Watches PodSpecs
+        Pulls container images
+        Starts/stops containers
+        Reports status and health
+
+Q) What is node cordoning?
+        👉 Answer:
+        Cordoning marks a node as unschedulable:
+                #kubectl cordon <node>
+        New Pods won’t be scheduled
+        Existing Pods remain running
+
+Q) What happens during node termination in cloud environments?
+        👉 Answer:
+        Node is removed from cluster
+        Pods are evicted
+        Autoscaler may launch new nodes
+        Workloads redistributed automatically
+
+Bonus Tip (Interview Hack)
+        If interviewer digs deeper, mention:
+        - kubelet is the key agent in node lifecycle
+        - control plane uses heartbeats to detect failures
+        - Pods are always managed, not nodes directly

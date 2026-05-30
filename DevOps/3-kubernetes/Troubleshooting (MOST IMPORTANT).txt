@@ -3,11 +3,101 @@ Phase 3 — Troubleshooting (MOST IMPORTANT)
 This is where senior roles are evaluated.
 
 Practice:
-  * Pod failures
-  * Node NotReady
-  * ImagePullBackOff
-  * CrashLoopBackOff
-  * OOMKilled
+
+  * Pod failures:
+      A Pod failure means:
+      👉 The Pod is not running as expected  
+      👉 Or it keeps restarting/crashing
+      👉 Or it cannot even start
+
+  Common Pod Failure Types (Very Important)
+  1. CrashLoopBackOff
+      📌 Meaning:
+            Container starts → crashes → Kubernetes keeps restarting it
+      
+      📌 Causes:
+            Application bug
+            Missing config/env variables
+            Database not reachable
+            Wrong command/entrypoint
+      
+      📌 How to debug:
+            # kubectl logs <pod>
+            # kubectl describe pod <pod>
+
+  2. ImagePullBackOff / ErrImagePull
+      📌 Meaning:
+            Kubernetes cannot pull the container image
+      
+      📌 Causes:
+            Wrong image name/tag
+            Private registry without credentials
+            Image does not exist
+      📌 Fix:
+            Correct image name
+            Add imagePullSecrets
+
+  3. Pending Pod
+      📌 Meaning:
+            Pod is not scheduled on any node
+      
+      📌 Causes:
+            No CPU/memory available
+            Node selector mismatch
+            Taints & tolerations issue
+            PVC not bound
+
+      📌 Debug:
+            kubectl describe pod <pod>
+
+  4. ContainerCreating
+      📌 Meaning:
+            Pod is stuck while creating container
+      
+      📌 Causes:
+            Volume mount issues
+            CNI/network plugin issues
+            Slow image download
+
+  5. OOMKilled (Out Of Memory)
+      📌 Meaning:
+            Container was killed due to memory limit breach
+      
+      📌 Causes:
+            App uses more memory than allowed
+            Low memory limits set
+      
+      📌 Fix:
+            Increase memory limits
+            Optimize application memory usage
+
+  6. Completed (Unexpected)
+      📌 Meaning:
+            Container finished execution and exited
+      
+      📌 Causes:
+            Batch job completed
+            Wrong container command (exits immediately)
+
+  7. Evicted Pod
+      📌 Meaning:
+            Pod removed from node due to resource pressure
+      
+      📌 Causes:
+            Disk pressure
+            Memory pressure
+            Node overload
+
+  8. Node NotReady impact
+      📌 Meaning:
+            Pod fails because node is unhealthy
+      
+      📌 Causes:
+            kubelet down
+            network issue
+            node crash
+
+
   * Route issues
   * DNS issues
   * Pending pods
@@ -41,3 +131,142 @@ oc adm
 and
 
 kubectl
+--------------------------
+Q) How do you troubleshoot a Pod that is not running?
+  👉 Expected answer:
+  I check the Pod status using:
+      # kubectl get pods
+      # kubectl describe pod <pod-name>
+      # kubectl logs <pod-name>
+
+  Then I look for issues like:
+    - Image pull errors
+    - CrashLoopBackOff
+    - Pending state (scheduling issue)
+    - Resource limits
+
+Q) What does CrashLoopBackOff mean?
+  👉 Answer:
+    It means the container is starting and then repeatedly crashing.
+    
+    To debug:
+    - Check logs: kubectl logs
+    - Describe pod: kubectl describe pod
+    - Check application errors or missing configs
+
+Q) How do you check logs in Kubernetes?
+  👉 Answer:
+      # kubectl logs <pod-name>
+      # kubectl logs -f <pod-name>
+    
+    For multi-container Pods:
+      # kubectl logs <pod-name> -c <container-name>
+
+Q) Why is my Pod in Pending state?
+  👉 Answer:
+  Possible reasons:
+    - Insufficient CPU/memory
+    - No matching node (node selector/taints)
+    - PVC not bound
+  
+  Check:
+    # kubectl describe pod <pod-name>
+
+Q) How do you troubleshoot a Service not accessible?
+  👉 Answer:
+  I check step by step:
+    - Service exists? → kubectl get svc
+    - Endpoints attached? → kubectl get endpoints
+    - Pod labels match Service selector?
+    - Pod is running and ready?
+    - Network policies blocking traffic?
+
+Q) What is ImagePullBackOff and how do you fix it?
+  👉 Answer:
+  It means Kubernetes cannot pull the container image.
+  
+  Reasons:
+    - Wrong image name
+    - Private registry without credentials
+    - Image does not exist
+  
+  Fix:
+    - Correct image name
+    - Add imagePullSecrets
+    - Verify registry access
+
+Q) How do you debug a node-related issue?
+  👉 Answer:
+      # kubectl get nodes
+      # kubectl describe node <node-name>
+  
+  Check:
+    - Ready / NotReady state
+    - Disk pressure / memory pressure
+    - kubelet health
+
+Advanced Troubleshooting Questions
+===================================
+Q) How do you debug networking issues in Kubernetes?
+  👉 Answer:
+  Steps:
+    - Check Pod IP and connectivity
+    - Test inside Pod using curl or nslookup
+    - Verify kube-proxy
+    - Check CNI plugin (Calico/Flannel)
+    - Check NetworkPolicies
+
+Q) How do you troubleshoot a Deployment not updating?
+  👉 Answer:
+    - Check rollout status:
+          # kubectl rollout status deployment <name>
+    
+    - Check ReplicaSet:
+          # kubectl get rs
+    
+    - Check Pod events and image version
+
+Q) What do you check when a Pod is stuck in ContainerCreating?
+  👉 Answer:
+  Possible issues:
+    - Volume mount failure
+    - Image pull delay
+    - CNI networking issue
+    - Node resource issues
+  Use:
+    # kubectl describe pod
+
+Q) How do you troubleshoot DNS issues in Kubernetes?
+  👉 Answer:
+    - Check CoreDNS pods
+    - Test DNS resolution inside Pod:
+        # nslookup kubernetes.default
+  
+  Check service name and namespace correctness
+
+Q) How do you debug high CPU or memory usage in a Pod?
+  👉 Answer:
+    - Check metrics (metrics-server / Prometheus)
+    - Use:
+          # kubectl top pod
+          # kubectl top node
+    - Inspect application logs
+    - Adjust resource limits
+
+Q) What is your approach to general Kubernetes troubleshooting?
+  👉 Answer (very important):
+    I follow a layered approach:
+    - Check Pod status
+    - Describe Pod for events
+    - Check logs
+    - Validate Services and networking
+    - Check node health
+    - Check cluster components
+
+
+Pro Tip (Interview Hack)
+
+Interviewers love when you say:
+  “I always start from Pod → then Service → then Node → then Cluster level”
+
+  This shows structured debugging thinking.
