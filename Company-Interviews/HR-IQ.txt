@@ -1,0 +1,42 @@
+My CTC
+
+(CTC) 19,14,714 + 138,502.5 (Avg) variable = 20,53,216
+
+10% = 19,14,714 + 1,91,471.4 =  21,06,185.4
+20% = 19,14,714 + 3,82,942.8 =  22,97,656.8
+30% = 19,14,714 + 5,74,414.2 =  24,89,128.2
+40% = 19,14,714 + 7,65,885.6 =  26,80,599.6
+=================
+159559.5 => monthly
+136,000  => received
+
+Earnings section
+	Basic 		=> 63,823
+shift-allowance => 4,500
+special-allowance => 85,013
+
+Deductions section
+	Tax => 12,000  (8-9%)
+	PF  => 7,659
+
+Ask bifurcate the salary
+========================
+
+
+About the Company
+=================
+Q) Tell me about the company and its business?
+Q) Company's primary products or services?
+Q) Where is the company headquartered?
+Q) What is my office location?
+
+
+About the Role
+==============
+Q) Could you provide the job description for this position?
+Q) What are the key responsibilities of the role?
+Q) Will this position for a team leader or team mate?
+Q) Is this a permanent position or a contract role?
+
+
+

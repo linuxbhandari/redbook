@@ -203,3 +203,15 @@ MOST IMPORTANT TOPICS TO FOCUS (80% interviews)
 		✔ Real production use cases
 		✔ Idempotency
 
+
+- Developed and maintained Ansible playbooks to automate Linux server administration, configuration management, and operational tasks.
+- Managed infrastructure using Ansible Static Inventory, organizing hosts and groups for efficient server management across development, testing, and production environments.
+
+- Created and maintained Ansible Roles to standardize and modularize automation workflows, improving reusability and maintainability.
+- Utilized group variables and host variables to manage environment-specific configurations and application settings.
+- Secured sensitive information such as passwords, API keys, and credentials using Ansible Vault.
+- Implemented Ansible Handlers to automate service restarts and configuration reloads based on task execution results.
+- Automated user and group management, SSH key deployment, sudo access configuration, and permission management.
+- Developed playbooks for service management, application deployment, configuration validation, and system health checks.
+- Troubleshot and optimized Ansible playbooks, roles, and inventories to improve automation reliability and execution efficiency.
+- Reduced manual operational effort, minimized configuration drift, and improved deployment consistency through automation.

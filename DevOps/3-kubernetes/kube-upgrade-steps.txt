@@ -1,0 +1,528 @@
+root@kube-master:~# kubectl version
+Client Version: v1.32.13
+Kustomize Version: v5.5.0
+Server Version: v1.32.13
+
+
+root@kube-master:~# cat /etc/os-release
+NAME="Ubuntu"
+VERSION="20.04.6 LTS (Focal Fossa)"
+ID=ubuntu
+ID_LIKE=debian
+PRETTY_NAME="Ubuntu 20.04.6 LTS"
+VERSION_ID="20.04"
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+VERSION_CODENAME=focal
+UBUNTU_CODENAME=focal
+
+root@kube-master:~# kubectl get deployments.apps 
+NAME        READY   UP-TO-DATE   AVAILABLE   AGE
+demo-app    10/10   10           10          25h
+nginx-hpa   1/1     1            1           3d20h
+
+root@kube-master:~# kubectl get nodes
+NAME          STATUS   ROLES           AGE     VERSION
+kube-master   Ready    control-plane   4d1h    v1.32.13
+kube-node1    Ready    <none>          4d1h    v1.32.13
+kube-node2    Ready    <none>          4d1h    v1.32.13
+kube-node3    Ready    <none>          2d11h   v1.32.13
+
+
+
+Step 3: Check Available Upgrade Paths
+
+root@kube-master:~# kubeadm upgrade plan
+[preflight] Running pre-flight checks.
+[upgrade/config] Reading configuration from the "kubeadm-config" ConfigMap in namespace "kube-system"...
+[upgrade/config] Use 'kubeadm init phase upload-config --config your-config.yaml' to re-upload it.
+[upgrade] Running cluster health checks
+[upgrade] Fetching available versions to upgrade to
+[upgrade/versions] Cluster version: 1.32.13
+[upgrade/versions] kubeadm version: v1.32.13
+I0531 10:50:24.721748    3930 version.go:261] remote version is much newer: v1.36.1; falling back to: stable-1.32
+[upgrade/versions] Target version: v1.32.13
+[upgrade/versions] Latest version in the v1.32 series: v1.32.13
+
+
+This command shows:
+
+Current cluster version
+Available target versions
+Recommended upgrade version
+
+
+
+1.32 → 1.33 → 1.34
+1.31 → 1.32 → 1.33 → 1.34
+
+
+Add Kubernetes 1.31 Repository
+------------------------------
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
+
+apt update
+apt install -y kubelet kubeadm kubectl
+apt-mark hold kubelet kubeadm kubectl
+kubectl version
+
+
+
+Initialize Control Plane
+-------------------------
+kubeadm init --ignore-preflight-errors=all
+
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+Install a CNI
+-------------
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.29.3/manifests/calico.yaml
+
+
+join worker node
+----------------
+kubeadm token create --print-join-command
+
+
+===========================================
+Perfect! You now have a fresh Kubernetes v1.31.14 cluster.
+
+Current version:
+
+kubeadm version
+# v1.31.14
+
+Now let's perform a real upgrade from 1.31 → 1.32 exactly as you would in production.
+
+Step 1: Verify Cluster Health
+
+On the control plane:
+    kubectl get nodes
+    kubectl get pods -A 
+    kubectl version
+
+Make sure:
+    All nodes are Ready
+    All pods are Running    
+    No CrashLoopBackOff
+
+
+
+Step 2: Take an etcd Backup (Interview Best Practice)
+
+Find etcd certificates:
+    ls /etc/kubernetes/pki/etcd/
+
+Create snapshot:
+ETCDCTL_API=3 etcdctl snapshot save /root/etcd-backup.db \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key
+
+Verify:
+ETCDCTL_API=3 etcdctl snapshot status /root/etcd-backup.db
+
+
+
+Step 3: Change Repository from v1.31 to v1.32
+
+Check current repo:
+    cat /etc/apt/sources.list.d/kubernetes.list
+
+You'll see something like:
+    
+    https://pkgs.k8s.io/core:/stable:/v1.31/deb/
+
+Change it to:
+    sed -i 's/v1.31/v1.32/g' /etc/apt/sources.list.d/kubernetes.list
+
+Update packages:
+    apt update
+
+Step 4: Verify v1.32 Packages Are Available
+    apt list -a kubeadm
+
+You should now see:
+1.32.13-1.1
+1.32.12-1.1
+...
+
+
+Step 5: Upgrade kubeadm First
+
+Check current package hold:
+    apt-mark unhold kubeadm
+
+Install latest 1.32 kubeadm:
+    apt-get update
+    apt-get install -y kubeadm=1.32.13-1.1
+
+Verify:
+    kubeadm version
+
+Expected:
+v1.32.13
+
+
+Step 6: Check Upgrade Plan
+    kubeadm upgrade plan
+
+Expected output:
+    Current version: v1.31.14
+    Available upgrade: v1.32.13
+
+Paste the output here before proceeding.
+
+
+Step 7: Upgrade Control Plane
+
+Once the plan looks correct:
+    kubeadm upgrade apply v1.32.13
+
+This upgrades:
+    API Server
+    Controller Manager
+    Scheduler
+    CoreDNS 
+    kube-proxy
+    Cluster configuration
+
+Wait until:
+    SUCCESS! Your cluster was upgraded
+
+
+Step 8: Upgrade kubelet and kubectl
+    apt-mark unhold kubelet kubectl
+    apt-get install -y kubelet=1.32.13-1.1 kubectl=1.32.13-1.1
+
+Restart kubelet:
+    systemctl daemon-reload
+    systemctl restart kubelet
+
+Hold packages again:
+    apt-mark hold kubeadm kubelet kubectl
+
+
+root@kube-master:~# kubectl get nodes
+NAME          STATUS   ROLES           AGE   VERSION
+kube-master   Ready    control-plane   23m   v1.32.13
+kube-node1    Ready    <none>          18m   v1.31.14
+kube-node2    Ready    <none>          18m   v1.31.14
+kube-node3    Ready    <none>          18m   v1.31.14
+
+
+
+Worker Upgrade Process (1.31 → 1.32)
+
+First update repo
+
+cat /etc/apt/sources.list.d/kubernetes.list
+sed -i 's/v1.31/v1.32/g' /etc/apt/sources.list.d/kubernetes.list
+apt update
+apt-get install -y kubeadm=1.32.13-1.1
+
+
+On a worker node, kubeadm upgrade node does not upgrade control plane components. It updates the node-specific Kubernetes configuration, especially the kubelet configuration, so that the node is compatible with the upgraded cluster version. After that, kubelet is upgraded and restarted to complete the worker node upgrade.
+
+Step 1: Drain the Worker Node
+
+Run from the control plane:
+    kubectl drain worker1 --ignore-daemonsets --delete-emptydir-data
+
+Verify:
+    kubectl get nodes
+
+You should see:
+    worker1   Ready,SchedulingDisabled
+
+This means:
+    No new pods will be scheduled.
+    Existing pods are moved to other nodes.
+
+
+
+Step 2: Upgrade kubeadm on Worker
+
+SSH to the worker:
+    ssh worker1
+
+Unhold kubeadm:
+    apt-mark unhold kubeadm
+
+Install the target version:
+    apt-get update
+    apt-get install -y kubeadm=1.32.13-1.1
+
+Verify:
+    kubeadm version
+
+
+Step 3: Upgrade Node Configuration
+
+On the worker:
+    kubeadm upgrade node
+
+This updates the kubelet configuration for the new version.
+
+Expected:
+Successfully upgraded node
+
+Step 4: Upgrade kubelet
+    apt-mark unhold kubelet kubectl
+    apt-get install -y kubelet=1.32.13-1.1 kubectl=1.32.13-1.1
+
+Restart kubelet:
+    systemctl daemon-reload
+    systemctl restart kubelet
+
+Hold packages again:
+    apt-mark hold kubeadm kubelet kubectl
+
+
+
+Step 5: Verify Worker Version
+    kubectl get nodes
+
+You should see:
+worker1   Ready   v1.32.13
+
+
+Step 6: Uncordon the Worker
+From the control plane:
+    kubectl uncordon worker1
+
+Verify:
+    kubectl get nodes
+
+The node should be back to:
+    worker1   Ready
+
+root@kube-master:~# kubectl uncordon kube-node1
+node/kube-node1 uncordoned
+
+
+root@kube-master:~# kubectl get nodes
+NAME          STATUS   ROLES           AGE   VERSION
+kube-master   Ready    control-plane   33m   v1.32.13
+kube-node1    Ready    <none>          28m   v1.32.13 <<<<
+kube-node2    Ready    <none>          28m   v1.31.14
+kube-node3    Ready    <none>          28m   v1.31.14
+
+
+
+
+Production Sequence
+
+For multiple workers:
+
+    Control Plane
+     ↓
+    Worker1
+     ↓
+    Worker2
+     ↓
+    Worker3
+
+For each worker:
+
+Drain
+↓
+Upgrade kubeadm
+↓
+kubeadm upgrade node
+↓
+Upgrade kubelet
+↓
+Restart kubelet
+↓
+Uncordon
+
+Interview Tip
+A common question is:
+    
+Q) Why do we drain a worker node before upgrading?
+Draining safely evicts application pods and reschedules them onto other available nodes. This prevents workload disruption during the node upgrade and supports rolling upgrades with minimal downtime.
+
+Q) Do you drain a control plane node before upgrading it? Why or why not?"
+Expected answer:
+It depends. If the control plane node only runs Kubernetes control plane components, draining provides little benefit because static pods such as kube-apiserver, etcd, scheduler, and controller-manager are not evicted. If workload pods are running on the control plane node, then draining is recommended to move those workloads before the upgrade.
+
+Q) What happens to the API server during a control plane upgrade?"
+The kube-apiserver static pod is restarted on the node being upgraded. In an HA cluster, the load balancer routes traffic to the remaining API servers, so the Kubernetes API remains available.
+
+
+Q) Why do we upgrade only one control plane node at a time?"
+To maintain API availability and etcd quorum. Upgrading multiple control plane nodes simultaneously could cause loss of quorum or insufficient API server capacity, leading to cluster instability.
+
+Q) What happens if CP1 goes down during an upgrade?"
+In an HA cluster, CP2 and CP3 continue serving API requests. Scheduler and controller-manager leader election selects a new leader if necessary, and etcd remains healthy as long as quorum is maintained.
+
+Q) If drain does not evict static pods, what is the benefit of draining a control plane node?"
+Draining only helps remove workload pods running on that node. It does not affect static pods. Therefore, the benefit depends on whether workloads are scheduled on the control plane node.
+
+Q) "Can I upgrade all three control plane nodes simultaneously?"
+NO. Control plane nodes should be upgraded sequentially. Upgrading multiple nodes at the same time can cause loss of API availability and etcd quorum.
+
+Q) "How does etcd stay available when one control plane node is upgraded?" (L-3)
+In a 3-member etcd cluster, quorum is 2. When one etcd member restarts during the upgrade, the other two members maintain quorum and continue serving requests.
+
+Q) Why doesn't upgrading CP1 cause application downtime?"
+Application workloads run on worker nodes. Control plane components are redundant in an HA setup. API requests are handled by remaining API servers, and workloads continue running during the control plane upgrade.
+
+Q) "You upgraded CP1 and the API server restarted. Why didn't users notice any outage?"
+Because the load balancer redirected traffic to the API servers running on CP2 and CP3 while CP1 was restarting.
+
+Q) "What is the actual risk during a control plane upgrade?"
+The biggest risk is losing etcd quorum or upgrading multiple control plane nodes simultaneously. That's why we verify cluster health, take an etcd backup, and upgrade one control plane node at a time.
+
+
+Troubleshooting Questions
+=========================
+
+Q) Upgrade Stuck During kubeadm upgrade apply
+    During kubeadm upgrade apply, the upgrade is stuck. What would you check?
+
+Answer
+
+    Check:
+        kubectl get nodes
+        kubectl get pods -A
+    
+    Check kubeadm logs:
+        journalctl -xe
+
+    Check kubelet:
+        systemctl status kubelet
+        journalctl -u kubelet -f
+
+    Check static pods:
+        crictl ps -a
+
+    Look for:
+        Image pull failures
+        Certificate issues
+        kubelet failures
+        etcd connectivity problems
+
+
+2. Node Becomes NotReady After Upgrade
+Question
+    After upgrading a worker node, it becomes NotReady. What would you do?
+
+Answer
+    Check:
+        kubectl describe node <node>
+    
+    Check kubelet:
+        systemctl status kubelet
+        journalctl -u kubelet -f
+    
+    Verify version:
+        kubelet --version
+    
+    Common causes:
+        kubelet not restarted
+        CNI issue
+        certificate issue
+        kubelet configuration mismatch
+
+
+3. API Server Not Coming Up
+Question
+    After upgrading CP1, kube-apiserver is not starting.
+Answer
+    
+    Check static pod status:
+        crictl ps -a
+    
+    Check logs:
+        crictl logs <container-id>
+    
+    Verify manifest:
+        cat /etc/kubernetes/manifests/kube-apiserver.yaml
+    
+    Check certificates:
+        kubeadm certs check-expiration
+
+4. etcd Member Fails After Upgrade
+Question
+    One etcd member is not joining after upgrade.
+
+Answer
+    Check etcd pods:
+        kubectl get pods -n kube-system
+    
+    Check etcd logs:
+        crictl logs <etcd-container>
+    
+    Check cluster health:
+        ETCDCTL_API=3 etcdctl endpoint health --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key
+
+    Verify quorum is maintained.
+
+
+5. Pods Not Scheduling After Upgrade
+Question
+    Upgrade completed but new pods are not getting scheduled.
+
+Answer
+    Check scheduler:
+        kubectl get pods -n kube-system
+    
+    Check scheduler logs:
+        crictl logs <scheduler-container>
+    
+    Check events:
+        kubectl get events -A --sort-by=.metadata.creationTimestamp
+
+    Possible causes:
+        Scheduler not running
+        Resource shortage
+        Taints
+        Node NotReady
+
+6. Cluster Upgrade Successful but Applications Are Down
+Question
+    Cluster is healthy but application is unavailable after upgrade.
+
+Answer
+    Check:
+        kubectl get pods -A
+        kubectl describe pod <pod>
+        kubectl logs <pod>
+    
+    Verify:
+        Readiness probes
+        Service endpoints
+        Ingress
+        Network policies
+
+7. Worker Node Drain Fails
+Question
+    kubectl drain hangs or fails. What would you check?
+
+Answer
+    Most common reason:
+        PodDisruptionBudget (PDB)
+
+    Check:
+        kubectl get pdb -A
+    
+    Example:
+        Allowed disruptions: 0
+
+    Drain cannot evict the pod.
+    
+    Also check:
+        kubectl describe pod <pod>
+
+
+
