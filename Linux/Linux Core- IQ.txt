@@ -1,0 +1,159 @@
+lsof delete files
+du -h or du -
+os hardening
+Satullite and capsule server different and used.
+OS installation steps on vmware
+check route and vlan , vlan tagging.
+ITIL certificate and check process.
+
+Q) Why does df -hT show 100% disk usage, but du -sh shows much less usage?
+Q) du and df commands difference
+Q) What is the difference between Red Hat Satellite Server and Capsule Server?
+Q) What is OS Hardening? How do you secure server from your side?
+Q) Explain the OS Installation Steps on VMware.
+Q) How do you check routes and VLANs in Linux? What is VLAN tagging?
+Q) What is VLAN?
+===================================
+
+
+
+Linux Core (RHEL Expert Level)
+	Explain the Linux boot process from power-on to login prompt.
+	What is the role of GRUB2?
+	How do you troubleshoot a server stuck in emergency mode?
+	Explain Systemd architecture and common commands.
+	Difference between service, target, and unit in Systemd.
+	How do you create and troubleshoot custom systemd services?
+	What happens when a Linux server runs out of inode space?
+	How do you identify CPU, memory, and I/O bottlenecks?	
+	Explain kernel panic and troubleshooting methods.
+	What is the difference between soft and hard links?
+
+LVM (Very Important)
+	Explain PV, VG, and LV.
+	How do you extend a filesystem online?
+	How do you reduce an LVM volume safely?
+	Difference between ext4 and XFS resizing.
+	How do snapshots work in LVM?
+	What are common LVM troubleshooting scenarios?
+	Explain a case where a VG becomes unavailable.
+
+RPM & Repository Management
+	Difference between RPM and YUM/DNF.
+	How do you create a local YUM repository?
+	Explain repository synchronization.
+	How do you troubleshoot package dependency issues?
+	How would you manage repositories in an air-gapped environment?
+
+NetworkManager
+	Difference between NetworkManager and traditional network scripts.
+	Explain nmcli commands you use regularly.
+	How do you configure bonding using nmcli?
+	How do you troubleshoot network connectivity issues?
+	Explain routing table troubleshooting.
+
+Security & Compliance
+	Explain SELinux modes.
+	How do you troubleshoot SELinux denials?
+	Difference between enforcing and permissive mode.
+	Explain Linux hardening standards.
+	How do you respond to a zero-day vulnerability?
+	Describe your patching strategy for critical production systems.
+	How do you generate compliance reports?
+	Explain CIS benchmark implementation.
+	How do you audit privileged access?
+
+Patching & Lifecycle Management
+	Describe your patch management process.
+	How do you patch 500 Linux servers with minimal downtime?
+	How do you validate patch success?
+	What is your rollback strategy?
+	Explain kernel patching approaches.
+	How do you handle emergency security patching?
+
+
+Kickstart / Base Build / Provisioning
+	Explain Kickstart architecture.
+	What sections exist in a Kickstart file?
+	How do you automate RHEL installations?
+	Explain PXE boot process.
+	How do you customize ISO images?
+	Difference between Kickstart and image-based deployment.
+	Explain Bare Metal Recovery (BMR).
+
+Ansible / AWX / Automation
+	Explain Ansible architecture.
+	Difference between Playbook, Role, and Collection.
+	How do you manage secrets in Ansible?
+	Explain dynamic inventory.
+	What is AWX?
+	Difference between AWX and Ansible Tower.
+	How do you automate Linux patching with Ansible?
+	Show a playbook to install and start httpd.
+	How do you troubleshoot failed playbook execution?
+	Describe an automation project you implemented.
+
+Foreman / Satellite
+	What is Red Hat Satellite?
+	Explain Capsule Servers.
+	How does Satellite manage content?
+	Explain provisioning through Satellite.
+	How do you manage lifecycle environments?
+	How do you use Satellite for patch management?
+
+Red Hat Insights
+	What is Red Hat Insights?
+	How does Insights identify vulnerabilities?
+	How do you use Insights for compliance?
+	Explain remediation plans in Insights.
+
+Pacemaker / High Availability
+	What is Pacemaker?
+	Explain Pacemaker cluster architecture.
+	Difference between active-active and active-passive clusters.
+	How do you troubleshoot split-brain situations?
+	What are cluster resources and constraints?
+	Explain fencing and STONITH.
+
+OpenShift (Conceptual)
+	What are OpenShift Projects and Namespaces?
+	Difference between OpenShift and Kubernetes.
+	What is an Operator?
+	Explain OpenShift Routes.
+	How does OpenShift security differ from Kubernetes?
+	What is SCC (Security Context Constraints)?
+	Explain OpenShift cluster architecture.
+	What happens when a node becomes NotReady?
+
+Shell Scripting
+	Write a script to monitor filesystem usage.
+	Write a script to check service status across multiple servers.
+	Difference between "$*" and "$@".
+	Explain awk, sed, grep use cases.
+	How do you debug shell scripts?
+	Explain exit codes.
+	Write a script for automated log cleanup.
+
+Troubleshooting Scenarios (Very Likely)
+	A server is unreachable after patching. What would you check?
+	CPU suddenly reaches 100%. How do you investigate?
+	Application team reports slow performance. What is your approach?
+	Root filesystem is 100% full. What do you do?
+	SSH is not working after reboot.
+	A service fails to start after upgrade.
+	Kernel upgrade caused boot failure.
+	NFS mount failures in production.
+	DNS resolution intermittently fails.
+	Memory usage is continuously increasing.
+
+Leadership & Design Questions
+	How do you mentor junior Linux engineers?
+	Describe a major production incident you led.
+	How do you communicate RCA findings to leadership?
+	How do you prioritize remediation activities?
+	How do you handle disagreements with application teams?
+	Describe a Linux platform modernization initiative.
+	How would you design a highly available Linux infrastructure?
+	How do you ensure documentation remains current?
+	What metrics would you present in a monthly Linux health report?
+	What do you see as the future roadmap of RHEL?
