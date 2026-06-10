@@ -1,0 +1,59 @@
+Process Management
+===================
+Q) Difference between process, thread, and daemon?
+Q) How do you identify a process consuming high CPU?
+	top, htop, ps -eo pid,ppid,cmd,%cpu --sort=-%cpu
+Q) How do you find who started a process?
+	ps -ef | grep <PID>
+Q) What happens when you kill -9 a process?
+
+
+Memory Management
+=================
+Q) How do you check memory utilization?
+Q) What is OOM Killer?
+	Out Of Memory Killer terminates processes when system memory is exhausted.
+	dmesg | grep -i oom
+	journalctl -k
+Q) What is buffer and cache?
+	Buffer → Block device metadata.
+	Cache → File contents stored in RAM.
+	
+	Linux uses free memory for caching.
+
+CPU Troubleshooting
+===================
+Q) Server CPU is 100%. What will you check?
+Q) What is load average?
+Q) Difference between CPU utilization and load average?
+
+
+Storage and Filesystem
+======================
+Q) Difference between ext4 and XFS?
+Q) How do you extend a filesystem online?
+Q) How do you identify disk bottlenecks?
+Q) Difference between hard link and soft link?
+
+LVM
+====
+Q) Explain LVM architecture.
+Q) How do you add a new disk to an existing LVM?
+Q) 
+
+Networking
+==========
+Q) How do you troubleshoot if a server is unreachable?
+Q) How do you capture network packets?
+Q) How do you check port connectivity?
+Q) 
+
+Systemd
+=======
+Q) How do you troubleshoot a failed service?
+Q) Difference between enable and start?
+
+Security
+========
+Q) How do you check failed login attempts?
+Q) 

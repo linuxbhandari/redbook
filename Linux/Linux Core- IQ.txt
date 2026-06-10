@@ -14,8 +14,29 @@ Q) Explain the OS Installation Steps on VMware.
 Q) How do you check routes and VLANs in Linux? What is VLAN tagging?
 Q) What is VLAN?
 ===================================
+Process Management
+
+Q) Difference between process, thread, and daemon?
+Q) How do you identify a process consuming high CPU?
+	top, htop, ps -eo pid,ppid,cmd,%cpu --sort=-%cpu
+Q) How do you find who started a process?
+	ps -ef | grep <PID>
+Q) What happens when you kill -9 a process?
 
 
+Memory Management
+Q) How do you check memory utilization?
+Q) What is OOM Killer?
+	Out Of Memory Killer terminates processes when system memory is exhausted.
+	dmesg | grep -i oom
+	journalctl -k
+Q) What is buffer and cache?
+	Buffer → Block device metadata.
+	Cache → File contents stored in RAM.
+	
+	Linux uses free memory for caching.
+
+Q) 
 
 Linux Core (RHEL Expert Level)
 	Explain the Linux boot process from power-on to login prompt.
