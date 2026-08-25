@@ -92,30 +92,6 @@ node/ksl-ckpnew labeled
 
 kunal@ksl-ckpnew:~/new$ helm install kube-ovn kubeovn/kube-ovn -n kube-system --wait
 
-kunal@ksl-ckpnew:~/new$ kubectl get pod  -A
-NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE
-kube-system   coredns-7d764666f9-jk9f5               1/1     Running   0          5m42s
-kube-system   coredns-7d764666f9-tjzm7               1/1     Running   0          5m42s
-kube-system   etcd-ksl-ckpnew                        1/1     Running   0          5m47s
-kube-system   kube-apiserver-ksl-ckpnew              1/1     Running   0          5m47s
-kube-system   kube-controller-manager-ksl-ckpnew     1/1     Running   0          5m51s
-kube-system   kube-ovn-cni-6l5rd                     1/1     Running   0          52s
-kube-system   kube-ovn-cni-jc6k5                     1/1     Running   0          52s
-kube-system   kube-ovn-cni-trsmr                     1/1     Running   0          52s
-kube-system   kube-ovn-controller-79796c5c8b-tvvhx   1/1     Running   0          52s
-kube-system   kube-ovn-monitor-65fbc76698-s9l82      1/1     Running   0          52s
-kube-system   kube-ovn-pinger-hp48v                  1/1     Running   0          52s
-kube-system   kube-ovn-pinger-lkvhb                  1/1     Running   0          52s
-kube-system   kube-ovn-pinger-wzcj7                  1/1     Running   0          52s
-kube-system   kube-proxy-js82z                       1/1     Running   0          5m42s
-kube-system   kube-proxy-vjpmv                       1/1     Running   0          4m27s
-kube-system   kube-proxy-xgrvm                       1/1     Running   0          4m16s
-kube-system   kube-scheduler-ksl-ckpnew              1/1     Running   0          5m47s
-kube-system   ovn-central-575c547c9f-8mrtp           1/1     Running   0          52s
-kube-system   ovs-ovn-5ddqh                          1/1     Running   0          52s
-kube-system   ovs-ovn-9tnxp                          1/1     Running   0          52s
-kube-system   ovs-ovn-qw585                          1/1     Running   0          52s
-
 
 Main components
 1. kube-ovn-controller
@@ -133,6 +109,31 @@ wget https://raw.githubusercontent.com/kubeovn/kube-ovn/refs/tags/v1.16.2/dist/i
 chmod +x install.sh
 ./install.sh
 
+root@kube-master:~# kubectl get pod -n kube-system -o wide
+NAME                                   READY   STATUS    RESTARTS        AGE     IP                NODE          NOMINATED NODE   READINESS GATES
+coredns-7d764666f9-95cbk               1/1     Running   0               8m24s   10.16.0.9         kube-master   <none>           <none>
+coredns-7d764666f9-bd699               1/1     Running   0               8m24s   10.16.0.10        kube-master   <none>           <none>
+etcd-kube-master                       1/1     Running   2               16m     192.168.122.165   kube-master   <none>           <none>
+kube-apiserver-kube-master             1/1     Running   2               16m     192.168.122.165   kube-master   <none>           <none>
+kube-controller-manager-kube-master    1/1     Running   7               16m     192.168.122.165   kube-master   <none>           <none>
+kube-multus-ds-jt8q4                   1/1     Running   1               4m35s   192.168.122.98    kube-node1    <none>           <none>
+kube-multus-ds-kwfh8                   1/1     Running   0               6m34s   192.168.122.165   kube-master   <none>           <none>
+kube-multus-ds-t47xw                   1/1     Running   0               94s     192.168.122.53    kube-node2    <none>           <none>
+kube-ovn-cni-9qn7q                     1/1     Running   3 (3m14s ago)   4m35s   192.168.122.98    kube-node1    <none>           <none>
+kube-ovn-cni-jzwj9                     1/1     Running   0               15m     192.168.122.165   kube-master   <none>           <none>
+kube-ovn-cni-p8wmg                     1/1     Running   0               94s     192.168.122.53    kube-node2    <none>           <none>
+kube-ovn-controller-6658c59bbf-dtrx4   1/1     Running   0               15m     192.168.122.165   kube-master   <none>           <none>
+kube-ovn-monitor-5d68669665-rvchz      1/1     Running   0               15m     192.168.122.165   kube-master   <none>           <none>
+kube-ovn-pinger-4vjrl                  1/1     Running   0               4m34s   10.16.0.11        kube-node1    <none>           <none>
+kube-ovn-pinger-mlqf6                  1/1     Running   0               93s     10.16.0.12        kube-node2    <none>           <none>
+kube-proxy-bvhqb                       1/1     Running   1               4m35s   192.168.122.98    kube-node1    <none>           <none>
+kube-proxy-hzks4                       1/1     Running   0               94s     192.168.122.53    kube-node2    <none>           <none>
+kube-proxy-smn9f                       1/1     Running   0               16m     192.168.122.165   kube-master   <none>           <none>
+kube-scheduler-kube-master             1/1     Running   6               16m     192.168.122.165   kube-master   <none>           <none>
+ovn-central-55f9c4fb44-mbgr4           1/1     Running   0               15m     192.168.122.165   kube-master   <none>           <none>
+ovs-ovn-5c2dx                          1/1     Running   1               4m35s   192.168.122.98    kube-node1    <none>           <none>
+ovs-ovn-6ddm8                          1/1     Running   0               94s     192.168.122.53    kube-node2    <none>           <none>
+ovs-ovn-st7m9                          1/1     Running   0               15m     192.168.122.165   kube-master   <none>           <none>
 
 
 
@@ -168,10 +169,9 @@ total 8
 
 
 
-
 Step 3 — Create the Kube-OVN secondary subnet
 
-cat > secondary-subnet.yaml <<'EOF'
+cat > secondary-nat.yaml <<'EOF'
 apiVersion: kubeovn.io/v1
 kind: Subnet
 metadata:
@@ -184,14 +184,7 @@ spec:
     - 10.20.0.1..10.20.0.10
   gatewayType: distributed
   natOutgoing: false
-EOF
-
-kubectl apply -f secondary-subnet.yaml
-
-
-Step 4 — Create the NAD
-
-cat > secondary-net.yaml <<'EOF'
+---
 apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
@@ -207,7 +200,7 @@ spec:
 EOF
 
 
-kubectl apply -f secondary-net.yaml
+kubectl apply -f secondary-nat.yaml
 
 Step 5 — Create the test Pod
 
@@ -218,7 +211,7 @@ metadata:
   name: multus-test
   namespace: default
   annotations:
-    k8s.v1.cni.cncf.io/networks: default/secondary-net
+    k8s.v1.cni.cncf.io/networks: default/secondary-nat
 spec:
   containers:
     - name: test
@@ -248,8 +241,7 @@ Install NFS CSI Driver
 
 Step 1 — Install NFS CSI Driver
 
-kunal@ksl-ckpnew:~$ curl -skSL https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.4.0/deploy/install-driver.sh \
-  | bash -s v4.4.0 --
+kunal@ksl-ckpnew:~$ curl -skSL https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.4.0/deploy/install-driver.sh | bash -s v4.4.0 --
 Installing NFS CSI driver, version: v4.4.0 ...
 serviceaccount/csi-nfs-controller-sa created
 serviceaccount/csi-nfs-node-sa created
@@ -296,8 +288,27 @@ PVC
       v
 KubeVirt VM
 
-Step 1 — Create StorageClass
 
+Setup nfs
+==========
+root@kube-master:~# apt install -y nfs-kernel-server
+root@kube-master:~# mkdir -p  /srv/nfs/kubevirt/
+root@kube-master:~# systemctl status nfs-server
+root@kube-master:~# chmod 777 /srv/nfs/kubevirt
+
+root@kube-master:~# cat /etc/exports 
+/srv/nfs/kubevirt *(rw,sync,no_subtree_check,no_root_squash)
+
+root@kube-master:~# exportfs -rv
+exporting *:/srv/nfs/kubevirt
+
+root@kube-master:~# showmount -e
+Export list for kube-master:
+/srv/nfs/kubevirt *
+
+
+
+Step 1 — Create StorageClass
 cat > nfs-storageclass.yaml <<'EOF'
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -305,7 +316,7 @@ metadata:
   name: nfs-csi
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: 10.0.3.124
+  server: 192.168.122.165
   share: /srv/nfs/kubevirt/
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
@@ -339,6 +350,7 @@ spec:
       storage: 10Gi
 EOF
 
+root@kube-master:~# kubectl apply -f nfs-test-pvc.yaml
 
 kunal@ksl-ckpnew:~$ kubectl get pv
 NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                  STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
@@ -355,6 +367,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: nfs-test-pod
+  annotations:
+    k8s.v1.cni.cncf.io/networks: default/secondary-net
 spec:
   containers:
     - name: test
@@ -378,7 +392,7 @@ pod/nfs-test-pod created
 kunal@ksl-ckpnew:~$ kubectl get pod nfs-test-pod -o wide
 NAME           READY   STATUS    RESTARTS   AGE   IP            NODE       NOMINATED NODE   READINESS GATES
 nfs-test-pod   1/1     Running   0          37s   10.244.0.29   worker-2   <none>           <none>
-kunal@ksl-ckpnew:~$
+
 
 
 kunal@ksl-ckpnew:~$ kubectl exec -it nfs-test-pod -- bash
@@ -465,6 +479,7 @@ NAME       AGE     PHASE
 kubevirt   2m37s   Deployed
 
 
+
 kunal@ksl-ckpnew:~/new$ kubectl get kubevirt -n kubevirt   -o jsonpath='{.items[0].status.observedKubeVirtVersion}{"\n"}'
 v1.8.0
 
@@ -505,23 +520,113 @@ NAME   AGE    PHASE
 cdi    2m9s   Deployed
 
 
+Install virtctl
 
+curl -L -o virtctl https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/virtctl-${KUBEVIRT_VERSION}-linux-amd64
 
-install Kube-OVN
-=================
-Run on master-1:
+chmod +x virtctl
+mv virtctl /usr/local/bin/
 
-wget https://raw.githubusercontent.com/kubeovn/kube-ovn/refs/tags/v1.16.2/dist/images/install.sh
+root@kube-master:~# virtctl version
+Client Version: version.Info{GitVersion:"v1.9.0", GitCommit:"79d34c1762169e5b0370ec491cef5ca12e6b504c", GitTreeState:"clean", BuildDate:"2026-07-30T12:50:04Z", GoVersion:"go1.26.4", Compiler:"gc", Platform:"linux/amd64"}
+Server Version: version.Info{GitVersion:"v1.8.0", GitCommit:"85b6a25964132b0d578184598fb3c00d00d71f61", GitTreeState:"clean", BuildDate:"2026-03-24T16:34:53Z", GoVersion:"go1.24.9 X:nocoverageredesign", Compiler:"gc", Platform:"linux/amd64"}
 
-chmod +x install.sh
-
-sudo bash install.sh
+Error
+=====
+root@kube-master:~# kubectl -n kubevirt get pods -o wide
+NAME                              READY   STATUS    RESTARTS   AGE     IP           NODE          NOMINATED NODE   READINESS GATES
+virt-api-7d7cbd798f-k69q9         1/1     Running   0          6m58s   10.16.0.20   kube-master   <none>           <none>
+virt-api-7d7cbd798f-mn7xb         1/1     Running   0          6m58s   10.16.0.21   kube-master   <none>           <none>
+virt-controller-c9bb999d8-55n5w   1/1     Running   0          5m44s   10.16.0.22   kube-master   <none>           <none>
+virt-controller-c9bb999d8-5v4mt   0/1     Pending   0          5m44s   <none>       <none>        <none>           <none> <<<<
+virt-handler-55p8d                1/1     Running   0          5m43s   10.16.0.25   kube-node2    <none>           <none>
+virt-handler-6dvwm                1/1     Running   0          5m43s   10.16.0.24   kube-node1    <none>           <none>
+virt-operator-66b777865b-26nsr    1/1     Running   0          10m     10.16.0.17   kube-master   <none>           <none>
+virt-operator-66b777865b-2qf46    1/1     Running   0          10m     10.16.0.18   kube-master   <none>           <none>
+root@kube-master:~# kubectl describe pod virt-controller-c9bb999d8-5v4mt -n kubevirt| tail -n2
+  ----     ------            ----                 ----               -------
+  Warning  FailedScheduling  39s (x2 over 5m51s)  default-scheduler  0/3 nodes are available: 1 Insufficient memory, 2 node(s) didn't match Pod's node affinity/selector. no new claims to deallocate, preemption: 0/3 nodes are available: 1 No preemption victims found for incoming pod, 2 Preemption is not helpful for scheduling.
+root@kube-master:~# 
 
 
 
 
 
 1. Create the VM data PVC
+
+root@kube-master:~# kubectl patch kubevirt kubevirt -n kubevirt --type=merge \
+  -p '{"spec":{"configuration":{"developerConfiguration":{"featureGates":["HotplugVolumes"]}}}}'
+kubevirt.kubevirt.io/kubevirt patched
+root@kube-master:~# 
+root@kube-master:~# 
+
+root@kube-master:~# kubectl get kubevirt kubevirt -n kubevirt \
+  -o jsonpath='{.spec.configuration.developerConfiguration.featureGates}{"\n"}'
+["HotplugVolumes"]
+
+root@kube-master:~# virtctl addvolume demovm \
+  --volume-name=vm-hotplug-pvc \
+  --persist
+Successfully submitted add volume request to VM demovm for volume vm-hotplug-pvc
+
+
+Install CDI Operator
+
+root@kube-master:~# kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/v1.66.0/cdi-operator.yaml
+root@kube-master:~# kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/v1.66.0/cdi-cr.yaml
+
+root@kube-master:~# kubectl get pods -n cdi
+NAME                              READY   STATUS    RESTARTS      AGE
+cdi-apiserver-667f6b8587-74fhc    1/1     Running   1 (60s ago)   86s
+cdi-deployment-598569d4f9-w66ft   1/1     Running   0             86s
+cdi-operator-7cd596d4d7-7df95     1/1     Running   0             110s
+cdi-uploadproxy-bf9fcb59d-qmh5r   1/1     Running   0             86s
+
+create dv
+root@kube-master:~# kubectl apply -f demovm-dv.yaml 
+datavolume.cdi.kubevirt.io/demovm-root created
+
+
+
+Root PVC
+cat >demovm-root-pvc<<EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demovm-root-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 10Gi
+      storage: 10Gi
+EOF
+
+
+
+root@kube-master:~# cat > vm-nfs-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vm-nfs-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 10Gi
+root@kube-master:~# kubectl apply -f vm-nfs-pvc.yaml 
+persistentvolumeclaim/vm-nfs-pvc created
+root@kube-master:~# kubectl get pvc
+NAME           STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+nfs-test-pvc   Bound    pvc-6b174bf6-92cd-4bee-a7ec-0b00f4970147   10Gi       RWX            nfs-csi        <unset>                 29m
+vm-nfs-pvc     Bound    pvc-a080209d-0d06-4136-ae88-8067cf4665cf   10Gi       RWX            nfs-csi        <unset>                 2s
+
 
 cat > vm-data-pvc.yaml <<'EOF'
 apiVersion: v1
