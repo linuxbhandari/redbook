@@ -171,7 +171,7 @@ total 8
 
 Step 3 — Create the Kube-OVN secondary subnet
 
-cat > secondary-nat.yaml <<'EOF'
+cat > secondary-net.yaml <<'EOF'
 apiVersion: kubeovn.io/v1
 kind: Subnet
 metadata:
@@ -204,14 +204,14 @@ kubectl apply -f secondary-nat.yaml
 
 Step 5 — Create the test Pod
 
-cat > test-multus-pod.yaml <<'EOF'
+cat > multus-test-pod.yaml <<'EOF'
 apiVersion: v1
 kind: Pod
 metadata:
   name: multus-test
   namespace: default
   annotations:
-    k8s.v1.cni.cncf.io/networks: default/secondary-nat
+    k8s.v1.cni.cncf.io/networks: default/secondary-net
 spec:
   containers:
     - name: test
