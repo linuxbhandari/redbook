@@ -1,0 +1,195 @@
+Kubernetes
+Kube-OVN
+Multus
+Ceph CSI
+KubeVirt
+Live Migration
+
+---
+we used v1.16.2, but your environment is:
+
+✅ Kubernetes v1.34.10
+✅ Ubuntu 24.04
+✅ ARM64 (Apple Silicon + UTM)
+
+
+Note: which type should we use in kube-ovn (multuple option) asked by kunal. 
+-------
+
+Before we install Kube-OVN
+===========================
+I want to verify four things. These take less than a minute and can prevent hours of troubleshooting.
+
+Run:
+
+1. Pod CIDR
+kubectl cluster-info dump | grep -m1 cluster-cidr
+
+or
+
+kubectl -n kube-system get cm kubeadm-config -o yaml | grep -A5 networking
+2. CNI directory
+ls -l /etc/cni/net.d
+
+Expected:
+
+total 0
+
+or the directory may not exist.
+
+There should not be any old Calico, Flannel, or Kube-OVN configuration files.
+
+3. CNI binaries
+ls /opt/cni/bin
+
+It's fine if the binaries are present. What's important is that /etc/cni/net.d has no active configuration.
+
+4. Node architecture
+uname -m
+
+I expect:
+
+aarch64
+
+because you're on Apple Silicon with UTM.
+
+
+
+Install Kube-OVN
+================
+
+helm search repo kubeovn/kube-ovn --versions (optional)
+helm repo add kubeovn https://kubeovn.github.io/kube-ovn
+helm repo update
+helm show values kubeovn/kube-ovn > values.yaml (optional for customization)
+
+helm install kube-ovn kubeovn/kube-ovn -n kube-system --create-namespace --wait (For first time)
+helm install kube-ovn kubeovn/kube-ovn -n kube-system --dry-run --debug
+helm install kube-ovn kubeovn/kube-ovn -n kube-system --wait
+helm install kube-ovn kubeovn/kube-ovn -n kube-system -f values.yaml --wait
+
+
+root@kube-master:~# kubectl get nodes --show-labels | grep kube-master| grep role
+kube-master   Ready    control-plane   8h    v1.34.10   beta.kubernetes.io/arch=arm64,beta.kubernetes.io/os=linux,kubernetes.io/arch=arm64,kubernetes.io/hostname=kube-master,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
+
+root@kube-master:~# kubectl label node kube-master kube-ovn/role=master
+root@kube-master:~# helm install kube-ovn kubeovn/kube-ovn -n kube-system --wait
+
+
+root@kube-master:~# kubectl get pod -A
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS     AGE
+kube-system   coredns-66bc5c9577-27kc4               0/1     Running   1 (8s ago)   55m
+kube-system   coredns-66bc5c9577-m5rlc               0/1     Running   1 (8s ago)   55m
+kube-system   etcd-kube-master                       1/1     Running   18           55m
+kube-system   kube-apiserver-kube-master             1/1     Running   18           55m
+kube-system   kube-controller-manager-kube-master    1/1     Running   11           55m
+kube-system   kube-ovn-cni-75mgb                     1/1     Running   0            2m15s
+kube-system   kube-ovn-controller-59d59dbdd8-n5qf6   1/1     Running   0            2m15s
+kube-system   kube-ovn-monitor-74f5b7d557-zmqrw      1/1     Running   0            2m15s
+kube-system   kube-ovn-pinger-2vxsn                  1/1     Running   0            2m15s
+kube-system   kube-proxy-qjk4p                       1/1     Running   0            55m
+kube-system   kube-scheduler-kube-master             1/1     Running   18           55m
+kube-system   ovn-central-6c68f7b5b7-2f8n8           1/1     Running   0            2m15s
+kube-system   ovs-ovn-rncmd                          1/1     Running   0            2m15s
+
+step3  Verify Kube-OVN
+Let's verify that Kube-OVN has created its networking resources.
+
+Check Subnets
+kubectl get subnet
+
+Expected output similar to:
+NAME          PROVIDER   CIDR
+join          ovn        100.64.0.0/16
+ovn-default   ovn        10.16.0.0/16
+
+
+root@kube-master:~# kubectl get crd | grep kubeovn
+bgp-confs.kubeovn.io             2026-08-07T05:18:51Z
+dnsnameresolvers.kubeovn.io      2026-08-07T05:18:51Z
+evpn-confs.kubeovn.io            2026-08-07T05:18:51Z
+ippools.kubeovn.io               2026-08-07T05:18:51Z
+ips.kubeovn.io                   2026-08-07T05:18:51Z
+iptables-dnat-rules.kubeovn.io   2026-08-07T05:18:51Z
+iptables-eips.kubeovn.io         2026-08-07T05:18:51Z
+iptables-fip-rules.kubeovn.io    2026-08-07T05:18:51Z
+iptables-snat-rules.kubeovn.io   2026-08-07T05:18:51Z
+ovn-dnat-rules.kubeovn.io        2026-08-07T05:18:51Z
+ovn-eips.kubeovn.io              2026-08-07T05:18:51Z
+ovn-fips.kubeovn.io              2026-08-07T05:18:51Z
+ovn-snat-rules.kubeovn.io        2026-08-07T05:18:51Z
+provider-networks.kubeovn.io     2026-08-07T05:18:51Z
+qos-policies.kubeovn.io          2026-08-07T05:18:51Z
+security-groups.kubeovn.io       2026-08-07T05:18:51Z
+subnets.kubeovn.io               2026-08-07T05:18:51Z
+switch-lb-rules.kubeovn.io       2026-08-07T05:18:51Z
+vips.kubeovn.io                  2026-08-07T05:18:51Z
+vlans.kubeovn.io                 2026-08-07T05:18:51Z
+vpc-dnses.kubeovn.io             2026-08-07T05:18:51Z
+vpc-egress-gateways.kubeovn.io   2026-08-07T05:18:51Z
+vpc-nat-gateways.kubeovn.io      2026-08-07T05:18:51Z
+vpcs.kubeovn.io                  2026-08-07T05:18:51Z
+
+
+Step 4 - Deploy Your First Pod
+
+Let's verify that Kube-OVN is assigning Pod IPs.
+
+kubectl run netshoot --image=nicolaka/netshoot --restart=Never -- sleep infinity
+
+
+root@kube-master:~# kubectl get pod -o wide
+NAME       READY   STATUS    RESTARTS   AGE    IP          NODE         NOMINATED NODE   READINESS GATES
+netshoot   1/1     Running   0          7m6s   10.16.0.8   kube-node1   <none>           <none>
+
+
+
+root@kube-master:~# kubectl exec -it netshoot -- bash
+
+netshoot:~# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host proto kernel_lo
+       valid_lft forever preferred_lft forever
+8: eth0@if9: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1400 qdisc noqueue state UP group default
+    link/ether c2:da:98:7b:3d:e4 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 10.16.0.8/16 brd 10.16.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::c0da:98ff:fe7b:3de4/64 scope link proto kernel_ll
+       valid_lft forever preferred_lft forever
+
+
+root@kube-master:~# kubectl get pods -n kube-system -l k8s-app=kube-proxy -o wide
+NAME               READY   STATUS    RESTARTS   AGE   IP              NODE          NOMINATED NODE   READINESS GATES
+kube-proxy-c2d4v   1/1     Running   0          11m   192.168.64.15   kube-node1    <none>           <none>
+kube-proxy-qjk4p   1/1     Running   0          71m   192.168.64.14   kube-master   <none>           <none>
+kube-proxy-rxcvk   1/1     Running   0          11m   192.168.64.16   kube-node2    <none>           <none>
+root@kube-master:~# kubectl get subnet -o wide
+NAME          PROVIDER   VPC           VLAN   PROTOCOL   CIDR            PRIVATE   NAT     DEFAULT   GATEWAYTYPE   V4USED   V4AVAILABLE   V6USED   V6AVAILABLE   EXCLUDEIPS       U2OINTERCONNECTIONIP
+join          ovn        ovn-cluster          IPv4       100.64.0.0/16   false     false   false                   3        65530         0        0             ["100.64.0.1"]
+ovn-default   ovn        ovn-cluster          IPv4       10.16.0.0/16    false     true    true      distributed   6        65527         0        0             ["10.16.0.1"]
+root@kube-master:~# kubectl get svc kubernetes
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   72m
+
+root@kube-master:~# kubectl exec -it netshoot -- bash
+netshoot:~# nslookup kubernetes.default.svc.cluster.local
+;; Got recursion not available from 10.96.0.10
+;; Got recursion not available from 10.96.0.10
+;; Got recursion not available from 10.96.0.10
+;; Got recursion not available from 10.96.0.10
+Server:		10.96.0.10
+Address:	10.96.0.10#53
+
+Name:	kubernetes.default.svc.cluster.local
+Address: 10.96.0.1
+;; Got recursion not available from 10.96.0.10
+
+netshoot:~# wget -qO- --no-check-certificate https://kubernetes.default.svc
+wget: server returned error: HTTP/1.1 403 Forbidden
+
+
+
+

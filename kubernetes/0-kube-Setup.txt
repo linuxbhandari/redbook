@@ -1,0 +1,544 @@
+sudo apt update
+sudo apt-get install -y containerd
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+sudo swapoff -a
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+sudo systemctl restart containerd
+sudo systemctl enable containerd
+
+
+sudo apt-get update
+
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+
+sudo mkdir -p -m 755 /etc/apt/keyrings
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.35/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.35/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+sudo apt-get update
+
+sudo apt-get install -y kubelet kubeadm kubectl
+
+
+kunal@ksl-ckpnew:~$ kubectl version
+Client Version: v1.35.8
+Kustomize Version: v5.7.1
+The connection to the server 10.0.3.124:6443 was refused - did you specify the right host or port?
+
+
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+Make them persistent:
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+sudo sysctl --system
+sysctl net.ipv4.ip_forward
+
+
+Step-1 Initialize the cluster
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+kubeadm token create --print-join-command
+
+kunal@ksl-ckpnew:~/new$ kubectl get nodes
+NAME           STATUS     ROLES           AGE    VERSION
+ksl-ckpnew     NotReady   control-plane   2m5s   v1.35.8
+ksl-ckpnew-2   NotReady   <none>          40s    v1.35.8
+ksl-ckpnew-3   NotReady   <none>          29s    v1.35.8
+
+kunal@ksl-ckpnew:~/new$ kubectl get pod -A
+NAMESPACE     NAME                                 READY   STATUS    RESTARTS   AGE
+kube-system   coredns-7d764666f9-jk9f5             0/1     Pending   0          117s
+kube-system   coredns-7d764666f9-tjzm7             0/1     Pending   0          117s
+kube-system   etcd-ksl-ckpnew                      1/1     Running   0          2m2s
+kube-system   kube-apiserver-ksl-ckpnew            1/1     Running   0          2m2s
+kube-system   kube-controller-manager-ksl-ckpnew   1/1     Running   0          2m6s
+kube-system   kube-proxy-js82z                     1/1     Running   0          117s
+kube-system   kube-proxy-vjpmv                     1/1     Running   0          42s
+kube-system   kube-proxy-xgrvm                     1/1     Running   0          31s
+kube-system   kube-scheduler-ksl-ckpnew            1/1     Running   0          2m2s
+kunal@ksl-ckpnew:~/new$
+
+
+
+Install kube-ovn
+=================
+
+kunal@ksl-ckpnew:~/new$ helm repo add kubeovn https://kubeovn.github.io/kube-ovn
+kunal@ksl-ckpnew:~/kube-setup$ helm repo list
+kunal@ksl-ckpnew:~/new$ helm repo update
+kunal@ksl-ckpnew:~/new$ kubectl get nodes
+NAME           STATUS     ROLES           AGE     VERSION
+ksl-ckpnew     NotReady   control-plane   3m24s   v1.35.8
+ksl-ckpnew-2   NotReady   <none>          119s    v1.35.8
+ksl-ckpnew-3   NotReady   <none>          108s    v1.35.8
+
+kunal@ksl-ckpnew:~/new$ kubectl label node ksl-ckpnew kube-ovn/role=master
+node/ksl-ckpnew labeled
+
+kunal@ksl-ckpnew:~/new$ helm install kube-ovn kubeovn/kube-ovn -n kube-system --wait
+
+kunal@ksl-ckpnew:~/new$ kubectl get pod  -A
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS   AGE
+kube-system   coredns-7d764666f9-jk9f5               1/1     Running   0          5m42s
+kube-system   coredns-7d764666f9-tjzm7               1/1     Running   0          5m42s
+kube-system   etcd-ksl-ckpnew                        1/1     Running   0          5m47s
+kube-system   kube-apiserver-ksl-ckpnew              1/1     Running   0          5m47s
+kube-system   kube-controller-manager-ksl-ckpnew     1/1     Running   0          5m51s
+kube-system   kube-ovn-cni-6l5rd                     1/1     Running   0          52s
+kube-system   kube-ovn-cni-jc6k5                     1/1     Running   0          52s
+kube-system   kube-ovn-cni-trsmr                     1/1     Running   0          52s
+kube-system   kube-ovn-controller-79796c5c8b-tvvhx   1/1     Running   0          52s
+kube-system   kube-ovn-monitor-65fbc76698-s9l82      1/1     Running   0          52s
+kube-system   kube-ovn-pinger-hp48v                  1/1     Running   0          52s
+kube-system   kube-ovn-pinger-lkvhb                  1/1     Running   0          52s
+kube-system   kube-ovn-pinger-wzcj7                  1/1     Running   0          52s
+kube-system   kube-proxy-js82z                       1/1     Running   0          5m42s
+kube-system   kube-proxy-vjpmv                       1/1     Running   0          4m27s
+kube-system   kube-proxy-xgrvm                       1/1     Running   0          4m16s
+kube-system   kube-scheduler-ksl-ckpnew              1/1     Running   0          5m47s
+kube-system   ovn-central-575c547c9f-8mrtp           1/1     Running   0          52s
+kube-system   ovs-ovn-5ddqh                          1/1     Running   0          52s
+kube-system   ovs-ovn-9tnxp                          1/1     Running   0          52s
+kube-system   ovs-ovn-qw585                          1/1     Running   0          52s
+
+
+Main components
+1. kube-ovn-controller
+2. ovn-central
+3. ovs-ovn
+4. kube-ovn-cni
+
+
+
+or second method (not tested)
+
+on master node
+
+wget https://raw.githubusercontent.com/kubeovn/kube-ovn/refs/tags/v1.16.2/dist/images/install.sh
+chmod +x install.sh
+./install.sh
+
+
+
+
+Install multus
+===============
+
+Step-1 Pre-checks
+kubectl get nodes
+kubectl get pods -n kube-system
+kubectl get subnet
+ls -l /etc/cni/net.d/
+
+
+Step-2 Install Multus
+
+kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/master/deployments/multus-daemonset-thick.yml
+kubectl get pods -n kube-system -l app=multus
+kubectl get ds -n kube-system | grep multus
+
+
+Step 3 — Verify the CRD
+
+kubectl get crd network-attachment-definitions.k8s.cni.cncf.io
+kubectl api-resources | grep -i networkattachment
+
+
+Step 4 — Verify CNI configuration
+
+root@kube-master:~/aa# ls -l /etc/cni/net.d/
+total 8
+-rw------- 1 root root 208 Aug 13 22:04 00-multus.conf
+-rw------- 1 root root 324 Aug 13 17:50 01-kube-ovn.conflist
+
+
+
+
+Step 3 — Create the Kube-OVN secondary subnet
+
+cat > secondary-subnet.yaml <<'EOF'
+apiVersion: kubeovn.io/v1
+kind: Subnet
+metadata:
+  name: secondary-subnet
+spec:
+  provider: secondary-net.default.ovn
+  protocol: IPv4
+  cidrBlock: 10.20.0.0/16
+  excludeIps:
+    - 10.20.0.1..10.20.0.10
+  gatewayType: distributed
+  natOutgoing: false
+EOF
+
+kubectl apply -f secondary-subnet.yaml
+
+
+Step 4 — Create the NAD
+
+cat > secondary-net.yaml <<'EOF'
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: secondary-net
+  namespace: default
+spec:
+  config: '{
+    "cniVersion": "0.3.1",
+    "type": "kube-ovn",
+    "server_socket": "/run/openvswitch/kube-ovn-daemon.sock",
+    "provider": "secondary-net.default.ovn"
+  }'
+EOF
+
+
+kubectl apply -f secondary-net.yaml
+
+Step 5 — Create the test Pod
+
+cat > test-multus-pod.yaml <<'EOF'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multus-test
+  namespace: default
+  annotations:
+    k8s.v1.cni.cncf.io/networks: default/secondary-net
+spec:
+  containers:
+    - name: test
+      image: nicolaka/netshoot
+      command:
+        - sleep
+        - "3600"
+EOF
+
+
+kubectl apply -f test-multus-pod.yaml
+
+
+
+root@kube-master:~/aa# kubectl get pod
+NAME          READY   STATUS    RESTARTS   AGE
+multus-test   1/1     Running   0          16s
+
+root@kube-master:~/aa# kubectl exec -it multus-test -- ip -br addr
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+eth0@if27        UP             10.16.0.18/16 fe80::3caa:b3ff:fe63:88ea/64
+net1@if29        UP             10.20.0.11/16 fe80::e844:19ff:fee9:835f/64
+
+
+Install NFS CSI Driver
+======================
+
+Step 1 — Install NFS CSI Driver
+
+kunal@ksl-ckpnew:~$ curl -skSL https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.4.0/deploy/install-driver.sh \
+  | bash -s v4.4.0 --
+Installing NFS CSI driver, version: v4.4.0 ...
+serviceaccount/csi-nfs-controller-sa created
+serviceaccount/csi-nfs-node-sa created
+clusterrole.rbac.authorization.k8s.io/nfs-external-provisioner-role created
+clusterrolebinding.rbac.authorization.k8s.io/nfs-csi-provisioner-binding created
+csidriver.storage.k8s.io/nfs.csi.k8s.io created
+deployment.apps/csi-nfs-controller created
+daemonset.apps/csi-nfs-node created
+NFS CSI driver installed successfully.
+
+kunal@ksl-ckpnew:~$ kubectl -n kube-system get pods -l app=csi-nfs-node -o wide
+NAME                 READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+csi-nfs-node-bscck   3/3     Running   0          57m   10.0.4.20    worker-2   <none>           <none>
+csi-nfs-node-nsh77   3/3     Running   0          57m   10.0.3.124   master-1   <none>           <none>
+csi-nfs-node-qrrmx   3/3     Running   0          57m   10.0.3.29    worker-1   <none>           <none>
+
+
+Also verify the CSI driver:
+
+kunal@ksl-ckpnew:~$ kubectl get csidriver
+NAME             ATTACHREQUIRED   PODINFOONMOUNT   STORAGECAPACITY   TOKENREQUESTS   REQUIRESREPUBLISH   MODES        AGE
+nfs.csi.k8s.io   false            false            false             <unset>         false               Persistent   57m
+
+Note: 
+The NFS CSI driver allows Kubernetes to dynamically provision PVs from your existing NFS server. It creates a subdirectory under the NFS share for each dynamically provisioned volume.
+
+
+master-1
+10.0.3.124
+      |
+      | NFS
+      v
+/srv/nfs/kubevirt
+      |
+      v
+NFS CSI Driver
+      |
+      v
+StorageClass: nfs-csi
+      |
+      v
+PVC
+      |
+      v
+KubeVirt VM
+
+Step 1 — Create StorageClass
+
+cat > nfs-storageclass.yaml <<'EOF'
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: 10.0.3.124
+  share: /srv/nfs/kubevirt/
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+mountOptions:
+  - nfsvers=4.1
+EOF
+
+kunal@ksl-ckpnew:~$ kubectl apply -f nfs-storageclass.yaml
+storageclass.storage.k8s.io/nfs-csi created
+
+kunal@ksl-ckpnew:~$  kubectl get storageclass
+NAME      PROVISIONER      RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+nfs-csi   nfs.csi.k8s.io   Delete          Immediate           false                  33s
+
+
+
+Step 2 — Create a test PVC
+
+cat > nfs-test-pvc.yaml <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-test-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 10Gi
+EOF
+
+
+kunal@ksl-ckpnew:~$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                  STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-55081c62-239b-4add-aa06-f3daa0a15e34   10Gi       RWX            Delete           Bound    default/nfs-test-pvc   nfs-csi        <unset>                          51s
+
+kunal@ksl-ckpnew:~$ kubectl get pvc
+NAME           STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+nfs-test-pvc   Bound    pvc-55081c62-239b-4add-aa06-f3daa0a15e34   10Gi       RWX            nfs-csi        <unset>                 3m1s
+
+
+
+kunal@ksl-ckpnew:~$ cat > nfs-test-pod.yaml <<'EOF'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nfs-test-pod
+spec:
+  containers:
+    - name: test
+      image: ubuntu:24.04
+      command:
+        - sleep
+        - "3600"
+      volumeMounts:
+        - name: nfs-volume
+          mountPath: /data
+
+  volumes:
+    - name: nfs-volume
+      persistentVolumeClaim:
+        claimName: nfs-test-pvc
+EOF
+
+kunal@ksl-ckpnew:~$ kubectl apply -f nfs-test-pod.yaml
+pod/nfs-test-pod created
+
+kunal@ksl-ckpnew:~$ kubectl get pod nfs-test-pod -o wide
+NAME           READY   STATUS    RESTARTS   AGE   IP            NODE       NOMINATED NODE   READINESS GATES
+nfs-test-pod   1/1     Running   0          37s   10.244.0.29   worker-2   <none>           <none>
+kunal@ksl-ckpnew:~$
+
+
+kunal@ksl-ckpnew:~$ kubectl exec -it nfs-test-pod -- bash
+root@nfs-test-pod:/#
+root@nfs-test-pod:/#
+root@nfs-test-pod:/# df -h
+Filesystem                                                              Size  Used Avail Use% Mounted on
+overlay                                                                  96G   20G   77G  20% /
+tmpfs                                                                    64M     0   64M   0% /dev
+10.0.3.124:/home/kunal/nfsdir/pvc-55081c62-239b-4add-aa06-f3daa0a15e34   96G   15G   82G  15% /data
+/dev/vda1                                                                96G   20G   77G  20% /etc/hosts
+shm                                                                      64M     0   64M   0% /dev/shm
+tmpfs                                                                   7.7G   12K  7.7G   1% /run/secrets/kubernetes.io/serviceaccount
+tmpfs                                                                   4.0K     0  4.0K   0% /proc/acpi
+root@nfs-test-pod:/# cd /data/
+root@nfs-test-pod:/data# ls
+root@nfs-test-pod:/data# ls -l
+total 0
+root@nfs-test-pod:/data# touch manish
+root@nfs-test-pod:/data# exit
+exit
+
+kunal@ksl-ckpnew:~$ cd nfsdir/
+kunal@ksl-ckpnew:~/nfsdir$ ls
+pvc-55081c62-239b-4add-aa06-f3daa0a15e34
+kunal@ksl-ckpnew:~/nfsdir$ ls -l
+total 4
+drwxr-xr-x 2 root root 4096 Aug 18 06:25 pvc-55081c62-239b-4add-aa06-f3daa0a15e34
+kunal@ksl-ckpnew:~/nfsdir$ cd pvc-55081c62-239b-4add-aa06-f3daa0a15e34/
+kunal@ksl-ckpnew:~/nfsdir/pvc-55081c62-239b-4add-aa06-f3daa0a15e34$ ll
+total 8
+drwxr-xr-x 2 root  root  4096 Aug 18 06:25 ./
+drwxrwxrwx 3 kunal kunal 4096 Aug 18 06:21 ../
+-rw-r--r-- 1 root  root     0 Aug 18 06:25 manish
+kunal@ksl-ckpnew:~/nfsdir/pvc-55081c62-239b-4add-aa06-f3daa0a15e34$ cd
+kunal@ksl-ckpnew:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           795M  4.4M  790M   1% /run
+/dev/vda1        96G   15G   82G  15% /
+tmpfs           3.9G     0  3.9G   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+/dev/vda16      881M  117M  703M  15% /boot
+/dev/vda15      105M  6.1M   99M   6% /boot/efi
+tmpfs           795M   12K  795M   1% /run/user/1002
+kunal@ksl-ckpnew:~$
+
+
+Perfect. Now we'll attach a real persistent NFS data disk to your KubeVirt VM.
+==============================================================================
+
+Install kubevirt
+==================
+
+Run on master-1:
+
+1. Install KubeVirt Operator
+export KUBEVIRT_VERSION=v1.8.0
+kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml
+
+
+kunal@ksl-ckpnew:~/new$ kubectl get pods -n kubevirt
+NAME                             READY   STATUS    RESTARTS   AGE
+virt-operator-66b777865b-gtxvq   0/1     Running   0          18s
+virt-operator-66b777865b-zfdmr   0/1     Running   0          18s
+
+
+2. Create KubeVirt
+
+kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml
+
+kunal@ksl-ckpnew:~/new$ kubectl get pods -n kubevirt
+NAME                              READY   STATUS    RESTARTS   AGE
+virt-api-7d7cbd798f-9wlxb         1/1     Running   0          2m
+virt-api-7d7cbd798f-xg2dn         1/1     Running   0          2m
+virt-controller-c9bb999d8-fwh42   1/1     Running   0          85s
+virt-controller-c9bb999d8-xhfgq   1/1     Running   0          85s
+virt-handler-hw6q8                1/1     Running   0          85s
+virt-handler-zpp5h                1/1     Running   0          85s
+virt-operator-66b777865b-gtxvq    1/1     Running   0          3m49s
+virt-operator-66b777865b-zfdmr    1/1     Running   0          3m49s
+
+kunal@ksl-ckpnew:~/new$ kubectl get kubevirt -n kubevirt
+NAME       AGE     PHASE
+kubevirt   2m37s   Deployed
+
+
+kunal@ksl-ckpnew:~/new$ kubectl get kubevirt -n kubevirt   -o jsonpath='{.items[0].status.observedKubeVirtVersion}{"\n"}'
+v1.8.0
+
+1. Install CDI v1.64.0
+=======================
+Run on master-1:
+
+export CDI_VERSION=v1.64.0
+
+kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-operator.yaml
+
+kunal@ksl-ckpnew:~/new$ kubectl -n cdi wait deployment/cdi-operator   --for=condition=Available
+deployment.apps/cdi-operator condition met
+
+kunal@ksl-ckpnew:~/new$ kubectl get pod -n cdi
+NAME                            READY   STATUS    RESTARTS   AGE
+cdi-operator-5dd984bf8f-lqrsh   1/1     Running   0          61s
+
+kunal@ksl-ckpnew:~/new$ kubectl -n cdi wait deployment/cdi-operator   --for=condition=Available   --timeout=300s
+deployment.apps/cdi-operator condition met
+kunal@ksl-ckpnew:~/new$
+
+
+
+2. Create CDI
+
+kubectl apply -f https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-cr.yaml
+
+kunal@ksl-ckpnew:~/new$ kubectl get pod -n cdi
+NAME                              READY   STATUS    RESTARTS      AGE
+cdi-apiserver-59fdb5b55-s5wz4     1/1     Running   1 (63s ago)   108s
+cdi-deployment-f66fb75cf-sg2w4    1/1     Running   0             108s
+cdi-operator-5dd984bf8f-lqrsh     1/1     Running   0             3m41s
+cdi-uploadproxy-5d4c46d4b-jgg5l   1/1     Running   0             107s
+
+kunal@ksl-ckpnew:~/new$ kubectl get cdi -n cdi
+NAME   AGE    PHASE
+cdi    2m9s   Deployed
+
+
+
+
+install Kube-OVN
+=================
+Run on master-1:
+
+wget https://raw.githubusercontent.com/kubeovn/kube-ovn/refs/tags/v1.16.2/dist/images/install.sh
+
+chmod +x install.sh
+
+sudo bash install.sh
+
+
+
+
+
+1. Create the VM data PVC
+
+cat > vm-data-pvc.yaml <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vm-data
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 10Gi
+EOF
+
+
+
+
+

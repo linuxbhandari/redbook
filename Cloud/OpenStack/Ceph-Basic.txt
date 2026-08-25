@@ -1,8 +1,4 @@
 
-========================================================================================
-
-
-
 Ceph version
 Nautilus	14.x	Stable older release
 Octopus		15.x	Popular stable release

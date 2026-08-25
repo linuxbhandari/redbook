@@ -1,0 +1,392 @@
+We'll do this:
+
+Step 1  Prepare Ceph
+Step 2  Install Ceph CSI
+Step 3  Verify Pods
+Step 4  Create StorageClass
+Step 5  Create PVC
+Step 6  Verify RBD Image in Ceph
+Step 7  Mount PVC in a Pod
+==============
+
+Step 1 - Create the Namespace
+	kubectl create namespace ceph-csi
+
+
+Step 2 - Create a Working Directory
+mkdir -p ~/ceph-csi
+cd ~/ceph-csi
+
+Step 3 - Clone the Ceph CSI Repository
+We will use the official Ceph CSI GitHub repository.
+
+git clone --branch v3.16.2 https://github.com/ceph/ceph-csi.git
+
+
+Why v3.16.2?
+
+Compatible with Kubernetes v1.34
+Stable release
+Better than using the devel branch for a lab
+
+
+Step 4 Now go to the deployment directory:
+
+cd deploy/rbd/kubernetes
+
+Verify:
+	pwd
+
+Expected:
+
+/root/ceph-csi/deploy/rbd/kubernetes
+
+List the files:
+
+ls -l
+
+You should see:
+
+csi-config-map.yaml
+csidriver.yaml
+csi-nodeplugin-rbac.yaml
+csi-provisioner-rbac.yaml
+csi-rbdplugin-provisioner.yaml
+csi-rbdplugin.yaml
+
+Think back to what we discussed:
+
+Provisioner → Creates the RBD image in Ceph.
+Node Plugin → Mounts the RBD image on the Kubernetes node.
+
+
+Phase 17 – Step 5: Understand and Configure csi-config-map.yaml
+
+This is the first manifest we will apply.
+
+What does it do?
+
+The ConfigMap tells the Ceph CSI driver:
+
+Which Ceph cluster to connect to
+Which monitor(s) to contact
+
+Without it, the CSI driver has no idea where your Ceph cluster is.
+
+Think of it like this:
+
+Kubernetes
+    │
+Ceph CSI
+    │
+❓ Where is the Ceph cluster?
+    │
+Reads ConfigMap
+    │
+FSID + Monitor IP
+    │
+Connects to Ceph
+
+
+cat > csi-config-map.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ceph-csi-config
+  namespace: ceph-csi
+data:
+  config.json: |-
+    [
+      {
+        "clusterID": "ab181f75-9281-11f1-8d34-0225cf85069e",
+        "monitors": [
+          "192.168.64.13:3300",
+          "192.168.64.13:6789"
+        ]
+      }
+    ]
+
+ Apply: 
+ 	kubectl apply -f csi-config-map.yaml
+
+ Verify:
+ 	kubectl get configmap -n ceph-csi
+
+
+Step 6 - Create the Ceph CSI User (Skip if already done)
+	On the Ceph node, create a dedicated user (if you haven't already):
+
+root@ceph-standalone:~# cephadm shell -- ceph auth get-or-create client.kubernetes mon 'profile rbd' osd 'profile rbd pool=customer-a-pool'
+Inferring fsid ab181f75-9281-11f1-8d34-0225cf85069e
+Inferring config /var/lib/ceph/ab181f75-9281-11f1-8d34-0225cf85069e/mon.ceph-standalone/config
+[client.kubernetes]
+	key = AQCBxnZqF3MwDhAA/0kAio0EbnP3ycdAcdBSFQ==
+
+
+Step 7 - Get the User Key
+root@ceph-standalone:~# cephadm shell -- ceph auth get client.kubernetes
+Inferring fsid ab181f75-9281-11f1-8d34-0225cf85069e
+Inferring config /var/lib/ceph/ab181f75-9281-11f1-8d34-0225cf85069e/mon.ceph-standalone/config
+[client.kubernetes]
+	key = AQCBxnZqF3MwDhAA/0kAio0EbnP3ycdAcdBSFQ==
+	caps mon = "profile rbd"
+	caps osd = "profile rbd pool=customer-a-pool"
+
+
+Step 8 - Create the Secret
+
+root@kube-master:~# cat > csi-rbd-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: csi-rbd-secret
+  namespace: ceph-csi
+stringData:
+  userID: kubernetes
+  userKey: AQCBxnZqF3MwDhAA/0kAio0EbnP3ycdAcdBSFQ==
+
+root@kube-master:~# kubectl apply -f csi-rbd-secret.yaml
+secret/csi-rbd-secret created
+
+root@kube-master:~# kubectl get secret -n ceph-csi
+NAME             TYPE     DATA   AGE
+csi-rbd-secret   Opaque   2      9s
+
+
+
+
+Step 10 - Install the CSIDriver
+
+
+What is a CSIDriver?
+
+This is not a Pod.
+
+It is a Kubernetes object that tells Kubernetes:
+
+"There is a CSI driver called rbd.csi.ceph.com."
+
+Without it, Kubernetes doesn't know this storage driver exists.
+
+Think of it like registering a new storage driver with the Kubernetes API.
+
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl apply -f csidriver.yaml
+csidriver.storage.k8s.io/rbd.csi.ceph.com created
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl get csidriver
+NAME               ATTACHREQUIRED   PODINFOONMOUNT   STORAGECAPACITY   TOKENREQUESTS   REQUIRESREPUBLISH   MODES        AGE
+rbd.csi.ceph.com   true             false            false             <unset>         false               Persistent   22s
+
+
+
+Step 11 - Install RBAC
+Why do we need RBAC?
+
+The CSI driver needs permission to:
+
+Watch PVCs
+Create PVs
+Update PVC status
+Watch Nodes
+Create Events
+Read Secrets
+Read ConfigMaps
+
+Without RBAC, the CSI pods will start but continuously get "Forbidden" errors.
+
+
+Why are there two RBAC files?
+
+Because there are two different CSI components.
+
+1. Provisioner RBAC
+PVC
+ │
+ ▼
+Provisioner
+ │
+Creates RBD Image
+ │
+Creates PV
+
+It needs permissions to work with:
+
+PVC
+PV
+StorageClass
+Secrets
+
+
+2. Node Plugin RBAC
+Worker Node
+      │
+Node Plugin
+      │
+Mount RBD
+      │
+Pod
+
+It needs permissions related to:
+
+Nodes
+Pods
+VolumeAttachment
+Secrets
+
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl apply -f csi-nodeplugin-rbac.yaml
+serviceaccount/rbd-csi-nodeplugin created
+clusterrole.rbac.authorization.k8s.io/rbd-csi-nodeplugin created
+clusterrolebinding.rbac.authorization.k8s.io/rbd-csi-nodeplugin created
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl get sa -n ceph-csi
+NAME      SECRETS   AGE
+default   0         26m
+
+this is wrong. change the namespace
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# sed -i 's/namespace: default/namespace: ceph-csi/g' csi-nodeplugin-rbac.yaml
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# sed -i 's/namespace: default/namespace: ceph-csi/g' csi-provisioner-rbac.yaml
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# grep -n "namespace:" csi-nodeplugin-rbac.yaml csi-provisioner-rbac.yaml
+csi-nodeplugin-rbac.yaml:7:  namespace: ceph-csi
+csi-nodeplugin-rbac.yaml:45:    namespace: ceph-csi
+csi-provisioner-rbac.yaml:7:  namespace: ceph-csi
+csi-provisioner-rbac.yaml:93:    namespace: ceph-csi
+csi-provisioner-rbac.yaml:104:  namespace: ceph-csi
+csi-provisioner-rbac.yaml:120:  namespace: ceph-csi
+csi-provisioner-rbac.yaml:125:    namespace: ceph-csi
+
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl apply -f csi-nodeplugin-rbac.yaml
+kubectl apply -f csi-provisioner-rbac.yaml
+serviceaccount/rbd-csi-nodeplugin unchanged
+clusterrole.rbac.authorization.k8s.io/rbd-csi-nodeplugin unchanged
+clusterrolebinding.rbac.authorization.k8s.io/rbd-csi-nodeplugin configured
+serviceaccount/rbd-csi-provisioner created
+clusterrole.rbac.authorization.k8s.io/rbd-external-provisioner-runner created
+clusterrolebinding.rbac.authorization.k8s.io/rbd-csi-provisioner-role created
+role.rbac.authorization.k8s.io/rbd-external-provisioner-cfg created
+rolebinding.rbac.authorization.k8s.io/rbd-csi-provisioner-role-cfg created
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl get sa -n ceph-csi
+NAME                  SECRETS   AGE
+default               0         30m
+rbd-csi-nodeplugin    0         116s
+rbd-csi-provisioner   0         8s
+
+
+
+Now we're making real progress. (status)
+
+✅ Namespace
+✅ Repository
+✅ ConfigMap
+✅ Secret
+✅ CSIDriver
+✅ RBAC
+⬜ Provisioner
+⬜ Node Plugin
+⬜ StorageClass
+⬜ PVC
+
+
+Step 12 - Deploy the Ceph CSI Provisioner
+
+
+What is the Provisioner?
+
+Remember our discussion:
+
+PVC
+ │
+ ▼
+Provisioner
+ │
+Creates RBD Image
+ │
+Ceph
+
+The Provisioner watches for new PVCs and creates RBD images in Ceph.
+
+
+
+before apply.
+===========
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# grep -n "namespace:" csi-rbdplugin-provisioner.yaml
+7:  namespace: default
+25:  namespace: default
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# sed -i 's/namespace: default/namespace: ceph-csi/g' csi-rbdplugin-provisioner.yaml
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# grep -n "namespace:" csi-rbdplugin-provisioner.yaml
+7:  namespace: ceph-csi
+25:  namespace: ceph-csi
+
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl get pods -n ceph-csi
+NAME                                         READY   STATUS              RESTARTS   AGE
+csi-rbdplugin-provisioner-7df99c765b-5r8nz   0/7     ContainerCreating   0          2m10s
+csi-rbdplugin-provisioner-7df99c765b-szs25   0/7     ContainerCreating   0          2m10s
+csi-rbdplugin-provisioner-7df99c765b-v5xrt   0/7     Pending             0          2m10s
+
+
+Events:
+  Type     Reason       Age                  From               Message
+  ----     ------       ----                 ----               -------
+  Normal   Scheduled    2m21s                default-scheduler  Successfully assigned ceph-csi/csi-rbdplugin-provisioner-7df99c765b-5r8nz to kube-node1
+  Warning  FailedMount  13s (x9 over 2m21s)  kubelet            MountVolume.SetUp failed for volume "ceph-config" : configmap "ceph-config" not found
+  Warning  FailedMount  13s (x9 over 2m21s)  kubelet            MountVolume.SetUp failed for volume "ceph-csi-encryption-kms-config" : configmap "ceph-csi-encryption-kms-config" not found
+
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# cat > ceph-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ceph-config
+  namespace: ceph-csi
+data:
+  ceph.conf: ""
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl apply -f ceph-config.yaml
+configmap/ceph-config created
+
+
+
+Step 12.2 - Create the KMS ConfigMap
+
+We're not using encryption, but the container still expects the ConfigMap to exist.
+
+Create:
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# cat > ceph-csi-encryption-kms-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ceph-csi-encryption-kms-config
+  namespace: ceph-csi
+data:
+  config.json: "{}"
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl apply -f ceph-csi-encryption-kms-config.yaml
+configmap/ceph-csi-encryption-kms-config created
+
+
+root@kube-master:~/ceph-csi/deploy/rbd/kubernetes# kubectl get configmap -n ceph-csi
+NAME                             DATA   AGE
+ceph-config                      1      104s
+ceph-csi-config                  1      27m
+ceph-csi-encryption-kms-config   1      5s
+kube-root-ca.crt                 1      40m
+
+
+Watch the Provisioner
+
+Once the missing ConfigMaps exist, the Pods should retry automatically.
+
+Watch them:
+
+kubectl get pods -n ceph-csi -w
+
+
+
+

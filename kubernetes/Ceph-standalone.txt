@@ -1,0 +1,205 @@
+hostnamectl set-hostname ceph-standalone
+
+Update /etc/hosts:
+127.0.0.1 localhost
+127.0.1.1 ceph-standalone
+
+sudo apt update
+sudo apt upgrade -y
+
+Install required packages
+sudo apt install -y curl wget vim git lvm2 chrony podman
+
+
+Configure time sync
+sudo systemctl enable --now chrony
+chronyc tracking
+chronyc sources
+
+
+Verify disks
+
+root@ceph-standalone:~# lsblk
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+loop0    7:0    0     4K  1 loop /snap/bare/5
+loop1    7:1    0  68.9M  1 loop /snap/core22/2293
+loop2    7:2    0 236.1M  1 loop /snap/firefox/7764
+loop3    7:3    0   503M  1 loop /snap/gnome-42-2204/245
+loop4    7:4    0  91.7M  1 loop /snap/gtk-common-themes/1535
+loop5    7:5    0    10M  1 loop /snap/snap-store/1271
+loop6    7:6    0  41.6M  1 loop /snap/snapd/25939
+loop7    7:7    0   556K  1 loop /snap/snapd-desktop-integration/346
+loop8    7:8    0  43.4M  1 loop /snap/snapd/27595
+sr0     11:0    1  1024M  1 rom
+vda    253:0    0    64G  0 disk
+├─vda1 253:1    0     1G  0 part /boot/efi
+└─vda2 253:2    0  62.9G  0 part /
+vdb    253:16   0    10G  0 disk
+vdc    253:32   0    10G  0 disk
+vdd    253:48   0    10G  0 disk
+
+
+Install Ceph
+Add the official Ceph repository
+cd /usr/sbin/
+curl --silent --remote-name --location https://download.ceph.com/rpm-20.2.2/el9/noarch/cephadm
+chmod +x cephadm
+
+root@ceph-standalone:~# cephadm version
+cephadm version 20.2.2 (0fcffee29411e3a38036764817b6e1afc59741cc) tentacle (stable)
+
+
+root@ceph-standalone:~# cat /etc/lsb-release
+DISTRIB_ID=Ubuntu
+DISTRIB_RELEASE=24.04
+DISTRIB_CODENAME=noble
+DISTRIB_DESCRIPTION="Ubuntu 24.04.4 LTS"
+
+==============================
+Step 1 Installation
+[root@ceph-standalone ~]# cephadm bootstrap --mon-ip 192.168.64.13 --skip-monitoring-stack --skip-dashboard
+
+	sudo /usr/sbin/cephadm shell --fsid 22c13af4-927b-11f1-b7ec-e2abf57fde49 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+
+Or, if you are only running a single cluster on this host:
+
+	sudo /usr/sbin/cephadm shell
+
+Please consider enabling telemetry to help improve Ceph:
+
+	ceph telemetry on
+
+For more information see:
+
+	https://docs.ceph.com/en/latest/mgr/telemetry/
+
+Bootstrap complete.
+Enabling the logrotate.timer service to perform daily log rotation.
+
+=========
+root@ceph-standalone:~# apt install ceph-common
+
+root@ceph-standalone:~#
+root@ceph-standalone:~# ceph -s
+  cluster:
+    id:     ab181f75-9281-11f1-8d34-0225cf85069e
+    health: HEALTH_WARN
+            OSD count 0 < osd_pool_default_size 3
+
+  services:
+    mon: 1 daemons, quorum ceph-standalone (age 4m) [leader: ceph-standalone]
+    mgr: ceph-standalone.apqmgu(active, since 4m)
+    osd: 0 osds: 0 up, 0 in
+
+  data:
+    pools:   0 pools, 0 pgs
+    objects: 0 objects, 0 B
+    usage:   0 B used, 0 B / 0 B avail
+    pgs:
+
+Step: Check cluster health
+cephadm shell -- ceph -s
+
+[root@ceph-standalone ~]#  cephadm shell -- ceph orch host ls
+Inferring fsid 22c13af4-927b-11f1-b7ec-e2abf57fde49
+Inferring config /var/lib/ceph/22c13af4-927b-11f1-b7ec-e2abf57fde49/mon.ceph-standalone/config
+HOST             ADDR          LABELS  STATUS
+ceph-standalone  192.168.64.8  _admin
+1 hosts in cluster
+
+root@ceph-standalone:~# ceph orch device ls
+HOST             PATH      TYPE  DEVICE ID              SIZE  AVAILABLE  REFRESHED  REJECT REASONS
+ceph-standalone  /dev/vdb  hdd   7BA43D07C5C74157BADB  10.0G  Yes        4m ago
+ceph-standalone  /dev/vdc  hdd   9AC870CE202E46D5828C  10.0G  Yes        4m ago
+ceph-standalone  /dev/vdd  hdd   9D740357E8F5447BBD74  10.0G  Yes        4m ago
+
+root@ceph-standalone:~# ceph orch host ls
+HOST             ADDR           LABELS  STATUS
+ceph-standalone  192.168.64.13  _admin
+1 hosts in cluster
+
+
+
+
+Add OSDs
+root@ceph-standalone:~# ceph orch daemon add osd ceph-standalone:/dev/vdb
+Created osd(s) 0 on host 'ceph-standalone'
+root@ceph-standalone:~# ceph orch daemon add osd ceph-standalone:/dev/vdc
+Created osd(s) 1 on host 'ceph-standalone'
+root@ceph-standalone:~# ceph orch daemon add osd ceph-standalone:/dev/vdd
+Created osd(s) 2 on host 'ceph-standalone'
+
+root@ceph-standalone:~# ceph -s
+  cluster:
+    id:     ab181f75-9281-11f1-8d34-0225cf85069e
+    health: HEALTH_OK
+
+  services:
+    mon: 1 daemons, quorum ceph-standalone (age 6m) [leader: ceph-standalone]
+    mgr: ceph-standalone.apqmgu(active, since 6m)
+    osd: 3 osds: 3 up (since 14s), 3 in (since 21s)
+
+  data:
+    pools:   1 pools, 1 pgs
+    objects: 0 objects, 0 B
+    usage:   79 MiB used, 30 GiB / 30 GiB avail
+    pgs:     100.000% pgs not active
+             1 undersized+peered
+
+
+
+root@ceph-standalone:~# ceph -s
+  cluster:
+    id:     ab181f75-9281-11f1-8d34-0225cf85069e
+    health: HEALTH_WARN
+            Reduced data availability: 1 pg inactive
+            Degraded data redundancy: 1 pg undersized
+
+  services:
+    mon: 1 daemons, quorum ceph-standalone (age 7m) [leader: ceph-standalone]
+    mgr: ceph-standalone.apqmgu(active, since 7m)
+    osd: 3 osds: 3 up (since 82s), 3 in (since 89s)
+
+  data:
+    pools:   1 pools, 1 pgs
+    objects: 0 objects, 0 B
+    usage:   79 MiB used, 30 GiB / 30 GiB avail
+    pgs:     100.000% pgs not active
+             1 undersized+peered
+
+
+root@ceph-standalone:~# ceph osd getcrushmap -o crushmap.cm
+root@ceph-standalone:~# crushtool --decompile crushmap.cm -o crushmap.txt
+
+root@ceph-standalone:~# crushtool --decompile crushmap.cm -o crushmap.txt
+Command 'crushtool' not found, but can be installed with:
+apt install ceph-base
+root@ceph-standalone:~# apt install ceph-base
+
+root@ceph-standalone:~# crushtool --decompile crushmap.cm -o crushmap.txt
+root@ceph-standalone:~#
+
+
+reference
+https://www.redhat.com/en/blog/ceph-cluster-single-machine
+
+
+Destroy cluster
+----------------
+[root@ceph-standalone ~]# cephadm rm-cluster   --fsid f2dbeccc-9003-11f1-a154-e2abf57fde49    --force   --zap-osds
+Deleting cluster with fsid: f2dbeccc-9003-11f1-a154-e2abf57fde49
+
+
+Verify the cluster is removed
+Run:
+	cephadm ls
+
+It should return no daemons.
+Also verify:
+	podman ps -a
+
+There should be no Ceph containers.
+
+
+Setup Ceph standalone cluster
+

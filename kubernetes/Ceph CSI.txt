@@ -1,0 +1,331 @@
+Ceph CSI
+CSI = Container Storage Interface
+
+This is one of the most important parts of the lab because it connects Kubernetes to external storage.
+
+
+What are we going to build?
+
+Current architecture:
+
+                Kubernetes
+                     │
+              Kube-OVN + Multus
+                     │
+                  Pods
+
+After Ceph CSI:
+
+              Kubernetes
+                   │
+           StorageClass (Ceph RBD)
+                   │
+                 PVC/PV
+                   │
+             Ceph CSI Driver
+                   │
+               Ceph Cluster
+                   │
+                 RBD Image
+
+Later, KubeVirt will use the same PVC as the VM disk.
+
+
+Learning Roadmap
+
+We'll do this in small steps:
+
+Step 1
+
+Understand your Ceph cluster.
+
+Step 2
+
+Prepare Ceph.
+
+Step 3
+
+Install Ceph CSI.
+
+Step 4
+
+Create StorageClass.
+
+Step 5
+
+Create Secret.
+
+Step 6
+
+Create PVC.
+
+Step 7
+
+Deploy Pod using PVC.
+
+Step 8
+
+Verify the RBD image in Ceph.
+
+
+
+
+Our Target Architecture
+                    Kubernetes
+                         │
+                   Ceph CSI (RBD)
+                         │
+                  StorageClass
+                         │
+                 PVC (VM Disk)
+                         │
+                  customer-a-pool
+                         │
+                  Ceph RBD Image
+                         │
+                 ceph-standalone
+
+
+Before installing Ceph CSI
+
+We need to create a dedicated Ceph user.
+
+Never use client.admin for Kubernetes. It's equivalent to giving Kubernetes full administrative access to your storage cluster.
+
+Instead, we'll create a user with permissions limited to the RBD pool.
+
+=======
+
+Step 1 - Create the CSI User
+
+Run on the Ceph server:
+
+cephadm shell -- ceph auth get-or-create client.kubernetes \
+mon 'profile rbd' \
+osd 'profile rbd pool=customer-a-pool'
+Step 2 - Verify
+
+Run:
+
+cephadm shell -- ceph auth get client.kubernetes
+
+The output will look similar to:
+
+[client.kubernetes]
+    key = AQBxxxxxxxxxxxxxxxxxxxxxxxx==
+
+Please don't redact the key when you share it here. It's only for your lab, and we'll use it to create the Kubernetes Secret. (In a real production environment, you would treat this key as a secret.)
+
+
+
+Why are we creating this user?
+
+This user will be used by the Ceph CSI driver to:
+
+Create RBD images
+Delete RBD images
+Expand volumes
+Attach volumes to Pods
+Detach volumes from Pods
+
+It has only the permissions required for those operations on customer-a-pool.
+
+
+Step 2 - Create the Kubernetes Namespace
+
+On the Kubernetes master:
+
+kubectl create namespace ceph-csi
+
+Verify:
+
+kubectl get ns
+Step 3 - Create the Ceph Configuration
+
+Create a file named ceph-csi-config.yaml:
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ceph-csi-config
+  namespace: ceph-csi
+data:
+  config.json: |-
+    [
+      {
+        "clusterID": "f2dbeccc-9003-11f1-a154-e2abf57fde49",
+        "monitors": [
+          "192.168.64.8:6789"
+        ]
+      }
+    ]
+
+Apply it:
+
+kubectl apply -f ceph-csi-config.yaml
+
+Verify:
+
+kubectl get configmap -n ceph-csi
+Step 4 - Create the Secret
+
+We need the Ceph authentication key from the user you created.
+
+Run:
+
+cephadm shell -- ceph auth get client.kubernetes
+
+You'll see something like:
+
+[client.kubernetes]
+    key = AQDxxxxxxxxxxxxxxxxxxxxxxxx==
+
+Create ceph-secret.yaml:
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: csi-rbd-secret
+  namespace: ceph-csi
+stringData:
+  userID: kubernetes
+  userKey: <PASTE_THE_KEY_HERE>
+
+Important: userID is kubernetes, not client.kubernetes. The client. prefix is omitted in the Kubernetes Secret because the Ceph CSI driver adds it automatically.
+
+Apply it:
+
+kubectl apply -f ceph-secret.yaml
+
+Verify:
+
+kubectl get secret -n ceph-csi
+Stop here
+
+Before we install the Ceph CSI driver itself, I want to verify that:
+
+✅ ceph-csi-config ConfigMap exists.
+✅ csi-rbd-secret Secret exists.
+
+Please run:
+
+kubectl get cm,secret -n ceph-csi
+
+and paste the output.
+
+A note about the installation method
+
+For Ceph CSI, I recommend using the official Kubernetes manifests, not Helm.
+
+Why?
+
+The official Ceph CSI documentation is based on the manifests.
+Most production examples and troubleshooting guides reference them.
+It makes it easier to compare your setup with the upstream documentation.
+
+We'll use the upstream manifests so your lab aligns with the official Ceph CSI project.
+
+
+
+
+Phase 17 - Install Ceph CSI (RBD)
+
+Ceph Cluster
+     │
+RBD Pool (customer-a-pool)
+     │
+Ceph CSI
+     │
+StorageClass
+     │
+PVC
+     │
+Pod
+     │
+KubeVirt VM
+
+
+
+Step 1 - Choose the Ceph CSI Version
+
+Your environment is:
+
+Kubernetes v1.34.10
+Ceph Tentacle (v20)
+External Ceph cluster
+
+A good match is Ceph CSI v3.16.2, which is tested with Kubernetes v1.34.
+
+Step 2 - Create a Working Directory
+
+On the Kubernetes master:
+
+mkdir -p ~/ceph-csi
+cd ~/ceph-csi
+Step 3 - Download the Deployment Files
+
+Let's keep everything local instead of applying URLs directly.
+
+git clone --branch v3.16.2 https://github.com/ceph/ceph-csi.git
+
+Go to the RBD deployment directory:
+
+cd ceph-csi/deploy/rbd/kubernetes
+
+Verify:
+
+ls
+
+You should see files like:
+
+csi-config-map.yaml
+csi-rbdplugin.yaml
+csi-rbdplugin-provisioner.yaml
+csi-nodeplugin-rbac.yaml
+csi-provisioner-rbac.yaml
+storageclass.yaml
+secret.yaml
+Why are we cloning the repository?
+
+Instead of blindly applying YAMLs from GitHub:
+
+kubectl apply -f https://...
+
+we now have:
+
+✅ Version-controlled manifests
+✅ Easy to edit
+✅ Easier troubleshooting
+✅ Easy to document
+✅ Reproducible builds
+
+This is much closer to how you'd manage infrastructure in production.
+
+
+
+
+Lesson 2 – Ceph CSI Architecture
+
+We'll draw this:
+
+Pod
+ │
+PVC
+ │
+PV
+ │
+StorageClass
+ │
+CSI Provisioner
+ │
+CSI Node Plugin
+ │
+Ceph Cluster
+ │
+RBD Image
+
+
+
+
+
+

@@ -1,0 +1,101 @@
+# ckpctl deploy --byoh --os ubuntu --cni kubeovn --k8s-version 1.35.1 --masters 10.0.3.124 --workers 10.0.3.29,10.0.4.20 --ssh-user kunal --ssh-password 'Redhat@123'
+
+
+ckpctl addon install cdi
+ckpctl addon install kubevirt
+ckpctl addon install multus
+ckpctl addon install nfs-csi
+
+
+
+$ sudo apt-get update -y
+$ sudo apt-get install -y nfs-kernel-server
+$ sudo mkdir -p /srv/nfs/kubevirt
+$ sudo chown nobody:nogroup /srv/nfs/kubevirt
+$ sudo chmod 0777 /srv/nfs/kubevirt
+$ echo "/srv/nfs/kubevirt 10.0.0.0/16(rw,sync,no_subtree_check,no_root_squash)" | sudo tee -a /etc/exports
+$ sudo exportfs -ra
+$ sudo systemctl enable --now nfs-kernel-server
+$ sudo exportfs -v
+
+
+
+cat > nfs-storageclass.yaml <<EOF
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: 10.0.3.124
+  share: /srv/nfs/kubevirt
+  mountPermissions: "0777" 
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+mountOptions:
+  - nfsvers=4.1
+EOF
+
+
+kubectl apply -f nfs-storageclass.yaml
+
+
+
+Configure Multus
+==================
+kubectl get ds -n kube-system | grep multus
+kubectl get pods -n kube-system -l app=multus -o wide
+
+
+---
+cat >secondary-subnet<<EOF
+apiVersion: kubeovn.io/v1
+kind: Subnet
+metadata:
+  name: secondary-subnet
+spec:
+  protocol: IPv4
+  cidrBlock: 172.20.10.0/24
+  gateway: 172.20.10.1
+  provider: secondary-net.default.ovn
+
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: secondary-net
+  namespace: default
+spec:
+  config: '{
+    "cniVersion": "0.3.1",
+    "type": "kube-ovn",
+    "server_socket": "/run/openvswitch/kube-ovn-daemon.sock",
+    "provider": "secondary-net.default.ovn"
+  }'
+EOF
+
+kubectl get network-attachment-definitions secondary-net
+
+
+
+
+
+Hostplug volume
+===============
+cat >demovm-hotplug-disk<<EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demovm-hotplug-disk
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: nfs-csi
+EOF
+
+
+

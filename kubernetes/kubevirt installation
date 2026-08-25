@@ -1,0 +1,333 @@
+kubectl create namespace kubevirt
+
+
+
+host-passthrough
+
+
+Create test-vm1
+================
+cat > test-vm1.yaml <<'EOF'
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: test-vm
+  namespace: default
+
+spec:
+  runStrategy: Always
+
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: test-vm
+
+    spec:
+      domain:
+        resources:
+          requests:
+            memory: 1Gi
+
+        cpu:
+          cores: 1
+
+        devices:
+          disks:
+
+            # Fedora OS disk
+            - name: containerdisk
+              disk:
+                bus: virtio
+
+            # Cloud-init disk
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+
+          interfaces:
+
+            # Primary Kube-OVN network
+            - name: default
+              masquerade: {}
+
+            # Multus secondary network
+            - name: secondary
+              bridge: {}
+
+      networks:
+
+        # Primary network
+        - name: default
+          pod: {}
+
+        # Multus network
+        - name: secondary
+          multus:
+            networkName: default/secondary-net
+
+      volumes:
+
+        # Fedora OS
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/containerdisks/fedora:latest
+
+        # Cloud-init
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+
+              user: fedora
+              password: redhat
+              chpasswd:
+                expire: false
+
+              ssh_pwauth: true
+
+              packages:
+                - openssh-server
+                - vim
+                - net-tools
+
+              runcmd:
+                - systemctl enable --now sshd
+EOF
+
+
+virtctl migrate test-vm
+kubectl get vmi test-vm -o wide -w
+
+
+kunal@ksl-ckpnew:~$ kubectl get vm test-vm2   -o jsonpath='{range .spec.template.spec.volumes[*]}{.name}{" -> "}{.persistentVolumeClaim.claimName}{"\n"}{end}'
+containerdisk ->
+cloudinitdisk ->
+datadisk -> vm-data
+
+
+
+cat > hotplug-disk-pvc.yaml <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hotplug-disk
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 5Gi
+EOF
+
+
+
+=======
+Step 1 — Install NFS CSI Driver
+
+kunal@ksl-ckpnew:~$ curl -skSL https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/v4.4.0/deploy/install-driver.sh \
+  | bash -s v4.4.0 --
+Installing NFS CSI driver, version: v4.4.0 ...
+serviceaccount/csi-nfs-controller-sa created
+serviceaccount/csi-nfs-node-sa created
+clusterrole.rbac.authorization.k8s.io/nfs-external-provisioner-role created
+clusterrolebinding.rbac.authorization.k8s.io/nfs-csi-provisioner-binding created
+csidriver.storage.k8s.io/nfs.csi.k8s.io created
+deployment.apps/csi-nfs-controller created
+daemonset.apps/csi-nfs-node created
+NFS CSI driver installed successfully.
+
+kunal@ksl-ckpnew:~$ kubectl -n kube-system get pods -l app=csi-nfs-node -o wide
+NAME                 READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+csi-nfs-node-bscck   3/3     Running   0          57m   10.0.4.20    worker-2   <none>           <none>
+csi-nfs-node-nsh77   3/3     Running   0          57m   10.0.3.124   master-1   <none>           <none>
+csi-nfs-node-qrrmx   3/3     Running   0          57m   10.0.3.29    worker-1   <none>           <none>
+
+
+Also verify the CSI driver:
+
+kunal@ksl-ckpnew:~$ kubectl get csidriver
+NAME             ATTACHREQUIRED   PODINFOONMOUNT   STORAGECAPACITY   TOKENREQUESTS   REQUIRESREPUBLISH   MODES        AGE
+nfs.csi.k8s.io   false            false            false             <unset>         false               Persistent   57m
+
+Note: 
+The NFS CSI driver allows Kubernetes to dynamically provision PVs from your existing NFS server. It creates a subdirectory under the NFS share for each dynamically provisioned volume.
+
+
+master-1
+10.0.3.124
+      |
+      | NFS
+      v
+/srv/nfs/kubevirt
+      |
+      v
+NFS CSI Driver
+      |
+      v
+StorageClass: nfs-csi
+      |
+      v
+PVC
+      |
+      v
+KubeVirt VM
+
+Step 1 — Create StorageClass
+
+cat > nfs-storageclass.yaml <<'EOF'
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: 10.0.3.124
+  share: /srv/nfs/kubevirt/
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+mountOptions:
+  - nfsvers=4.1
+EOF
+
+kunal@ksl-ckpnew:~$ kubectl apply -f nfs-storageclass.yaml
+storageclass.storage.k8s.io/nfs-csi created
+
+kunal@ksl-ckpnew:~$  kubectl get storageclass
+NAME      PROVISIONER      RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+nfs-csi   nfs.csi.k8s.io   Delete          Immediate           false                  33s
+
+
+
+Step 2 — Create a test PVC
+
+cat > nfs-test-pvc.yaml <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-test-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 10Gi
+EOF
+
+
+kunal@ksl-ckpnew:~$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                  STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-55081c62-239b-4add-aa06-f3daa0a15e34   10Gi       RWX            Delete           Bound    default/nfs-test-pvc   nfs-csi        <unset>                          51s
+
+kunal@ksl-ckpnew:~$ kubectl get pvc
+NAME           STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+nfs-test-pvc   Bound    pvc-55081c62-239b-4add-aa06-f3daa0a15e34   10Gi       RWX            nfs-csi        <unset>                 3m1s
+
+
+
+kunal@ksl-ckpnew:~$ cat > nfs-test-pod.yaml <<'EOF'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nfs-test-pod
+spec:
+  containers:
+    - name: test
+      image: ubuntu:24.04
+      command:
+        - sleep
+        - "3600"
+      volumeMounts:
+        - name: nfs-volume
+          mountPath: /data
+
+  volumes:
+    - name: nfs-volume
+      persistentVolumeClaim:
+        claimName: nfs-test-pvc
+EOF
+
+kunal@ksl-ckpnew:~$ kubectl apply -f nfs-test-pod.yaml
+pod/nfs-test-pod created
+
+kunal@ksl-ckpnew:~$ kubectl get pod nfs-test-pod -o wide
+NAME           READY   STATUS    RESTARTS   AGE   IP            NODE       NOMINATED NODE   READINESS GATES
+nfs-test-pod   1/1     Running   0          37s   10.244.0.29   worker-2   <none>           <none>
+kunal@ksl-ckpnew:~$
+
+
+kunal@ksl-ckpnew:~$ kubectl exec -it nfs-test-pod -- bash
+root@nfs-test-pod:/#
+root@nfs-test-pod:/#
+root@nfs-test-pod:/# df -h
+Filesystem                                                              Size  Used Avail Use% Mounted on
+overlay                                                                  96G   20G   77G  20% /
+tmpfs                                                                    64M     0   64M   0% /dev
+10.0.3.124:/home/kunal/nfsdir/pvc-55081c62-239b-4add-aa06-f3daa0a15e34   96G   15G   82G  15% /data
+/dev/vda1                                                                96G   20G   77G  20% /etc/hosts
+shm                                                                      64M     0   64M   0% /dev/shm
+tmpfs                                                                   7.7G   12K  7.7G   1% /run/secrets/kubernetes.io/serviceaccount
+tmpfs                                                                   4.0K     0  4.0K   0% /proc/acpi
+root@nfs-test-pod:/# cd /data/
+root@nfs-test-pod:/data# ls
+root@nfs-test-pod:/data# ls -l
+total 0
+root@nfs-test-pod:/data# touch manish
+root@nfs-test-pod:/data# exit
+exit
+
+kunal@ksl-ckpnew:~$ cd nfsdir/
+kunal@ksl-ckpnew:~/nfsdir$ ls
+pvc-55081c62-239b-4add-aa06-f3daa0a15e34
+kunal@ksl-ckpnew:~/nfsdir$ ls -l
+total 4
+drwxr-xr-x 2 root root 4096 Aug 18 06:25 pvc-55081c62-239b-4add-aa06-f3daa0a15e34
+kunal@ksl-ckpnew:~/nfsdir$ cd pvc-55081c62-239b-4add-aa06-f3daa0a15e34/
+kunal@ksl-ckpnew:~/nfsdir/pvc-55081c62-239b-4add-aa06-f3daa0a15e34$ ll
+total 8
+drwxr-xr-x 2 root  root  4096 Aug 18 06:25 ./
+drwxrwxrwx 3 kunal kunal 4096 Aug 18 06:21 ../
+-rw-r--r-- 1 root  root     0 Aug 18 06:25 manish
+kunal@ksl-ckpnew:~/nfsdir/pvc-55081c62-239b-4add-aa06-f3daa0a15e34$ cd
+kunal@ksl-ckpnew:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           795M  4.4M  790M   1% /run
+/dev/vda1        96G   15G   82G  15% /
+tmpfs           3.9G     0  3.9G   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+/dev/vda16      881M  117M  703M  15% /boot
+/dev/vda15      105M  6.1M   99M   6% /boot/efi
+tmpfs           795M   12K  795M   1% /run/user/1002
+kunal@ksl-ckpnew:~$
+
+
+Perfect. Now we'll attach a real persistent NFS data disk to your KubeVirt VM.
+==============================================================================
+1. Create the VM data PVC
+
+cat > vm-data-pvc.yaml <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vm-data
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 10Gi
+EOF
+
+
+
+
+
+
+
+
+

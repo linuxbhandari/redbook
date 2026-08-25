@@ -1,0 +1,106 @@
+Step-1 Pre-checks
+kubectl get nodes
+kubectl get pods -n kube-system
+kubectl get subnet
+ls -l /etc/cni/net.d/
+
+
+Step-2 Install Multus
+
+kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/master/deployments/multus-daemonset-thick.yml
+kubectl get pods -n kube-system -l app=multus
+kubectl get ds -n kube-system | grep multus
+
+
+Step 3 — Verify the CRD
+
+kubectl get crd network-attachment-definitions.k8s.cni.cncf.io
+kubectl api-resources | grep -i networkattachment
+
+
+Step 4 — Verify CNI configuration
+
+root@kube-master:~/aa# ls -l /etc/cni/net.d/
+total 8
+-rw------- 1 root root 208 Aug 13 22:04 00-multus.conf
+-rw------- 1 root root 324 Aug 13 17:50 01-kube-ovn.conflist
+
+
+
+
+Step 3 — Create the Kube-OVN secondary subnet
+
+cat > secondary-subnet.yaml <<'EOF'
+apiVersion: kubeovn.io/v1
+kind: Subnet
+metadata:
+  name: secondary-subnet
+spec:
+  provider: secondary-net.default.ovn
+  protocol: IPv4
+  cidrBlock: 10.20.0.0/16
+  excludeIps:
+    - 10.20.0.1..10.20.0.10
+  gatewayType: distributed
+  natOutgoing: false
+EOF
+
+kubectl apply -f secondary-subnet.yaml
+
+
+Step 4 — Create the NAD
+
+cat > secondary-net.yaml <<'EOF'
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: secondary-net
+  namespace: default
+spec:
+  config: '{
+    "cniVersion": "0.3.1",
+    "type": "kube-ovn",
+    "server_socket": "/run/openvswitch/kube-ovn-daemon.sock",
+    "provider": "secondary-net.default.ovn"
+  }'
+EOF
+
+
+kubectl apply -f secondary-net.yaml
+
+Step 5 — Create the test Pod
+
+cat > test-multus-pod.yaml <<'EOF'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multus-test
+  namespace: default
+  annotations:
+    k8s.v1.cni.cncf.io/networks: default/secondary-net
+spec:
+  containers:
+    - name: test
+      image: nicolaka/netshoot
+      command:
+        - sleep
+        - "3600"
+EOF
+
+
+kubectl apply -f test-multus-pod.yaml
+
+
+
+root@kube-master:~/aa# kubectl get pod
+NAME          READY   STATUS    RESTARTS   AGE
+multus-test   1/1     Running   0          16s
+
+root@kube-master:~/aa# kubectl exec -it multus-test -- ip -br addr
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+eth0@if27        UP             10.16.0.18/16 fe80::3caa:b3ff:fe63:88ea/64
+net1@if29        UP             10.20.0.11/16 fe80::e844:19ff:fee9:835f/64
+
+
+
+

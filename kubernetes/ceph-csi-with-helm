@@ -1,0 +1,51 @@
+Install Ceph CSI using Helm
+Architecture
+                 Kubernetes
+                      │
+                Helm Chart
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+ Provisioner Deployment      Node Plugin DaemonSet
+        │                           │
+        └─────────────┬─────────────┘
+                      │
+                 Ceph Cluster
+
+
+Step 1 - Add the Helm Repository
+
+First, let's see your current Helm repositories.
+
+helm repo list
+
+If the Ceph CSI repository isn't listed, add it:
+
+helm repo add ceph-csi https://ceph.github.io/csi-charts
+
+Update the repositories:
+
+helm repo update
+
+Verify:
+
+helm search repo ceph-csi
+
+Expected output should include something like:
+
+ceph-csi/ceph-csi-rbd
+ceph-csi/ceph-csi-cephfs
+
+
+Step 2 - Download the default values
+
+We never install a Helm chart without reviewing its values.
+
+mkdir -p ~/ceph-csi-helm
+cd ~/ceph-csi-helm
+
+helm show values ceph-csi/ceph-csi-rbd > values.yaml
+
+Verify:
+
+ls -lh values.yaml

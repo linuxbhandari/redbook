@@ -1,0 +1,168 @@
+Kube-ovn
+
+	kube-virt with multi-tenancy (understand)
+
+
+Kube-virt (for vms ) on kubernets
+
+Test vms with those.
+
+Kamaji with kubernetes
+----------------------
+
+
+
+What are the tools
+Calco 
+Fennel
+
+
+=========
+
+kubeadm reset -f
+
+
+ls -l /etc/cni/net.d. # confirm there is no CNI
+
+
+Install kube-ovn
+================
+helm repo add kubeovn https://kubeovn.github.io/kube-ovn/
+helm repo update
+helm repo list
+helm search repo kubeovn
+
+
+Install Kube-OVN
+================
+kubectl label node kube-master kube-ovn/role=master --overwrite
+helm install kube-ovn kubeovn/kube-ovn --namespace kube-system --wait --version v1.16.2
+helm show values kubeovn/kube-ovn > values.yaml
+
+root@kube-master:~# ls -l /etc/cni/net.d/
+total 4
+-rw------- 1 root root 324 Aug 13 12:41 01-kube-ovn.conflist
+
+
+
+check existing Tunnel
+=====================
+root@kube-master:~# kubectl -n kube-system get ds ovs-ovn   -o jsonpath='{range .spec.template.spec.containers[*].env[*]}{.name}={.value}{"\n"}{end}'   | grep TUNNEL_TYPE
+TUNNEL_TYPE=geneve
+
+second method
+#kubectl -n kube-system describe ds ovs-ovn | grep -i TUNNEL_TYPE
+
+
+
+
+
+
+
+
+
+helm status kube-ovn -n kube-system
+root@kube-master:~# kubectl get pods -n kube-system -o wide
+NAME                                   READY   STATUS    RESTARTS      AGE   IP              NODE          NOMINATED NODE   READINESS GATES
+coredns-66bc5c9577-7jn7c               1/1     Running   4 (14m ago)   46m   10.16.0.3       kube-node1    <none>           <none>
+coredns-66bc5c9577-d9r8b               1/1     Running   4 (14m ago)   46m   10.16.0.5       kube-node1    <none>           <none>
+etcd-kube-master                       1/1     Running   7             46m   192.168.64.14   kube-master   <none>           <none>
+kube-apiserver-kube-master             1/1     Running   7             46m   192.168.64.14   kube-master   <none>           <none>
+kube-controller-manager-kube-master    1/1     Running   0             46m   192.168.64.14   kube-master   <none>           <none>
+kube-ovn-cni-hmrmh                     1/1     Running   0             14m   192.168.64.14   kube-master   <none>           <none>
+kube-ovn-cni-k95zz                     1/1     Running   0             14m   192.168.64.16   kube-node2    <none>           <none>
+kube-ovn-cni-wvv7p                     1/1     Running   0             14m   192.168.64.15   kube-node1    <none>           <none>
+kube-ovn-controller-59d59dbdd8-lvr9r   1/1     Running   0             14m   192.168.64.16   kube-node2    <none>           <none>
+kube-ovn-monitor-74f5b7d557-wqjjv      1/1     Running   0             14m   192.168.64.14   kube-master   <none>           <none>
+kube-ovn-pinger-66jcg                  1/1     Running   0             14m   10.16.0.6       kube-node2    <none>           <none>
+kube-ovn-pinger-6mzqd                  1/1     Running   0             14m   10.16.0.2       kube-node1    <none>           <none>
+kube-ovn-pinger-8cwj4                  1/1     Running   0             14m   10.16.0.4       kube-master   <none>           <none>
+kube-proxy-dhw5j                       1/1     Running   0             45m   192.168.64.16   kube-node2    <none>           <none>
+kube-proxy-f2xfv                       1/1     Running   0             46m   192.168.64.14   kube-master   <none>           <none>
+kube-proxy-z5qrs                       1/1     Running   0             45m   192.168.64.15   kube-node1    <none>           <none>
+kube-scheduler-kube-master             1/1     Running   7             46m   192.168.64.14   kube-master   <none>           <none>
+ovn-central-6c68f7b5b7-5g99f           1/1     Running   0             14m   192.168.64.14   kube-master   <none>           <none>
+ovs-ovn-645np                          1/1     Running   0             14m   192.168.64.14   kube-master   <none>           <none>
+ovs-ovn-8ckhg                          1/1     Running   0             14m   192.168.64.15   kube-node1    <none>           <none>
+ovs-ovn-n56vf                          1/1     Running   0             14m   192.168.64.16   kube-node2    <none>           <none>
+
+root@kube-master:~# kubectl get ds -n kube-system
+NAME              DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-ovn-cni      3         3         3       3            3           kubernetes.io/os=linux   14m
+kube-ovn-pinger   3         3         3       3            3           kubernetes.io/os=linux   14m
+kube-proxy        3         3         3       3            3           kubernetes.io/os=linux   47m
+ovs-ovn           3         3         3       3            3           kubernetes.io/os=linux   14m
+
+
+Main components
+
+1. kube-ovn-controller
+2. ovn-central
+3. ovs-ovn
+4. kube-ovn-cni
+
+
+
+root@kube-master:~# kubectl get pods -n kube-system | grep ovn
+kube-ovn-cni-hmrmh                     1/1     Running   0             31m
+kube-ovn-cni-k95zz                     1/1     Running   0             31m
+kube-ovn-cni-wvv7p                     1/1     Running   0             31m
+kube-ovn-controller-59d59dbdd8-lvr9r   1/1     Running   0             31m
+kube-ovn-monitor-74f5b7d557-wqjjv      1/1     Running   0             31m
+kube-ovn-pinger-66jcg                  1/1     Running   0             31m
+kube-ovn-pinger-6mzqd                  1/1     Running   0             31m
+kube-ovn-pinger-8cwj4                  1/1     Running   0             31m
+ovn-central-6c68f7b5b7-5g99f           1/1     Running   0             31m <<<<
+ovs-ovn-645np                          1/1     Running   0             31m
+ovs-ovn-8ckhg                          1/1     Running   0             31m
+ovs-ovn-n56vf                          1/1     Running   0             31m
+
+root@kube-master:~# kubectl exec -it -n kube-system ovn-central-6c68f7b5b7-5g99f -- bash
+Defaulted container "ovn-central" out of: ovn-central, hostpath-init (init)
+
+nobody@kube-master:/kube-ovn$ ov
+ovn-appctl           ovn-ic               ovn-northd           ovs-appctl           ovs-dpctl-top        ovs-pcap             ovs-tcpundump        ovsdb-client         
+ovn-controller       ovn-ic-nbctl         ovn-sbctl            ovs-bugtool          ovs-flowviz          ovs-pki              ovs-vlan-test        ovsdb-server         
+ovn-debug            ovn-ic-sbctl         ovn-trace            ovs-docker           ovs-ofctl            ovs-sandbox          ovs-vsctl            ovsdb-tool           
+ovn-detrace          ovn-nbctl            ovn_detrace.py       ovs-dpctl            ovs-parse-backtrace  ovs-tcpdump          ovs-vswitchd         
+nobody@kube-master:/kube-ovn$ ovn
+ovn-appctl      ovn-controller  ovn-debug       ovn-detrace     ovn-ic          ovn-ic-nbctl    ovn-ic-sbctl    ovn-nbctl       ovn-northd      ovn-sbctl       ovn-trace       ovn_detrace.py  
+nobody@kube-master:/kube-ovn$ ovn
+ovn-appctl      ovn-controller  ovn-debug       ovn-detrace     ovn-ic          ovn-ic-nbctl    ovn-ic-sbctl    ovn-nbctl       ovn-northd      ovn-sbctl       ovn-trace       ovn_detrace.py  
+nobody@kube-master:/kube-ovn$ ovn-nbctl show
+switch e60a6e2d-2529-4267-915d-35e60030e95b (join)
+    port node-kube-node2
+        addresses: ["26:30:5c:20:51:b2 100.64.0.4"]
+    port join-ovn-cluster
+        type: router
+        router-port: ovn-cluster-join
+    port node-kube-master
+        addresses: ["22:a9:08:27:ca:05 100.64.0.2"]
+    port node-kube-node1
+        addresses: ["a2:c4:3e:8b:9b:8f 100.64.0.3"]
+switch db42eb3a-32cd-4c47-ad58-1e3014abe177 (ovn-default)
+    port coredns-66bc5c9577-7jn7c.kube-system
+        addresses: ["aa:3e:7a:24:f3:45 10.16.0.3"]
+    port kube-ovn-pinger-66jcg.kube-system
+        addresses: ["de:9d:87:56:03:16 10.16.0.6"]
+    port ovn-default-ovn-cluster
+        type: router
+        router-port: ovn-cluster-ovn-default
+    port coredns-66bc5c9577-d9r8b.kube-system
+        addresses: ["82:d2:00:65:57:99 10.16.0.5"]
+    port kube-ovn-pinger-6mzqd.kube-system
+        addresses: ["ce:0c:7b:34:96:c0 10.16.0.2"]
+    port kube-ovn-pinger-8cwj4.kube-system
+        addresses: ["3a:00:90:b5:e4:c5 10.16.0.4"]
+router 48fbee74-7304-488e-b681-50a5b2a0cc0d (ovn-cluster)
+    port ovn-cluster-ovn-default
+        mac: "7e:77:8e:75:7e:91"
+        ipv6-lla: "fe80::7c77:8eff:fe75:7e91"
+        networks: ["10.16.0.1/16"]
+    port ovn-cluster-join
+        mac: "0a:70:3f:a4:4e:0c"
+        ipv6-lla: "fe80::870:3fff:fea4:4e0c"
+        networks: ["100.64.0.1/16"]
+nobody@kube-master:/kube-ovn$ exit
+exit
+

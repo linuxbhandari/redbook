@@ -1,0 +1,296 @@
+                    Kubernetes
+                         │
+                    Kube-OVN
+                         │
+                  Pod eth0 (10.16.x.x)
+                         │
+                     netshoot
+                         │
+                  +--------------+
+                  |              |
+                  |    Multus    |
+                  |              |
+                  +--------------+
+                         │
+                    net1 (second NIC)
+                         │
+                  Macvlan / Bridge
+
+Multus Installation
+-------------------
+
+What is Multus?
+
+Currently, every Pod gets one interface from Kube-OVN.
+
+Pod
+ │
+eth0
+ │
+Kube-OVN
+ │
+10.16.x.x
+
+With Multus:
+
+                 Kubernetes
+                      │
+                  Multus CNI
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+     Kube-OVN                  Macvlan
+        │                           │
+      eth0                       net1
+   10.16.x.x                 192.168.x.x
+
+Multus does not replace Kube-OVN. It adds extra interfaces.
+
+
+Before installing Multus
+------------------------
+I want to explain one important concept.
+
+CNI Chaining
+
+Without Multus:
+
+kubelet
+   │
+   ▼
+Kube-OVN
+   │
+Pod
+
+With Multus:
+
+kubelet
+   │
+   ▼
+Multus
+   │
+   ├── Kube-OVN (default network)
+   │
+   └── Macvlan (secondary network)
+
+So Multus becomes the primary CNI configuration, but Kube-OVN remains the default network plugin.
+
+
+
+Lesson 2 – Install Multus
+
+We'll use the official Multus DaemonSet.
+
+Before we install it, let's verify your current CNI configuration.
+
+On every node, run:
+
+ls -l /etc/cni/net.d
+
+You should have only:
+
+01-kube-ovn.conflist
+
+If that's true, we're ready to install Multus.
+
+
+
+Phase 2 - Install Multus
+Step 1 - Verify Current CNI Configuration
+
+Run on both nodes (kube-master and kube-node1):
+
+ls -l /etc/cni/net.d
+
+Expected:
+
+01-kube-ovn.conflist
+
+No 00-multus.conf should exist yet.
+
+Step 2 - Add the Multus Helm Repository
+
+Run on the master:
+
+helm repo add multus https://rke2-charts.rancher.io
+
+helm repo update
+
+Wait! Don't install from this repository yet.
+
+
+
+Step 3 - Verify your Kube-OVN CNI
+
+Before installing Multus, let's confirm the default CNI is healthy:
+
+kubectl get pods -n kube-system
+
+You should have:
+
+kube-ovn-cni
+ovs-ovn
+ovn-central
+kube-ovn-controller
+coredns
+
+all in the Running state.
+
+
+Step 1 - Install Multus
+
+The Multus project recommends deploying it as a DaemonSet. For new installations, the thick plugin is the recommended option.
+
+kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/master/deployments/multus-daemonset-thick.yml
+
+
+
+Step 2 - Watch the installation
+kubectl get pods -n kube-system -w
+
+You should see something similar to:
+
+kube-multus-ds-xxxxx      Running
+
+
+Step 3 - Verify the DaemonSet
+kubectl get ds -A | grep multus
+
+Expected:
+
+kube-system   kube-multus-ds
+
+
+Step 4 - Verify the CNI configuration
+
+On both nodes, check:
+
+ls -l /etc/cni/net.d
+
+You should now see something similar to:
+
+00-multus.conf
+01-kube-ovn.conflist
+
+This is correct.
+
+The 00-multus.conf file becomes the primary CNI configuration, and Multus automatically delegates to the existing 01-kube-ovn.conflist.
+
+
+
+Stop here
+
+Don't create any NetworkAttachmentDefinition yet.
+
+Let's first verify that:
+
+Multus DaemonSet is Running
+00-multus.conf has been created on both nodes
+Existing Pods still work normally
+
+Once you've done that, we'll create your first secondary network (Macvlan) and then launch a Pod with:
+
+eth0 → Kube-OVN
+net1 → Multus (Macvlan)
+
+That will be the same networking model we'll later use for KubeVirt VMs.
+
+
+
+Lab Architecture
+
+Right now your pod looks like this:
+
+                Kube-OVN
+                   │
+                eth0
+                   │
+              netshoot Pod
+
+After this lesson:
+
+                     Multus
+                        │
+          ┌─────────────┴─────────────┐
+          │                           │
+     Kube-OVN                    Macvlan
+          │                           │
+        eth0                       net1
+     10.16.x.x                 192.168.x.x
+
+
+From kube-node1 and kube-node2
+
+Your physical interface is:
+
+enp0s1
+192.168.64.15/24
+
+We'll use enp0s1 as the parent interface for the Macvlan network.
+
+
+
+
+Next Practical: Create a Pod with Two Interfaces
+
+We'll use host-local IPAM for now because it's simple and perfect for a single-worker lab.
+
+Step 1 - Create a NetworkAttachmentDefinition
+
+Save the following as macvlan-net.yaml:
+
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: macvlan-net
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "type": "macvlan",
+      "master": "enp0s1",
+      "mode": "bridge",
+      "ipam": {
+        "type": "host-local",
+        "subnet": "192.168.64.0/24",
+        "rangeStart": "192.168.64.200",
+        "rangeEnd": "192.168.64.220",
+        "gateway": "192.168.64.1"
+      }
+    }
+
+Apply it:
+
+kubectl apply -f macvlan-net.yaml
+
+Verify:
+
+kubectl get network-attachment-definitions
+
+Expected:
+
+NAME
+macvlan-net
+
+root@kube-master:~# kubectl apply -f macvlan-net.yaml
+networkattachmentdefinition.k8s.cni.cncf.io/macvlan-net created
+
+root@kube-master:~# kubectl get pods -n kube-system | grep multus
+kube-multus-ds-228mn                   1/1     Running   0             18m
+kube-multus-ds-ljhkm                   1/1     Running   0             18m
+kube-multus-ds-r55dz                   1/1     Running   0             18m
+
+
+Stop here
+Don't create the Pod yet.
+
+Let's first verify that the NetworkAttachmentDefinition is created successfully.
+
+Once you confirm it exists, we'll create a Pod with two interfaces and verify:
+
+eth0 → Kube-OVN (10.16.x.x)
+net1 → Macvlan (192.168.64.200+)
+
+This is the same pattern we'll later use for KubeVirt VMs.
+
+

@@ -1,0 +1,221 @@
+1. Install fresh ubuntu-adm (ubuntu-24.04 amd) and install below packages.
+
+sudo apt install make golang-go
+swapoff -a
+
+root@ubuntu-ckp:~/ckp/ckpctl-cli-main# install -m0755 dist/ckpctl-linux-amd64 /usr/local/bin/ckpctl && ckpctl version
+root@ubuntu-ckp:~/ckp/ckpctl-cli-main# ckpctl deploy --prereq examples/single-node.prereq.yaml --ssh-password 'a'
+
+ckpctl deploy --byoh --os ubuntu --cni kubeovn --k8s-version 1.34.3   --masters 10.0.3.124  --ssh-user kunal --ssh-password 'Redhat@123'
+
+ckpctl deploy --byoh --cni kubeovn --os ubuntu --masters 10.0.3.124 --workers 10.0.4.20,10.0.3.29 --k8s-version 1.34.3 --ssh-user kunal --ssh-key ~/.ssh/id
+
+Single Noda installation
+=========================
+demo@demo-Ubuntu-24-04-PC-Q35-ICH9-2009:~/ckp/ckpctl-cli-main$ sudo ckpctl deploy --prereq examples/single-node.prereq.yaml --ssh-password 'a'
+
+
+================
+172.16.105.210 ksl-ckpnew
+172.16.105.118  
+172.16.105.149 ksl-ckpnew-3
+
+# ckpctl uninstall --yes # uninstall ckp
+
+# mkdir <newfolder>  # always create the new folder during setup, old folder will create some issue.
+# ckpctl deploy --byoh --os ubuntu --cni kubeovn --k8s-version 1.35.1 --masters 10.0.3.124 --workers 10.0.3.29,10.0.4.20 --ssh-user kunal --ssh-password 'Redhat@123'
+
+
+
+kunal@ksl-ckpnew:~/new$ ckpctl info
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+=== CKP CLUSTER INFO ===
+k8s version : 1.35.1
+registry    : docker.io/coredgeio
+pod CIDR    : 10.244.0.0/16
+service CIDR: 10.96.0.0/12
+
+-- kube-API endpoints --
+  controlPlaneEndpoint : https://10.0.3.124:6443   [single-master apiserver]
+  master apiserver     : https://10.0.3.124:6443   (master-1)
+
+-- in-cluster kubernetes Service backends --
+  NAME         ENDPOINTS         AGE
+  kubernetes   10.0.3.124:6443   102s
+
+-- cluster-info --
+  Kubernetes control plane is running at https://10.0.3.124:6443
+  CoreDNS is running at https://10.0.3.124:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+  To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+
+-- nodes --
+  NAME       STATUS   ROLES           AGE    VERSION       INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+  master-1   Ready    control-plane   105s   v1.35.1-ckp   10.0.3.124    <none>        Ubuntu 24.04.2 LTS   6.8.0-137-generic   containerd://1.7.28
+  worker-1   Ready    worker          92s    v1.35.1-ckp   10.0.3.29     <none>        Ubuntu 24.04.2 LTS   6.8.0-137-generic   containerd://1.7.28
+  worker-2   Ready    worker          90s    v1.35.1-ckp   10.0.4.20     <none>        Ubuntu 24.04.2 LTS   6.8.0-137-generic   containerd://1.7.28
+
+-- fetch kubeconfig --
+  scp -i /tmp/ckpctl-ssh-1655762220/id_ckpctl kunal@10.0.3.124:/etc/kubernetes/admin.conf ./ckp.kubeconfig
+  # admin.conf points at the bootstrap apiserver (10.0.3.124:6443)
+  export KUBECONFIG=$PWD/ckp.kubeconfig && kubectl get nodes
+
+kunal@ksl-ckpnew:~/new$ kubectl get nodes
+NAME       STATUS   ROLES           AGE     VERSION
+master-1   Ready    control-plane   4m      v1.35.1-ckp
+worker-1   Ready    worker          3m47s   v1.35.1-ckp
+worker-2   Ready    worker          3m45s   v1.35.1-ckp
+
+kunal@ksl-ckpnew:~/new$ kubectl get pod -A
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS        AGE
+kube-system   coredns-57f8cbb4dc-c5p56               1/1     Running   0               3m58s
+kube-system   coredns-57f8cbb4dc-vqj98               1/1     Running   0               3m58s
+kube-system   etcd-master-1                          1/1     Running   0               4m3s
+kube-system   kube-apiserver-master-1                1/1     Running   0               4m3s
+kube-system   kube-controller-manager-master-1       1/1     Running   0               4m3s
+kube-system   kube-ovn-cni-98xj2                     1/1     Running   0               3m41s
+kube-system   kube-ovn-cni-d8rc4                     1/1     Running   1 (3m31s ago)   3m41s
+kube-system   kube-ovn-cni-pdf4h                     1/1     Running   0               3m41s
+kube-system   kube-ovn-controller-7dc8746fc6-5lqzd   1/1     Running   0               3m41s
+kube-system   kube-ovn-monitor-65fbc76698-rsv4m      1/1     Running   0               3m41s
+kube-system   kube-ovn-pinger-k2482                  1/1     Running   0               3m41s
+kube-system   kube-ovn-pinger-nzbp7                  1/1     Running   0               3m41s
+kube-system   kube-ovn-pinger-rdnbz                  1/1     Running   0               3m41s
+kube-system   kube-proxy-7x62b                       1/1     Running   0               3m58s
+kube-system   kube-proxy-8pfqg                       1/1     Running   0               3m52s
+kube-system   kube-proxy-g6v2s                       1/1     Running   0               3m54s
+kube-system   kube-scheduler-master-1                1/1     Running   0               4m6s
+kube-system   metrics-server-7f744c8bf9-sbb6v        1/1     Running   0               3m18s
+kube-system   ovn-central-575c547c9f-5kbjn           1/1     Running   0               3m41s
+kube-system   ovs-ovn-b9f9m                          1/1     Running   0               3m40s
+kube-system   ovs-ovn-sjp88                          1/1     Running   0               3m40s
+kube-system   ovs-ovn-szdw5                          1/1     Running   0               3m41s
+
+
+Note: kube-ovn will install automatically
+
+
+kunal@ksl-ckpnew:~/new$ kubectl get subnet
+NAME          PROVIDER   VPC           VLAN   PROTOCOL   CIDR            PRIVATE   NAT     DEFAULT   GATEWAYTYPE   V4USED   V4AVAILABLE   V6USED   V6AVAILABLE   EXCLUDEIPS       U2OINTERCONNECTIONIP
+join          ovn        ovn-cluster          IPv4       100.64.0.0/16   false     false   false                   3        65530         0        0             ["100.64.0.1"]
+ovn-default   ovn        ovn-cluster          IPv4       10.244.0.0/16   false     true    true      distributed   6        65527         0        0             ["10.244.0.1"]
+
+
+kunal@ksl-ckpnew:~/new$ ckpctl addon install nfs-csi
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+  [master-1] helm present: v3.21.2+g1259634
+  [master-1] csi-driver-nfs node prerequisites
+  [worker-1] csi-driver-nfs node prerequisites
+  [worker-2] csi-driver-nfs node prerequisites
+  [master-1] helm install "csi-driver-nfs" (chart oci://registry-1.docker.io/coredgehelm/csi-driver-nfs) into ns/kube-system
+
+
+kunal@ksl-ckpnew:~/new$ cat secondary-subnet.yaml
+apiVersion: kubeovn.io/v1
+kind: Subnet
+metadata:
+  name: secondary-subnet
+spec:
+  provider: secondary-net.default.ovn
+  protocol: IPv4
+  cidrBlock: 192.168.100.0/24
+  excludeIps:
+    - 192.168.100.10..192.168.100.250
+  gatewayType: distributed
+  natOutgoing: false
+
+
+
+  kunal@ksl-ckpnew:~/new$ kubectl get subnet
+NAME               PROVIDER                    VPC           VLAN   PROTOCOL   CIDR               PRIVATE   NAT     DEFAULT   GATEWAYTYPE   V4USED   V4AVAILABLE   V6USED   V6AVAILABLE   EXCLUDEIPS                                            U2OINTERCONNECTIONIP
+join               ovn                         ovn-cluster          IPv4       100.64.0.0/16      false     false   false                   3        65530         0        0             ["100.64.0.1"]
+ovn-default        ovn                         ovn-cluster          IPv4       10.244.0.0/16      false     true    true      distributed   19       65514         0        0             ["10.244.0.1"]
+secondary-subnet   secondary-net.default.ovn   ovn-cluster          IPv4       192.168.100.0/24   false     false   false     distributed   1        11            0        0             ["192.168.100.1","192.168.100.10..192.168.100.250"]
+
+
+
+
+kunal@ksl-ckpnew:~/new$ cat demovm.yaml
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: demovm-rootdisk
+  namespace: default
+spec:
+  source:
+    http:
+      url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+  storage:
+    accessModes: [ReadWriteMany]
+    resources:
+      requests:
+        storage: 10Gi
+    storageClassName: nfs-csi
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: demovm
+  namespace: default
+spec:
+  running: true
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: demovm
+    spec:
+      evictionStrategy: LiveMigrate
+      domain:
+        cpu: {cores: 2}
+        resources:
+          requests: {memory: 2Gi}
+        devices:
+          disks:
+            - name: rootdisk
+              disk: {bus: virtio}
+          interfaces:
+            - name: default
+              masquerade: {}
+            - name: secondary
+              bridge: {}
+      networks:
+        - name: default
+          pod: {}
+        - name: secondary
+          multus: {networkName: secondary-net}
+      volumes:
+        - name: rootdisk
+          dataVolume: {name: demovm-rootdisk}
+
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+
+              user: demo
+              password: redhat
+              chpasswd:
+                expire: false
+
+              ssh_pwauth: true
+
+              packages:
+                - openssh-server
+              runcmd:
+                - systemctl enable --now sshd
+            networkData: |
+              version: 2
+              ethernets:
+                enp1s0:
+                  dhcp4: true
+                enp2s0:
+                  dhcp4: true
+
+
+
+
+
+
+
+ 
+
