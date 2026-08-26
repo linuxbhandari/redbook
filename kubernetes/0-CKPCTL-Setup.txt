@@ -39,7 +39,7 @@ kubectl get ds -n kube-system | grep multus
 kubectl get pods -n kube-system -l app=multus -o wide
 
 ---
-cat >secondary-subnet<<EOF
+cat >secondary-subnet.yaml<<EOF
 apiVersion: kubeovn.io/v1
 kind: Subnet
 metadata:
@@ -49,7 +49,6 @@ spec:
   cidrBlock: 172.20.10.0/24
   gateway: 172.20.10.1
   provider: secondary-net.default.ovn
-
 ---
 apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
@@ -67,8 +66,161 @@ EOF
 
 kubectl get network-attachment-definitions secondary-net
 
-Hostplug volume
+Step 2 — Create a test PVC
+
+cat > nfs-test-pvc.yaml <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-test-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-csi
+  resources:
+    requests:
+      storage: 10Gi
+EOF
+
+root@kube-master:~# kubectl apply -f nfs-test-pvc.yaml
+
+kunal@ksl-ckpnew:~$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                  STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-55081c62-239b-4add-aa06-f3daa0a15e34   10Gi       RWX            Delete           Bound    default/nfs-test-pvc   nfs-csi        <unset>                          51s
+
+kunal@ksl-ckpnew:~$ kubectl get pvc
+NAME           STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+nfs-test-pvc   Bound    pvc-55081c62-239b-4add-aa06-f3daa0a15e34   10Gi       RWX            nfs-csi        <unset>                 3m1s
+
+
+
+kunal@ksl-ckpnew:~$ cat > nfs-test-pod.yaml <<'EOF'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nfs-test-pod
+  annotations:
+    k8s.v1.cni.cncf.io/networks: default/secondary-net
+spec:
+  containers:
+    - name: test
+      image: ubuntu:24.04
+      command:
+        - sleep
+        - "3600"
+      volumeMounts:
+        - name: nfs-volume
+          mountPath: /data
+
+  volumes:
+    - name: nfs-volume
+      persistentVolumeClaim:
+        claimName: nfs-test-pvc
+EOF
+
+kunal@ksl-ckpnew:~$ kubectl apply -f nfs-test-pod.yaml
+pod/nfs-test-pod created
+
+kunal@ksl-ckpnew:~$ kubectl get pod nfs-test-pod -o wide
+NAME           READY   STATUS    RESTARTS   AGE   IP            NODE       NOMINATED NODE   READINESS GATES
+nfs-test-pod   1/1     Running   0          37s   10.244.0.29   worker-2   <none>           <none>
+
+
+
+kunal@ksl-ckpnew:~$ kubectl exec -it nfs-test-pod -- bash
+root@nfs-test-pod:/#
+root@nfs-test-pod:/#
+root@nfs-test-pod:/# df -h
+Filesystem                                                              Size  Used Avail Use% Mounted on
+overlay                                                                  96G   20G   77G  20% /
+tmpfs                                                                    64M     0   64M   0% /dev
+10.0.3.124:/home/kunal/nfsdir/pvc-55081c62-239b-4add-aa06-f3daa0a15e34   96G   15G   82G  15% /data
+/dev/vda1                                                                96G   20G   77G  20% /etc/hosts
+shm                                                                      64M     0   64M   0% /dev/shm
+tmpfs                                                                   7.7G   12K  7.7G   1% /run/secrets/kubernetes.io/serviceaccount
+tmpfs                                                                   4.0K     0  4.0K   0% /proc/acpi
+root@nfs-test-pod:/# cd /data/
+root@nfs-test-pod:/data# ls
+root@nfs-test-pod:/data# ls -l
+total 0
+root@nfs-test-pod:/data# touch manish
+root@nfs-test-pod:/data# exit
+exit
+
+kunal@ksl-ckpnew:~$ cd nfsdir/
+kunal@ksl-ckpnew:~/nfsdir$ ls
+pvc-55081c62-239b-4add-aa06-f3daa0a15e34
+kunal@ksl-ckpnew:~/nfsdir$ ls -l
+total 4
+drwxr-xr-x 2 root root 4096 Aug 18 06:25 pvc-55081c62-239b-4add-aa06-f3daa0a15e34
+kunal@ksl-ckpnew:~/nfsdir$ cd pvc-55081c62-239b-4add-aa06-f3daa0a15e34/
+kunal@ksl-ckpnew:~/nfsdir/pvc-55081c62-239b-4add-aa06-f3daa0a15e34$ ll
+total 8
+drwxr-xr-x 2 root  root  4096 Aug 18 06:25 ./
+drwxrwxrwx 3 kunal kunal 4096 Aug 18 06:21 ../
+-rw-r--r-- 1 root  root     0 Aug 18 06:25 manish
+kunal@ksl-ckpnew:~/nfsdir/pvc-55081c62-239b-4add-aa06-f3daa0a15e34$ cd
+kunal@ksl-ckpnew:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           795M  4.4M  790M   1% /run
+/dev/vda1        96G   15G   82G  15% /
+tmpfs           3.9G     0  3.9G   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+/dev/vda16      881M  117M  703M  15% /boot
+/dev/vda15      105M  6.1M   99M   6% /boot/efi
+tmpfs           795M   12K  795M   1% /run/user/1002
+kunal@ksl-ckpnew:~$
+
+
+
+Hostplug volume (will do later)
 ===============
+root@ksl-ckpnew:~/ckp-setup# kubectl get kubevirt -n kubevirt \
+  -o jsonpath='{.items[0].status.observedKubeVirtVersion}{"\n"}'
+v1.8.0
+
+root@ksl-ckpnew:~/ckp-setup# kubectl get kubevirt kubevirt -n kubevirt -o yaml | grep -A10 -B5 -i hotplug
+apiVersion: kubevirt.io/v1
+kind: KubeVirt
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"kubevirt.io/v1","kind":"KubeVirt","metadata":{"annotations":{},"name":"kubevirt","namespace":"kubevirt"},"spec":{"configuration":{"developerConfiguration":{"featureGates":["Snapshot","HotplugVolumes","VMLiveUpdateFeatures","ExpandDisks"],"useEmulation":false}},"imageRegistry":"quay.io/kubevirt","imageTag":"v1.8.0","workloadUpdateStrategy":{"workloadUpdateMethods":["LiveMigrate"]}}}
+    kubevirt.io/latest-observed-api-version: v1
+    kubevirt.io/storage-observed-api-version: v1
+  creationTimestamp: "2026-08-26T03:36:07Z"
+  finalizers:
+  - foregroundDeleteKubeVirt
+  generation: 2
+  name: kubevirt
+  namespace: kubevirt
+  resourceVersion: "3133"
+  uid: de3d75a2-7405-4351-b6d6-415e9a6f9e10
+--
+  certificateRotateStrategy: {}
+  configuration:
+    developerConfiguration:
+      featureGates:
+      - Snapshot
+      - HotplugVolumes
+      - VMLiveUpdateFeatures
+      - ExpandDisks
+  customizeComponents: {}
+  imageRegistry: quay.io/kubevirt
+  imageTag: v1.8.0
+  workloadUpdateStrategy:
+    workloadUpdateMethods:
+    - LiveMigrate
+status:
+  conditions:
+
+root@ksl-ckpnew:~/ckp-setup# kubectl get kubevirt kubevirt -n kubevirt \
+  -o jsonpath='{.spec.configuration.developerConfiguration.featureGates}{"\n"}'
+["Snapshot","HotplugVolumes","VMLiveUpdateFeatures","ExpandDisks"]
+
+
+
 cat >demovm-hotplug-disk<<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -83,3 +235,105 @@ spec:
       storage: 5Gi
   storageClassName: nfs-csi
 EOF
+
+Snapshot
+==========
+1. Check snapshot support
+kubectl get volumesnapshotclass
+
+# ckpctl addon install snapshot-controller
+
+root@ksl-ckpnew:~/ckp-setup# kubectl get pod -n kube-system | grep snap
+snapshot-controller-58db5dd985-98ssg   1/1     Running   0          79s
+snapshot-controller-58db5dd985-vmk2w   1/1     Running   0          79s
+
+
+root@ksl-ckpnew:~/ckp-setup# kubectl get crd | grep snapshot.storage.k8s.io
+volumesnapshotclasses.snapshot.storage.k8s.io                 2026-08-26T07:29:29Z
+volumesnapshotcontents.snapshot.storage.k8s.io                2026-08-26T07:29:29Z
+volumesnapshots.snapshot.storage.k8s.io                       2026-08-26T07:29:29Z
+
+
+root@ksl-ckpnew:~/ckp-setup# cat >nfs-volumeSnapshotClass.yaml<<EOF
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: nfs-csi
+driver: nfs.csi.k8s.io
+deletionPolicy: Delete
+parameters:
+  server: 10.0.3.124
+  share: /srv/nfs/kubevirt
+EOF
+
+root@ksl-ckpnew:~/ckp-setup# kubectl get VolumeSnapshotClass
+NAME      DRIVER           DELETIONPOLICY   AGE
+nfs-csi   nfs.csi.k8s.io   Delete           45s
+
+
+Let's test the data disk first,
+
+cat > demovm-datadisk-snapshot.yaml <<'EOF'
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: demovm-datadisk-snapshot
+  namespace: default
+spec:
+  volumeSnapshotClassName: nfs-csi-snapclass
+  source:
+    persistentVolumeClaimName: demovm-datadisk
+EOF
+
+
+root@ksl-ckpnew:~/ckp-setup# cat snap1-demovm.yaml
+apiVersion: snapshot.kubevirt.io/v1alpha1
+kind: VirtualMachineSnapshot
+metadata:
+  name: demovm-snapshot-1
+  namespace: default
+spec:
+  source:
+    apiGroup: kubevirt.io
+    kind: VirtualMachine
+    name: demovm
+
+root@ksl-ckpnew:~/ckp-setup# kubectl apply -f snap1-demovm.yaml
+virtualmachinesnapshot.snapshot.kubevirt.io/demovm-snapshot-1 created
+
+root@ksl-ckpnew:~/ckp-setup# kubectl get VirtualMachineSnapshot
+NAME                SOURCEKIND       SOURCENAME   PHASE        READYTOUSE   CREATIONTIME   ERROR
+demovm-snapshot-1   VirtualMachine   demovm       InProgress   false
+
+root@ksl-ckpnew:~/ckp-setup# kubectl get VirtualMachineSnapshot
+NAME                SOURCEKIND       SOURCENAME   PHASE       READYTOUSE   CREATIONTIME   ERROR
+demovm-snapshot-1   VirtualMachine   demovm       Succeeded   true         13s
+
+
+Restore snapshot
+================
+kubectl get virtualmachinesnapshotcontent
+
+cat > restore-demovm.yaml <<'EOF'
+apiVersion: snapshot.kubevirt.io/v1alpha1
+kind: VirtualMachineRestore
+metadata:
+  name: demovm-restore-1
+  namespace: default
+spec:
+  target:
+    apiGroup: kubevirt.io
+    kind: VirtualMachine
+    name: demovm-restored
+  virtualMachineSnapshotName: demovm-snapshot-1
+EOF
+
+
+root@ksl-ckpnew:~/ckp-setup# kubectl apply -f restore-demovm.yaml
+virtualmachinerestore.snapshot.kubevirt.io/demovm-restore-1 created
+
+root@ksl-ckpnew:~/ckp-setup# kubectl get vm
+NAME              AGE   STATUS    READY
+demovm            47m   Stopped   False
+demovm-restored   28s   Stopped   False
+
