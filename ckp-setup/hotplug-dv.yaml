@@ -1,0 +1,14 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: demovm-hotplug-disk
+  namespace: default
+spec:
+  source:
+    blank: {}
+  storage:
+    accessModes: [ReadWriteMany]
+    resources:
+      requests:
+        storage: 5Gi
+    storageClassName: nfs-csi

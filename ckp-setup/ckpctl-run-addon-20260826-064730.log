@@ -1,0 +1,4 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+  [master-1] apply "kubevirt" (1 manifest(s) + CR, official operator lifecycle)
+
+FAILURE: apply kubevirt: exit 1: error: error validating "/tmp/ckp-addon-kubevirt-manifest-0.yaml": error validating data: failed to download openapi: Get "http://localhost:8080/openapi/v2?timeout=32s": dial tcp 127.0.0.1:8080: connect: connection refused; if you choose to ignore these errors, turn validation off with --validate=false | error: error validating "/tmp/ckp-addon-kubevirt-manifest-0.yaml": error validating data: failed to download openapi: Get "http://localhost:8080/openapi/v2?timeout=32s": dial tcp 127.0.0.1:8080: connect: connection refused; if you choose to ignore these errors, turn validation off with --validate=false

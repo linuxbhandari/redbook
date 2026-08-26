@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multus-test
+  namespace: default
+  annotations:
+    k8s.v1.cni.cncf.io/networks: default/secondary-net
+spec:
+  containers:
+    - name: test
+      image: nicolaka/netshoot
+      command:
+        - sleep
+        - "3600"

@@ -1,0 +1,57 @@
+{
+  "completed": {
+    "baseline": true,
+    "cni": true,
+    "control-plane-init": true,
+    "control-plane-join": true,
+    "post-validate": true,
+    "stores": true,
+    "validate": true,
+    "workers-join": true
+  },
+  "k8s_version": "1.35.1",
+  "vip": "",
+  "started_at": "2026-08-26T06:48:54Z",
+  "updated_at": "2026-08-26T06:50:41Z",
+  "config": {
+    "masters": [
+      {
+        "name": "master-1",
+        "mgmt_ip": "10.0.3.124",
+        "role": "master"
+      }
+    ],
+    "workers": [
+      {
+        "name": "worker-1",
+        "mgmt_ip": "10.0.3.29",
+        "role": "worker"
+      },
+      {
+        "name": "worker-2",
+        "mgmt_ip": "10.0.4.20",
+        "role": "worker"
+      }
+    ],
+    "k8s_version": "1.35.1",
+    "registry": "docker.io/coredgeio",
+    "pkg_mirror": "",
+    "pod_cidr": "10.244.0.0/16",
+    "service_cidr": "10.96.0.0/12",
+    "hardening": "baseline",
+    "os": "ubuntu",
+    "byoh": true,
+    "cni": "kubeovn",
+    "kube_ovn_version": "v1.16.2",
+    "join_cidr": "100.64.0.0/16",
+    "ovn_tunnel_type": "geneve",
+    "kube_vip": {
+      "version": "v1.1.1",
+      "image": "docker.io/coredgeio/kube-vip",
+      "mode": "arp",
+      "leader_election": true
+    },
+    "ssh_user": "root",
+    "ssh_key": "/tmp/ckpctl-ssh-3869490351/id_ckpctl"
+  }
+}

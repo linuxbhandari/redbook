@@ -1,0 +1,17 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+  [master-1] apply "cdi" (1 manifest(s) + CR, official operator lifecycle)
+    namespace/cdi serverside-applied
+    customresourcedefinition.apiextensions.k8s.io/cdis.cdi.kubevirt.io serverside-applied
+    clusterrole.rbac.authorization.k8s.io/cdi-operator-cluster serverside-applied
+    clusterrolebinding.rbac.authorization.k8s.io/cdi-operator serverside-applied
+    serviceaccount/cdi-operator serverside-applied
+    role.rbac.authorization.k8s.io/cdi-operator serverside-applied
+    rolebinding.rbac.authorization.k8s.io/cdi-operator serverside-applied
+    deployment.apps/cdi-operator serverside-applied
+    cdi.cdi.kubevirt.io/cdi created
+    cdi operator+CR applied
+    check: Waiting for deployment "cdi-operator" rollout to finish: 0 of 1 updated replicas are available...
+    check: Waiting for deployment "cdi-apiserver" rollout to finish: 0 of 1 updated replicas are available...
+=== add-on "cdi" installed ===
+
+SUCCESS

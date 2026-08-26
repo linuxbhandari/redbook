@@ -1,0 +1,17 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+NOTE [snapshot-controller]: `addon delete snapshot-controller` removes the VolumeSnapshot CRDs cluster-wide — do not delete it while rook-ceph or another CSI driver still uses snapshots.
+  [master-1] apply "snapshot-controller" (5 manifest(s) + CR, official operator lifecycle)
+    customresourcedefinition.apiextensions.k8s.io/volumesnapshotclasses.snapshot.storage.k8s.io serverside-applied
+    customresourcedefinition.apiextensions.k8s.io/volumesnapshotcontents.snapshot.storage.k8s.io serverside-applied
+    customresourcedefinition.apiextensions.k8s.io/volumesnapshots.snapshot.storage.k8s.io serverside-applied
+    serviceaccount/snapshot-controller serverside-applied
+    clusterrole.rbac.authorization.k8s.io/snapshot-controller-runner serverside-applied
+    clusterrolebinding.rbac.authorization.k8s.io/snapshot-controller-role serverside-applied
+    role.rbac.authorization.k8s.io/snapshot-controller-leaderelection serverside-applied
+    rolebinding.rbac.authorization.k8s.io/snapshot-controller-leaderelection serverside-applied
+    deployment.apps/snapshot-controller serverside-applied
+    snapshot-controller operator+CR applied
+    check: Waiting for deployment "snapshot-controller" rollout to finish: 1 out of 2 new replicas have been updated...
+=== add-on "snapshot-controller" installed ===
+
+SUCCESS

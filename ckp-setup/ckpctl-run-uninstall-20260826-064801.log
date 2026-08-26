@@ -1,0 +1,47 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+    [master-1] remove cluster-backup timer from master-1
+    [worker-1] kubeadm reset + cleanup
+      worker-1: [preflight] Running pre-flight checks
+      worker-1: [reset] Deleted contents of the etcd data directory: /var/lib/etcd
+      worker-1: [reset] Stopping the kubelet service
+      worker-1: [reset] Deleting contents of directories: [/etc/kubernetes/manifests /etc/kubernetes/pki]
+      worker-1: [reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+      worker-1: 
+      worker-1: The reset process does not perform cleanup of CNI plugin configuration,
+      worker-1: network filtering rules and kubeconfig files.
+      worker-1: 
+      worker-1: For information on how to perform this cleanup manually, please see:
+      worker-1:     https://k8s.io/docs/reference/setup-tools/kubeadm/kubeadm-reset/
+      worker-1: 
+      worker-1: node reset complete
+    [worker-2] kubeadm reset + cleanup
+      worker-2: [preflight] Running pre-flight checks
+      worker-2: [reset] Deleted contents of the etcd data directory: /var/lib/etcd
+      worker-2: [reset] Stopping the kubelet service
+      worker-2: [reset] Deleting contents of directories: [/etc/kubernetes/manifests /etc/kubernetes/pki]
+      worker-2: [reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+      worker-2: 
+      worker-2: The reset process does not perform cleanup of CNI plugin configuration,
+      worker-2: network filtering rules and kubeconfig files.
+      worker-2: 
+      worker-2: For information on how to perform this cleanup manually, please see:
+      worker-2:     https://k8s.io/docs/reference/setup-tools/kubeadm/kubeadm-reset/
+      worker-2: 
+      worker-2: node reset complete
+    [master-1] kubeadm reset + cleanup
+      master-1: [preflight] Running pre-flight checks
+      master-1: [reset] Deleted contents of the etcd data directory: /var/lib/etcd
+      master-1: [reset] Stopping the kubelet service
+      master-1: [reset] Deleting contents of directories: [/etc/kubernetes/manifests /etc/kubernetes/pki]
+      master-1: [reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+      master-1: 
+      master-1: The reset process does not perform cleanup of CNI plugin configuration,
+      master-1: network filtering rules and kubeconfig files.
+      master-1: 
+      master-1: For information on how to perform this cleanup manually, please see:
+      master-1:     https://k8s.io/docs/reference/setup-tools/kubeadm/kubeadm-reset/
+      master-1: 
+      master-1: node reset complete
+=== cluster uninstalled on 3 node(s) ===
+
+SUCCESS

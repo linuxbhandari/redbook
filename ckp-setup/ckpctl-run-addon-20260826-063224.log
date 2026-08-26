@@ -1,0 +1,14 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+NOTE [multus]: `addon delete multus` removes the NetworkAttachmentDefinition CRD CLUSTER-WIDE — every NetworkAttachmentDefinition on the cluster is destroyed with it, including ones created by other systems layered on top (e.g. Cloud Orbiter's network-operator), not just Multus's own resources. The delete REFUSES automatically if any NAD still exists (see RefuseDeleteIfExists below) — pass --force once you've confirmed nothing else depends on them.
+  [master-1] apply "multus" (1 manifest(s) + CR, official operator lifecycle)
+    customresourcedefinition.apiextensions.k8s.io/network-attachment-definitions.k8s.cni.cncf.io serverside-applied
+    clusterrole.rbac.authorization.k8s.io/multus serverside-applied
+    clusterrolebinding.rbac.authorization.k8s.io/multus serverside-applied
+    serviceaccount/multus serverside-applied
+    configmap/multus-daemon-config serverside-applied
+    daemonset.apps/kube-multus-ds serverside-applied
+    multus operator+CR applied
+    check: Waiting for daemon set "kube-multus-ds" rollout to finish: 0 of 3 updated pods are available...
+=== add-on "multus" installed ===
+
+SUCCESS

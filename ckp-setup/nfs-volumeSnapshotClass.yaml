@@ -1,0 +1,9 @@
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: nfs-csi
+driver: nfs.csi.k8s.io
+deletionPolicy: Delete
+parameters:
+  server: 10.0.3.124
+  share: /srv/nfs/kubevirt

@@ -1,0 +1,5 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+  [master-1] helm present: v3.21.2+g1259634
+  [master-1] csi-driver-nfs node prerequisites
+  [worker-1] csi-driver-nfs node prerequisites
+  [worker-2] csi-driver-nfs node prerequisites

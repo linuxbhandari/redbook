@@ -1,0 +1,79 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: demovm-rootdisk
+  namespace: default
+spec:
+  source:
+    http:
+      url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+  storage:
+    accessModes: [ReadWriteMany]
+    resources:
+      requests:
+        storage: 10Gi
+    storageClassName: nfs-csi
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: demovm
+  namespace: default
+spec:
+  running: true
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: demovm
+    spec:
+      evictionStrategy: LiveMigrate
+      domain:
+        cpu: {cores: 2}
+        resources:
+          requests: {memory: 2Gi}
+        devices:
+          disks:
+            - name: rootdisk
+              disk: {bus: virtio}
+          interfaces:
+            - name: default
+              masquerade: {}
+            - name: secondary
+              bridge: {}
+      networks:
+        - name: default
+          pod: {}
+        - name: secondary
+          multus: {networkName: secondary-net}
+      volumes:
+        - name: rootdisk
+          persistentVolumeClaim:
+            claimName: demovm-rootdisk
+
+        - name: datadisk
+          dataVolume:
+            name: dv-vol1
+
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+
+              user: demo
+              password: a
+              chpasswd:
+                expire: false
+
+              ssh_pwauth: true
+
+              packages:
+                - openssh-server
+              runcmd:
+                - systemctl enable --now sshd
+            networkData: |
+              version: 2
+              ethernets:
+                enp1s0:
+                  dhcp4: true
+                enp2s0:
+                  dhcp4: true

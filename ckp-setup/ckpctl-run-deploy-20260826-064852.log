@@ -1,0 +1,359 @@
+  [ssh] installed bootstrap key on 10.0.3.124
+  [ssh] installed bootstrap key on 10.0.3.29
+  [ssh] installed bootstrap key on 10.0.4.20
+=== DEPLOY ===
+--- phase validate           [run]
+=== VALIDATE ===
+  [OK  ] pod-cidr       pod CIDR 10.244.0.0/16 will be set in kubeadm config (CNI must match)
+  [OK  ] join-cidr      kube-ovn join CIDR 100.64.0.0/16 does not overlap pod/service CIDRs or node addresses
+  [SKIP] airgap         registry/image/pkg-mirror checks skipped (--byoh pulls the signed bundle directly via imgpkg)
+  [OK  ] swap           master-1 swap off
+  [OK  ] time-sync      master-1 clock NTP-synchronised
+  [OK  ] swap           worker-1 swap off
+  [OK  ] time-sync      worker-1 clock NTP-synchronised
+  [OK  ] swap           worker-2 swap off
+  [OK  ] time-sync      worker-2 clock NTP-synchronised
+  [OK  ] dns-hostname   master-1 hostname resolves to 127.0.0.1
+  [OK  ] dns-hostname   worker-1 hostname resolves to 127.0.0.1
+  [OK  ] dns-hostname   worker-2 hostname resolves to 127.0.0.1
+  [OK  ] ports          worker-1->master-1:6443 open
+  [OK  ] ports          worker-1->master-1:10250 open
+  [OK  ] ports          worker-2->master-1:6443 open
+  [OK  ] ports          worker-2->master-1:10250 open
+--- 15 ok, 0 warn, 0 fail ---
+    phase validate           done (13.024s)
+--- phase stores             [run]
+    not self-hosted; skipping (registry is online/external)
+    phase stores             done (0s)
+--- phase baseline           [run]
+    bundle: docker.io/coredgeio/byoh-bundle-ubuntu_20.04.1_x86-64_k8s:v1.35.1 [pinned]
+    bundle already extracted at /tmp/ckpctl-bundle-ubuntu-1.35.1 (cached); skipping pull
+    [master-1] upload coredge GPG key + bundle artifacts (kubeadm.deb, kubelet.deb, kubectl.deb, containerd.tar)
+    [master-1] baseline [byoh] (GPG verify + containerd.tar + bundle debs)
+      master-1: verified kubeadm (Maintainer=Coredge.io)
+      master-1: verified kubelet (Maintainer=Coredge.io)
+      master-1: verified kubectl (Maintainer=Coredge.io)
+      master-1: Reading package lists...
+      master-1: Building dependency tree...
+      master-1: Reading state information...
+      master-1: kubeadm is already the newest version (1.35.1-ckp).
+      master-1: kubelet is already the newest version (1.35.1-ckp).
+      master-1: kubectl is already the newest version (1.35.1-ckp).
+      master-1: The following package was automatically installed and is no longer required:
+      master-1:   kubernetes-cni
+      master-1: Use 'sudo apt autoremove' to remove it.
+      master-1: 0 upgraded, 0 newly installed, 0 to remove and 84 not upgraded.
+      master-1: Reading package lists...
+      master-1: Building dependency tree...
+      master-1: Reading state information...
+      master-1: conntrack is already the newest version (1:1.4.8-1ubuntu1).
+      master-1: socat is already the newest version (1.8.0.0-4ubuntu0.1).
+      master-1: The following package was automatically installed and is no longer required:
+      master-1:   kubernetes-cni
+      master-1: Use 'sudo apt autoremove' to remove it.
+      master-1: 0 upgraded, 0 newly installed, 0 to remove and 87 not upgraded.
+      master-1: (no local apt repo configured; skipping OS package install)
+      master-1: baseline (byoh) complete: kubeadm v1.35.1-ckp, containerd v1.7.28
+    [worker-1] upload coredge GPG key + bundle artifacts (kubeadm.deb, kubelet.deb, kubectl.deb, containerd.tar)
+    [worker-1] baseline [byoh] (GPG verify + containerd.tar + bundle debs)
+      worker-1: verified kubeadm (Maintainer=Coredge.io)
+      worker-1: verified kubelet (Maintainer=Coredge.io)
+      worker-1: verified kubectl (Maintainer=Coredge.io)
+      worker-1: Reading package lists...
+      worker-1: Building dependency tree...
+      worker-1: Reading state information...
+      worker-1: kubeadm is already the newest version (1.35.1-ckp).
+      worker-1: kubelet is already the newest version (1.35.1-ckp).
+      worker-1: kubectl is already the newest version (1.35.1-ckp).
+      worker-1: The following package was automatically installed and is no longer required:
+      worker-1:   kubernetes-cni
+      worker-1: Use 'sudo apt autoremove' to remove it.
+      worker-1: 0 upgraded, 0 newly installed, 0 to remove and 84 not upgraded.
+      worker-1: Reading package lists...
+      worker-1: Building dependency tree...
+      worker-1: Reading state information...
+      worker-1: conntrack is already the newest version (1:1.4.8-1ubuntu1).
+      worker-1: socat is already the newest version (1.8.0.0-4ubuntu0.1).
+      worker-1: The following package was automatically installed and is no longer required:
+      worker-1:   kubernetes-cni
+      worker-1: Use 'sudo apt autoremove' to remove it.
+      worker-1: 0 upgraded, 0 newly installed, 0 to remove and 87 not upgraded.
+      worker-1: (no local apt repo configured; skipping OS package install)
+      worker-1: baseline (byoh) complete: kubeadm v1.35.1-ckp, containerd v1.7.28
+    [worker-2] upload coredge GPG key + bundle artifacts (kubeadm.deb, kubelet.deb, kubectl.deb, containerd.tar)
+    [worker-2] baseline [byoh] (GPG verify + containerd.tar + bundle debs)
+      worker-2: verified kubeadm (Maintainer=Coredge.io)
+      worker-2: verified kubelet (Maintainer=Coredge.io)
+      worker-2: verified kubectl (Maintainer=Coredge.io)
+      worker-2: Reading package lists...
+      worker-2: Building dependency tree...
+      worker-2: Reading state information...
+      worker-2: kubeadm is already the newest version (1.35.1-ckp).
+      worker-2: kubelet is already the newest version (1.35.1-ckp).
+      worker-2: kubectl is already the newest version (1.35.1-ckp).
+      worker-2: The following package was automatically installed and is no longer required:
+      worker-2:   kubernetes-cni
+      worker-2: Use 'sudo apt autoremove' to remove it.
+      worker-2: 0 upgraded, 0 newly installed, 0 to remove and 84 not upgraded.
+      worker-2: Reading package lists...
+      worker-2: Building dependency tree...
+      worker-2: Reading state information...
+      worker-2: conntrack is already the newest version (1:1.4.8-1ubuntu1).
+      worker-2: socat is already the newest version (1.8.0.0-4ubuntu0.1).
+      worker-2: The following package was automatically installed and is no longer required:
+      worker-2:   kubernetes-cni
+      worker-2: Use 'sudo apt autoremove' to remove it.
+      worker-2: 0 upgraded, 0 newly installed, 0 to remove and 87 not upgraded.
+      worker-2: (no local apt repo configured; skipping OS package install)
+      worker-2: baseline (byoh) complete: kubeadm v1.35.1-ckp, containerd v1.7.28
+    phase baseline           done (43.745s)
+--- phase control-plane-init [run]
+    [master-1] audit policy + log dir
+      master-1: audit policy installed at /etc/kubernetes/audit-policy.yaml, log dir /var/log/apiserver (700)
+    [master-1] write kubeadm config -> /etc/kubernetes/ckpctl-kubeadm.yaml
+    [master-1] kubeadm init
+      master-1: [init] Using Kubernetes version: v1.35.1
+      master-1: [preflight] Running pre-flight checks
+      master-1: [preflight] Pulling images required for setting up a Kubernetes cluster
+      master-1: [preflight] This might take a minute or two, depending on the speed of your internet connection
+      master-1: [preflight] You can also perform this action beforehand using 'kubeadm config images pull'
+      master-1: [certs] Using certificateDir folder "/etc/kubernetes/pki"
+      master-1: [certs] Generating "ca" certificate and key
+      master-1: [certs] Generating "apiserver" certificate and key
+      master-1: [certs] apiserver serving cert is signed for DNS names [kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local master-1] and IPs [10.96.0.1 10.0.3.124]
+      master-1: [certs] Generating "apiserver-kubelet-client" certificate and key
+      master-1: [certs] Generating "front-proxy-ca" certificate and key
+      master-1: [certs] Generating "front-proxy-client" certificate and key
+      master-1: [certs] Generating "etcd/ca" certificate and key
+      master-1: [certs] Generating "etcd/server" certificate and key
+      master-1: [certs] etcd/server serving cert is signed for DNS names [localhost master-1] and IPs [10.0.3.124 127.0.0.1 ::1]
+      master-1: [certs] Generating "etcd/peer" certificate and key
+      master-1: [certs] etcd/peer serving cert is signed for DNS names [localhost master-1] and IPs [10.0.3.124 127.0.0.1 ::1]
+      master-1: [certs] Generating "etcd/healthcheck-client" certificate and key
+      master-1: [certs] Generating "apiserver-etcd-client" certificate and key
+      master-1: [certs] Generating "sa" key and public key
+      master-1: [kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+      master-1: [kubeconfig] Writing "admin.conf" kubeconfig file
+      master-1: [kubeconfig] Writing "super-admin.conf" kubeconfig file
+      master-1: [kubeconfig] Writing "kubelet.conf" kubeconfig file
+      master-1: [kubeconfig] Writing "controller-manager.conf" kubeconfig file
+      master-1: [kubeconfig] Writing "scheduler.conf" kubeconfig file
+      master-1: [etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+      master-1: [control-plane] Using manifest folder "/etc/kubernetes/manifests"
+      master-1: [control-plane] Creating static Pod manifest for "kube-apiserver"
+      master-1: [control-plane] Creating static Pod manifest for "kube-controller-manager"
+      master-1: [control-plane] Creating static Pod manifest for "kube-scheduler"
+      master-1: [kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+      master-1: [kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/instance-config.yaml"
+      master-1: [patches] Applied patch of type "application/strategic-merge-patch+json" to target "kubeletconfiguration"
+      master-1: [kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+      master-1: [kubelet-start] Starting the kubelet
+      master-1: [wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests"
+      master-1: [kubelet-check] Waiting for a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+      master-1: [kubelet-check] The kubelet is healthy after 502.990877ms
+      master-1: [control-plane-check] Waiting for healthy control plane components. This can take up to 4m0s
+      master-1: [control-plane-check] Checking kube-apiserver at https://10.0.3.124:6443/livez
+      master-1: [control-plane-check] Checking kube-controller-manager at https://0.0.0.0:10257/healthz
+      master-1: [control-plane-check] Checking kube-scheduler at https://0.0.0.0:10259/livez
+      master-1: [control-plane-check] kube-controller-manager is healthy after 1.504764875s
+      master-1: [control-plane-check] kube-scheduler is healthy after 2.60255633s
+      master-1: [control-plane-check] kube-apiserver is healthy after 5.501596463s
+      master-1: [upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+      master-1: [kubelet] Creating a ConfigMap "kubelet-config" in namespace kube-system with the configuration for the kubelets in the cluster
+      master-1: [upload-certs] Storing the certificates in Secret "kubeadm-certs" in the "kube-system" Namespace
+      master-1: [upload-certs] Using certificate key:
+      master-1: 4f53218ae1e7581ff71fa812b46008f289c153730e81014097e8ef3d999440c5
+      master-1: [mark-control-plane] Marking the node master-1 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+      master-1: [mark-control-plane] Marking the node master-1 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+      master-1: [bootstrap-token] Using token: raj7fd.levfld03216mjddw
+      master-1: [bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+      master-1: [bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+      master-1: [bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+      master-1: [bootstrap-token] Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+      master-1: [bootstrap-token] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+      master-1: [bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+      master-1: [kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+      master-1: [addons] Applied essential addon: CoreDNS
+      master-1: [addons] Applied essential addon: kube-proxy
+      master-1: 
+      master-1: Your Kubernetes control-plane has initialized successfully!
+      master-1: 
+      master-1: To start using your cluster, you need to run the following as a regular user:
+      master-1: 
+      master-1:   mkdir -p $HOME/.kube
+      master-1:   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+      master-1:   sudo chown $(id -u):$(id -g) $HOME/.kube/config
+      master-1: 
+      master-1: Alternatively, if you are the root user, you can run:
+      master-1: 
+      master-1:   export KUBECONFIG=/etc/kubernetes/admin.conf
+      master-1: 
+      master-1: You should now deploy a pod network to the cluster.
+      master-1: Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+      master-1:   https://kubernetes.io/docs/concepts/cluster-administration/addons/
+      master-1: 
+      master-1: You can now join any number of control-plane nodes running the following command on each as root:
+      master-1: 
+      master-1:   kubeadm join 10.0.3.124:6443 --token raj7fd.levfld03216mjddw \
+      master-1: 	--discovery-token-ca-cert-hash sha256:30840e75b3d16a2da8e36035bcffc46ecf372b0f1a5c678609c655dc402e18ba \
+      master-1: 	--control-plane --certificate-key 4f53218ae1e7581ff71fa812b46008f289c153730e81014097e8ef3d999440c5
+      master-1: 
+      master-1: Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
+      master-1: As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
+      master-1: "kubeadm init phase upload-certs --upload-certs" to reload certs afterward.
+      master-1: 
+      master-1: Then you can join any number of worker nodes by running the following on each as root:
+      master-1: 
+      master-1: kubeadm join 10.0.3.124:6443 --token raj7fd.levfld03216mjddw \
+      master-1: 	--discovery-token-ca-cert-hash sha256:30840e75b3d16a2da8e36035bcffc46ecf372b0f1a5c678609c655dc402e18ba
+    [master-1] configure kubectl for ssh user
+      master-1: kubeconfig installed at /root/.kube/config for root
+    phase control-plane-init done (12.628s)
+--- phase control-plane-join [run]
+    single master; no control-plane join needed
+    phase control-plane-join done (1ms)
+--- phase workers-join       [run]
+    [worker-1] set kubelet node-ip=10.0.3.29
+      worker-1: node-ip set on /etc/default/kubelet: --node-ip=10.0.3.29
+    [worker-1] kubeadm join (worker)
+      worker-1: [preflight] Running pre-flight checks
+      worker-1: [preflight] Reading configuration from the "kubeadm-config" ConfigMap in namespace "kube-system"...
+      worker-1: [preflight] Use 'kubeadm init phase upload-config kubeadm --config your-config-file' to re-upload it.
+      worker-1: [kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/instance-config.yaml"
+      worker-1: [patches] Applied patch of type "application/strategic-merge-patch+json" to target "kubeletconfiguration"
+      worker-1: [kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+      worker-1: [kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+      worker-1: [kubelet-start] Starting the kubelet
+      worker-1: [kubelet-check] Waiting for a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+      worker-1: [kubelet-check] The kubelet is healthy after 501.953145ms
+      worker-1: [kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap
+      worker-1: 
+      worker-1: This node has joined the cluster:
+      worker-1: * Certificate signing request was sent to apiserver and a response was received.
+      worker-1: * The Kubelet was informed of the new secure connection details.
+      worker-1: 
+      worker-1: Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+    [worker-2] set kubelet node-ip=10.0.4.20
+      worker-2: node-ip set on /etc/default/kubelet: --node-ip=10.0.4.20
+    [worker-2] kubeadm join (worker)
+      worker-2: [preflight] Running pre-flight checks
+      worker-2: [preflight] Reading configuration from the "kubeadm-config" ConfigMap in namespace "kube-system"...
+      worker-2: [preflight] Use 'kubeadm init phase upload-config kubeadm --config your-config-file' to re-upload it.
+      worker-2: [kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/instance-config.yaml"
+      worker-2: [patches] Applied patch of type "application/strategic-merge-patch+json" to target "kubeletconfiguration"
+      worker-2: [kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+      worker-2: [kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+      worker-2: [kubelet-start] Starting the kubelet
+      worker-2: [kubelet-check] Waiting for a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+      worker-2: [kubelet-check] The kubelet is healthy after 502.63098ms
+      worker-2: [kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap
+      worker-2: 
+      worker-2: This node has joined the cluster:
+      worker-2: * Certificate signing request was sent to apiserver and a response was received.
+      worker-2: * The Kubelet was informed of the new secure connection details.
+      worker-2: 
+      worker-2: Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+    [master-1] label worker nodes (node-role.kubernetes.io/worker)
+      master-1: node/worker-1 labeled
+      master-1: node/worker-2 labeled
+    phase workers-join       done (12.388s)
+--- phase cni                [run]
+    [master-1] kube-ovn node prerequisites (OVS/tunnel kernel modules)
+    [worker-1] kube-ovn node prerequisites (OVS/tunnel kernel modules)
+    [worker-2] kube-ovn node prerequisites (OVS/tunnel kernel modules)
+    [master-1] label Kube-OVN master nodes
+      master-1: node/master-1 labeled
+    [master-1] Kube-OVN v1.16.2 (tunnel=geneve, join=100.64.0.0/16)
+    [master-1] install Kube-OVN CNI (v1.16.2, tunnel=geneve)
+      master-1: Release "kube-ovn" does not exist. Installing it now.
+      master-1: NAME: kube-ovn
+      master-1: LAST DEPLOYED: Wed Aug 26 06:50:19 2026
+      master-1: NAMESPACE: kube-system
+      master-1: STATUS: deployed
+      master-1: REVISION: 1
+      master-1: TEST SUITE: None
+      master-1: kube-ovn v1.16.2 installed (tunnel=geneve)
+    [master-1] wait for kube-ovn rollout
+      master-1: waiting for kube-ovn to create the ovs-ovn / kube-ovn-cni DaemonSets...
+      master-1: Waiting for daemon set "ovs-ovn" rollout to finish: 0 of 3 updated pods are available...
+      master-1: Waiting for daemon set "ovs-ovn" rollout to finish: 1 of 3 updated pods are available...
+      master-1: Waiting for daemon set "ovs-ovn" rollout to finish: 2 of 3 updated pods are available...
+      master-1: daemon set "ovs-ovn" successfully rolled out
+      master-1: Waiting for daemon set "kube-ovn-cni" rollout to finish: 2 of 3 updated pods are available...
+      master-1: daemon set "kube-ovn-cni" successfully rolled out
+    phase cni                done (22.912s)
+--- phase post-validate      [run]
+    [master-1] record management IPs on node objects
+      master-1: node/master-1 annotated
+      master-1: node/worker-1 annotated
+      master-1: node/worker-2 annotated
+    [master-1] keep workloads off the control-plane (apply taint)
+      master-1: node/master-1 modified
+      master-1: control-plane NoSchedule taint enforced (workloads keep off the masters)
+    [master-1] post-validate cluster health
+      master-1: -- nodes --
+      master-1: NAME       STATUS   ROLES           AGE   VERSION       INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+      master-1: master-1   Ready    control-plane   43s   v1.35.1-ckp   10.0.3.124    <none>        Ubuntu 24.04.2 LTS   6.8.0-138-generic   containerd://1.7.28
+      master-1: worker-1   Ready    worker          29s   v1.35.1-ckp   10.0.3.29     <none>        Ubuntu 24.04.2 LTS   6.8.0-138-generic   containerd://1.7.28
+      master-1: worker-2   Ready    worker          26s   v1.35.1-ckp   10.0.4.20     <none>        Ubuntu 24.04.2 LTS   6.8.0-138-generic   containerd://1.7.28
+      master-1: ready=3 total=3 expected=3
+      master-1: -- non-running system pods (if any) --
+      master-1: coredns-57f8cbb4dc-5vk7j               1/1   Running             0     33s
+      master-1: coredns-57f8cbb4dc-pcn9g               0/1   ContainerCreating   0     32s
+      master-1: etcd-master-1                          1/1   Running             3     41s
+      master-1: kube-apiserver-master-1                1/1   Running             3     41s
+      master-1: kube-controller-manager-master-1       1/1   Running             3     41s
+      master-1: kube-ovn-cni-6pklt                     1/1   Running             0     21s
+      master-1: kube-ovn-cni-gxzbz                     1/1   Running             0     21s
+      master-1: kube-ovn-cni-wsjxc                     1/1   Running             0     21s
+      master-1: kube-ovn-controller-7dc8746fc6-8nvkx   1/1   Running             0     21s
+      master-1: kube-ovn-monitor-65fbc76698-g25zm      0/1   Running             0     21s
+      master-1: kube-ovn-pinger-94tzc                  0/1   Running             0     20s
+      master-1: kube-ovn-pinger-h9856                  0/1   PodInitializing     0     20s
+      master-1: kube-ovn-pinger-wvcr9                  0/1   PodInitializing     0     20s
+      master-1: kube-proxy-2gsh9                       1/1   Running             0     33s
+      master-1: kube-proxy-2mgng                       1/1   Running             0     26s
+      master-1: kube-proxy-fgn78                       1/1   Running             0     29s
+      master-1: kube-scheduler-master-1                1/1   Running             3     41s
+      master-1: ovn-central-575c547c9f-fcjkj           1/1   Running             0     21s
+      master-1: ovs-ovn-hthhd                          1/1   Running             0     21s
+      master-1: ovs-ovn-j2htp                          1/1   Running             0     21s
+      master-1: ovs-ovn-l2kck                          1/1   Running             0     21s
+      master-1: post-validate complete
+    phase post-validate      done (1.931s)
+--- timing summary: 8 phase(s) ---
+    validate           13.024s
+    stores             0s
+    baseline           43.745s
+    control-plane-init 12.628s
+    control-plane-join 1ms
+    workers-join       12.388s
+    cni                22.912s
+    post-validate      1.931s
+=== DEPLOY COMPLETE (total 1m47s) ===
+Run `ckpctl info --state ckpctl-state.json` for endpoints and kubeconfig fetch instructions.
+
+=== post-deploy: installing 1 add-on(s): metrics-server ===
+  [master-1] helm present: v3.21.2+g1259634
+  [master-1] helm install "metrics-server" (chart oci://registry-1.docker.io/coredgehelm/metrics-server) into ns/kube-system
+    Release "metrics-server" does not exist. Installing it now.
+    NAME: metrics-server
+    LAST DEPLOYED: Wed Aug 26 06:50:44 2026
+    NAMESPACE: kube-system
+    STATUS: deployed
+    REVISION: 1
+    TEST SUITE: None
+    NOTES:
+    ***********************************************************************
+    * Metrics Server                                                      *
+    ***********************************************************************
+      Chart version: 3.13.0
+      App version:   0.8.0
+      Image tag:     docker.io/coredgeio/metrics-server:v0.7.2
+    ***********************************************************************
+    helm release metrics-server applied in ns/kube-system
+    check: deployment "metrics-server" successfully rolled out
+    check: apiservice.apiregistration.k8s.io/v1beta1.metrics.k8s.io condition met
+=== add-on "metrics-server" installed ===
+
+SUCCESS

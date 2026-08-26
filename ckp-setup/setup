@@ -1,0 +1,31 @@
+#!/bin/bash
+set -x
+rm -f ckpctl-state.json
+
+ckpctl deploy --byoh --os ubuntu --cni kubeovn --k8s-version 1.35.1 --masters 10.0.3.124 --workers 10.0.3.29,10.0.4.20 --ssh-user root --ssh-password 'a'
+
+ckpctl addon install cdi
+echo
+ckpctl addon install kubevirt
+echo
+ckpctl addon install multus
+echo
+ckpctl addon install nfs-csi
+echo
+ckpctl addon install nfs-csi
+echo
+ckpctl addon install ceph-csi-cephfs
+echo
+ckpctl addon install ceph-csi-rbd
+echo
+ckpctl addon install snapshot-controller
+echo
+
+
+kubectl apply -f nfs-storageclass.yaml
+echo
+kubectl apply -f secondary-subnet.yaml
+echo
+kubectl apply -f dv-volumes.yaml
+echo
+kubectl apply -f nfs-volumeSnapshotClass.yaml

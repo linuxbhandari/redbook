@@ -1,0 +1,31 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+NOTE [ceph-csi-cephfs]: Deployed in its own namespace on purpose: this chart and ceph-csi-rbd both create a ConfigMap called ceph-csi-config, so sharing a namespace makes the second install collide. Install the `snapshot-controller` add-on first if you want VolumeSnapshots.
+  [master-1] helm present: v3.21.2+g1259634
+  [master-1] ceph-csi-cephfs node prerequisites
+  [worker-1] ceph-csi-cephfs node prerequisites
+  [worker-2] ceph-csi-cephfs node prerequisites
+  [master-1] helm install "ceph-csi-cephfs" (chart https://ceph.github.io/csi-charts (chart ceph-csi-cephfs)) into ns/ceph-csi-cephfs
+    Release "ceph-csi-cephfs" does not exist. Installing it now.
+    NAME: ceph-csi-cephfs
+    LAST DEPLOYED: Wed Aug 26 06:54:30 2026
+    NAMESPACE: ceph-csi-cephfs
+    STATUS: deployed
+    REVISION: 1
+    TEST SUITE: None
+    NOTES:
+    Examples on how to configure a storage class and start using the driver are here:
+    https://github.com/ceph/ceph-csi/tree/v3.17.0/examples/cephfs
+    helm release ceph-csi-cephfs applied in ns/ceph-csi-cephfs
+    check: deployment "ceph-csi-cephfs-provisioner" successfully rolled out
+    check: daemon set "ceph-csi-cephfs-nodeplugin" successfully rolled out
+  [ceph-csi-cephfs] CephFS driver is installed, but NO external Ceph cluster is configured yet.
+  [ceph-csi-cephfs] Driver pods are running and no StorageClass was created, so PVCs will stay Pending.
+  [ceph-csi-cephfs] Supply the connection details and re-run the install:
+  [ceph-csi-cephfs]   ckpctl addon install ceph-csi-cephfs --values my-ceph.yaml
+  [ceph-csi-cephfs] Minimum contents (see examples/ceph-csi-external-values.yaml):
+  [ceph-csi-cephfs]   csiConfig: [ { clusterID: <ceph-fsid>, monitors: [ "<mon-ip>:6789" ] } ]
+  [ceph-csi-cephfs]   secret:    { create: true, userID: <cephx-user>, userKey: <key> }
+  [ceph-csi-cephfs]   storageClass: { create: true, name: ceph-fs, clusterID: <fsid>, fsName: <filesystem> }
+=== add-on "ceph-csi-cephfs" installed ===
+
+SUCCESS

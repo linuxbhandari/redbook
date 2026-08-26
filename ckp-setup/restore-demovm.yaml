@@ -1,0 +1,11 @@
+apiVersion: snapshot.kubevirt.io/v1alpha1
+kind: VirtualMachineRestore
+metadata:
+  name: demovm-restore-1
+  namespace: default
+spec:
+  target:
+    apiGroup: kubevirt.io
+    kind: VirtualMachine
+    name: demovm-restored
+  virtualMachineSnapshotName: demovm-snapshot-1

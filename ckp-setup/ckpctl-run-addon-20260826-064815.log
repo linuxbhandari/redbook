@@ -1,0 +1,2 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+  [master-1] apply "cdi" (1 manifest(s) + CR, official operator lifecycle)

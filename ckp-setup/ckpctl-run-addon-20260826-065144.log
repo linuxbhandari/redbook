@@ -1,0 +1,19 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+  [master-1] apply "kubevirt" (1 manifest(s) + CR, official operator lifecycle)
+    namespace/kubevirt serverside-applied
+    customresourcedefinition.apiextensions.k8s.io/kubevirts.kubevirt.io serverside-applied
+    priorityclass.scheduling.k8s.io/kubevirt-cluster-critical serverside-applied
+    clusterrole.rbac.authorization.k8s.io/kubevirt.io:operator serverside-applied
+    serviceaccount/kubevirt-operator serverside-applied
+    role.rbac.authorization.k8s.io/kubevirt-operator serverside-applied
+    rolebinding.rbac.authorization.k8s.io/kubevirt-operator-rolebinding serverside-applied
+    clusterrole.rbac.authorization.k8s.io/kubevirt-operator serverside-applied
+    clusterrolebinding.rbac.authorization.k8s.io/kubevirt-operator serverside-applied
+    deployment.apps/virt-operator serverside-applied
+    kubevirt.kubevirt.io/kubevirt created
+    kubevirt operator+CR applied
+    check: Waiting for deployment "virt-operator" rollout to finish: 0 of 2 updated replicas are available...
+    check: kubevirt.kubevirt.io/kubevirt condition met
+=== add-on "kubevirt" installed ===
+
+SUCCESS

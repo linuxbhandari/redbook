@@ -1,0 +1,24 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+  [master-1] helm present: v3.21.2+g1259634
+  [master-1] csi-driver-nfs node prerequisites
+  [worker-1] csi-driver-nfs node prerequisites
+  [worker-2] csi-driver-nfs node prerequisites
+  [master-1] helm install "csi-driver-nfs" (chart oci://registry-1.docker.io/coredgehelm/csi-driver-nfs) into ns/kube-system
+    Release "csi-driver-nfs" does not exist. Installing it now.
+    NAME: csi-driver-nfs
+    LAST DEPLOYED: Wed Aug 26 03:38:35 2026
+    NAMESPACE: kube-system
+    STATUS: deployed
+    REVISION: 1
+    TEST SUITE: None
+    NOTES:
+    The CSI NFS Driver is getting deployed to your cluster.
+    
+    To check CSI NFS Driver pods status, please run:
+    
+      kubectl --namespace=kube-system get pods --selector="app.kubernetes.io/instance=csi-driver-nfs" --watch
+    helm release csi-driver-nfs applied in ns/kube-system
+    check: daemon set "csi-nfs-node" successfully rolled out
+=== add-on "csi-driver-nfs" installed ===
+
+SUCCESS

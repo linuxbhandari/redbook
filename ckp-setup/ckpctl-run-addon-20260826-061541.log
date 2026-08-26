@@ -1,0 +1,31 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+NOTE [ceph-csi-rbd]: Install the `snapshot-controller` add-on first if you want VolumeSnapshots — this chart ships a csi-snapshotter sidecar (v8.5.0) but not the cluster-scoped VolumeSnapshot CRDs. Every node needs routed access to the Ceph mons (3300/6789) and OSDs (6800-7300). Uninstall removes the driver only — it never touches data in the external cluster.
+  [master-1] helm present: v3.21.2+g1259634
+  [master-1] ceph-csi-rbd node prerequisites
+  [worker-1] ceph-csi-rbd node prerequisites
+  [worker-2] ceph-csi-rbd node prerequisites
+  [master-1] helm install "ceph-csi-rbd" (chart https://ceph.github.io/csi-charts (chart ceph-csi-rbd)) into ns/ceph-csi-rbd
+    Release "ceph-csi-rbd" does not exist. Installing it now.
+    NAME: ceph-csi-rbd
+    LAST DEPLOYED: Wed Aug 26 06:15:49 2026
+    NAMESPACE: ceph-csi-rbd
+    STATUS: deployed
+    REVISION: 1
+    TEST SUITE: None
+    NOTES:
+    Examples on how to configure a storage class and start using the driver are here:
+    https://github.com/ceph/ceph-csi/tree/v3.17.0/examples/rbd
+    helm release ceph-csi-rbd applied in ns/ceph-csi-rbd
+    check: deployment "ceph-csi-rbd-provisioner" successfully rolled out
+    check: daemon set "ceph-csi-rbd-nodeplugin" successfully rolled out
+  [ceph-csi-rbd] RBD driver is installed, but NO external Ceph cluster is configured yet.
+  [ceph-csi-rbd] Driver pods are running and no StorageClass was created, so PVCs will stay Pending.
+  [ceph-csi-rbd] Supply the connection details and re-run the install:
+  [ceph-csi-rbd]   ckpctl addon install ceph-csi-rbd --values my-ceph.yaml
+  [ceph-csi-rbd] Minimum contents (see examples/ceph-csi-external-values.yaml):
+  [ceph-csi-rbd]   csiConfig: [ { clusterID: <ceph-fsid>, monitors: [ "<mon-ip>:6789" ] } ]
+  [ceph-csi-rbd]   secret:    { create: true, userID: <cephx-user>, userKey: <key> }
+  [ceph-csi-rbd]   storageClass: { create: true, name: ceph-rbd, clusterID: <fsid>, pool: <rbd-pool> }
+=== add-on "ceph-csi-rbd" installed ===
+
+SUCCESS

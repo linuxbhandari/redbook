@@ -1,0 +1,20 @@
+using cluster config from ./ckpctl-state.json (deploy state); pass --cluster-config/--prereq/--masters to override
+=== DEPLOY ===
+--- phase validate           [skip: already completed]
+--- phase stores             [skip: already completed]
+--- phase baseline           [skip: already completed]
+--- phase control-plane-init [skip: already completed]
+--- phase control-plane-join [skip: already completed]
+--- phase workers-join       [skip: already completed]
+--- phase cni                [skip: already completed]
+--- phase post-validate      [skip: already completed]
+=== DEPLOY COMPLETE (total 0s) ===
+Run `ckpctl info --state ckpctl-state.json` for endpoints and kubeconfig fetch instructions.
+
+=== post-deploy: installing 1 add-on(s): metrics-server ===
+  [master-1] helm present: v3.21.2+g1259634
+  [master-1] helm install "metrics-server" (chart oci://registry-1.docker.io/coredgehelm/metrics-server) into ns/kube-system
+WARN: metrics-server (installed by default) failed — kubectl top / HPA won't work until it's installed; offline runs must bundle it or pass --no-metrics-server. Cause: helm install metrics-server: exit 1: Error: Kubernetes cluster unreachable: Get "http://localhost:8080/version": dial tcp 127.0.0.1:8080: connect: connection refused
+Error: Kubernetes cluster unreachable: Get "http://localhost:8080/version": dial tcp 127.0.0.1:8080: connect: connection refused
+
+SUCCESS
